@@ -1,0 +1,10 @@
+numpy==1.19.2
+networkx==2.5
+scipy==1.5.2
+matplotlib==3.3.2
+pandas==1.1.2
+tensorboardX==2.1
+sklearn
+pgmpy==0.1.11
+dgl==0.4.2
+pytorch

@@ -1,0 +1,48 @@
+{
+  "task": {
+    "id": "SrlLstm",
+    "problem_class": "Srl",
+    "clear_cache": false,
+    "use_lstm": true,
+    "train_dataset": "data/conll2009/conll2009.train",
+    "dev_dataset": "data/conll2009/conll2009.dev",
+    "test_dataset": "data/conll2009/conll2009.test",
+    "voc_folder": "data/conll2009/",
+    "cache": "cache/srl",
+    "eval_dir": "data/conll2009/eval/"
+  },
+  "preprocessing":{
+    "glove_embeddings":{
+      "file": "data/glove/glove.840B.300d.txt"
+    }
+  },
+  "model_parameters":{
+    "gnn_layers": 1
+  },
+  "training":
+  {
+    "batch_size": 32,
+    "max_epochs": 25,
+    "train_split": "train",
+    "test_every_n": 1,
+    "save_path": "models/srl.model",
+    "learning_rate": 3e-4
+  },
+  "analysis":
+  {
+    "strategy": "GraphMask",
+    "parameters": {
+      "load": false,
+      "train": true,
+      "batch_size": 32,
+      "learning_rate": 3e-4,
+      "epochs_per_layer": 3,
+      "test_every_n": 1,
+      "train_split": "train",
+      "save_path": "models/srl.model.graphmask",
+      "penalty_scaling": 1,
+      "allowance": 0.03,
+      "max_allowed_performance_diff": 0.05
+    }
+  }
+}
