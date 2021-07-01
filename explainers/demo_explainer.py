@@ -14,6 +14,7 @@ class Demo(RootExplainer):
 	the dependencies function can consist of functions used by only the given explanation method.
 	all common dependencies can go to a common separate script
 	"""
+
 	def dependency_1(self, args):
 		pass
 
@@ -21,7 +22,8 @@ class Demo(RootExplainer):
 		pass
 
 	def get_explanation_node(self, x):
-		"""Explain a node prediction
+		"""
+		Explain a node prediction
 		"""
 		self.model.eval()
 		output = self.model(x.to(self.device), self.edge_index.to(self.device))
@@ -33,11 +35,13 @@ class Demo(RootExplainer):
 		return x.grad[torch.where(self.subset==self.node_idx)[0].item(), :]
 
         def get_explanation_graph(self):
-                """Explain a graph prediction
+                """
+		Explain a graph prediction
                 """
 		pass
 	
 	def get_explanation_link(self):
-                """Explain an edge link prediction
+                """
+		Explain an edge link prediction
                 """
                 pass		
