@@ -3,6 +3,8 @@ import torch.nn.functional as F
 #from torch_geometric import global_mean_pool
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
+import numpy as np
+
 from .utils.base_explainer import WalkBase
 
 class CAM(WalkBase):
@@ -123,10 +125,10 @@ class Grad_CAM(WalkBase):
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
 
-    def get_explanation_graph(self, x, label, edge_index, layer = 0, num_nodes = None, forward_args = None, 
-                        criterion = F.cross_entropy):
+    def get_explanation_graph(self, x, label, edge_index, num_nodes = None, forward_args = None, 
+                        criterion = F.cross_entropy, average_variant = True, layer = None):
 
-        N = maybe_num_nodes(edge_index, num_nodes)
+        self.N = maybe_num_nodes(edge_index, num_nodes)
 
         x.requires_grad = True # Enforce that x needs gradient
 
@@ -144,20 +146,44 @@ class Grad_CAM(WalkBase):
         predicted_c = pred.argmax(dim=1)
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
 
-        assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
+        #assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
         # \alpha^{l,c} = Average over nodes of gradients for layer l, after activation over c
         # ''        '' shape: [k,] - k= # input features to layer l
-        gradients = list(self.model.parameters())[layer].grad.sum(dim=0) / N
+        #gradients = list(self.model.parameters())[layer].grad.sum(dim=0) / self.N
 
         # Gradient averaging is same for every node
         
         # Generate explanation for every node in graph
-        node_explanations = []
-        for n in range(N):
-            node_explanations.append(self.__exp_node(n, walk_steps, layer, gradients))
+        #layer_gcams = []
+        avg_gcam = np.zeros(self.N)
+        for l in range(len(walk_steps)):
+            #layer_gcams.append(self.__get_gCAM_layer(walk_steps, layer=l))
+            avg_gcam += np.array(self.__get_gCAM_layer(walk_steps, layer=l))
 
-        return node_explanations
+        # Element-wise average over all nodes:
+        avg_gcam /= len(walk_steps)
+        return avg_gcam
+
+
+    def __get_gCAM_layer(self, walk_steps, layer, node_idx = None, gradients = None):
+        # Gets Grad CAM for one layer
+        if gradients is None:
+            # \alpha^{l,c} = Average over nodes of gradients for layer l, after activation over c
+            # ''        '' shape: [k,] - k= # output features from layer l
+            #gradients = list(self.model.parameters())[layer].grad.mean(dim=0)
+            gradients = list(list(self.model.children())[layer].parameters())[0].grad.mean(dim=0)
+                # Index 0 of parameters to avoid calculating gradients for biases
+
+        if node_idx is None: # Need to compute for entire graph:
+            node_explanations = []
+            for n in range(self.N):
+                node_explanations.append(self.__exp_node(n, walk_steps, layer, gradients))
+
+            return node_explanations
+
+        # Return for only one node:
+        return self.__exp_node(node_idx, walk_steps, layer, gradients)
 
     def __exp_node(self, node_idx, walk_steps, layer, gradients):
         '''
