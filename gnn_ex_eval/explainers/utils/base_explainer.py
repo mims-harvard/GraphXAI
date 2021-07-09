@@ -331,32 +331,73 @@ class WalkBase(ExplainerBase):
 
         # --- divide layer sets ---
 
+        # walk_steps = []
+        # fc_steps = []
+        # pool_flag = False
+        # step = {'input': None, 'module': [], 'output': None}
+        # for layer in layer_extractor:
+        #     if isinstance(layer[0], MessagePassing) or isinstance(layer[0], GNNPool):
+        #         #print('Cond 1')
+        #         if isinstance(layer[0], GNNPool):
+        #             pool_flag = True
+        #         if step['module'] and step['input'] is not None:
+        #             walk_steps.append(step)
+        #         step = {'input': layer[1], 'module': [], 'output': None}
+        #     if pool_flag and split_fc and isinstance(layer[0], nn.Linear):
+        #         #print('Cond 2')
+        #         if step['module']:
+        #             fc_steps.append(step)
+        #         step = {'input': layer[1], 'module': [], 'output': None}
+        #     # ADDED: OWEN QUEEN -----------------
+        #     # This is GCN-specific code; won't work for SAGEConv, etc. 
+        #     # elif isinstance(layer[0], nn.Linear):
+        #     #     if step['module'] and step['input'] is not None:
+        #     #         walk_steps.append(step)
+        #     #     step = {'input': layer[1], 'module': [], 'output': None}
+        #     # -----------------------------------
+        #     step['module'].append(layer[0])
+        #     step['output'] = layer[2]
+        #     # if isinstance(layer[0], MessagePassing):
+        #     #     walk_steps.append(step)
+
         walk_steps = []
         fc_steps = []
         pool_flag = False
         step = {'input': None, 'module': [], 'output': None}
         for layer in layer_extractor:
-            if isinstance(layer[0], MessagePassing) or isinstance(layer[0], GNNPool):
-                #print('Cond 1')
-                if isinstance(layer[0], GNNPool):
-                    pool_flag = True
-                if step['module'] and step['input'] is not None:
+            if isinstance(layer[0], MessagePassing):
+                if step['module']: # Append step that had previously been building
                     walk_steps.append(step)
+
                 step = {'input': layer[1], 'module': [], 'output': None}
-            if pool_flag and split_fc and isinstance(layer[0], nn.Linear):
-                #print('Cond 2')
+
+            elif isinstance(layer[0], GNNPool):
+                pool_flag = True
                 if step['module']:
-                    fc_steps.append(step)
-                step = {'input': layer[1], 'module': [], 'output': None}
-            # ADDED: OWEN QUEEN -----------------
-            # This is GCN-specific code; won't work for SAGEConv, etc. 
-            elif isinstance(layer[0], nn.Linear):
-                if step['module'] and step['input'] is not None:
                     walk_steps.append(step)
+
+                # Putting in GNNPool
                 step = {'input': layer[1], 'module': [], 'output': None}
-            # -----------------------------------
+
+            elif isinstance(layer[0], nn.Linear):
+                if step['module']:
+                    if isinstance(step['module'][0], MessagePassing):
+                        walk_steps.append(step) # Append MessagePassing layer to walk_steps
+                    else: # Always append Linear layers to fc_steps
+                        fc_steps.append(step)
+
+                step = {'input': layer[1], 'module': [], 'output': None}
+
+            # Also appends non-trainable layers to step (not modifying input):
             step['module'].append(layer[0])
             step['output'] = layer[2]
+
+        if step['module']:
+            if isinstance(step['module'][0], MessagePassing):
+                walk_steps.append(step)
+            else: # Append anything to FC that is not MessagePassing at its origin
+                # Still supports sequential layers
+                fc_steps.append(step)
 
 
         for walk_step in walk_steps:
@@ -364,13 +405,12 @@ class WalkBase(ExplainerBase):
                 # We don't allow any outside nn during message flow process in GINs
                 walk_step['module'] = [walk_step['module'][0]]
 
+        # if split_fc:
+        #     if step['module']:
+        #         fc_steps.append(step)
+        #     return walk_steps, fc_steps
+        # else:
+        #     fc_step = step
 
-        if split_fc:
-            if step['module']:
-                fc_steps.append(step)
-            return walk_steps, fc_steps
-        else:
-            fc_step = step
 
-
-        return walk_steps, fc_step
+        return walk_steps, fc_steps
