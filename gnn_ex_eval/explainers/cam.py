@@ -13,7 +13,7 @@ class CAM(WalkBase):
     Class-Activation Mapping for GNNs
     '''
 
-    def __init__(self, model, device, activation = None):
+    def __init__(self, model: torch.nn.Module, device: str, activation = None):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -32,7 +32,8 @@ class CAM(WalkBase):
         else:
             self.activation = activation # Set activation function
 
-    def get_explanation_node(self, x, node_idx, edge_index, forward_args = None):
+    def get_explanation_node(self, x: torch.Tensor, node_idx: int, edge_index: torch.Tensor, 
+        forward_args: tuple = None):
         '''
         Explain one node prediction by the model
         Args:
@@ -68,7 +69,8 @@ class CAM(WalkBase):
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
 
-    def get_explanation_graph(self, x, edge_index, num_nodes = None, forward_args = None):
+    def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor, num_nodes: int = None, 
+        forward_args: tuple = None):
         '''
         Explain a whole-graph prediction.
 
@@ -91,7 +93,6 @@ class CAM(WalkBase):
 
         # Calculate predicted class and steps through model:
         predicted_c = self.activation(pred)
-        #print(predicted_c)
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
         
         # Generate explanation for every node in graph
@@ -119,11 +120,6 @@ class CAM(WalkBase):
         '''
         last_conv_layer = walk_steps[-1]
 
-        #print(last_conv_layer['module'][0].weight.shape)
-        #print(walk_steps)
-
-        #print("last_conv_layer['module'][0].weight", last_conv_layer['module'][0].weight.shape)
-
         weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
         F_l_n = F.relu(last_conv_layer['output'][node_idx,:]).detach()
 
@@ -137,7 +133,7 @@ class Grad_CAM(WalkBase):
     Gradient Class-Activation Mapping for GNNs
     '''
 
-    def __init__(self, model, device, criterion = F.cross_entropy):
+    def __init__(self, model: torch.Tensor, device: str, criterion = F.cross_entropy):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -150,8 +146,9 @@ class Grad_CAM(WalkBase):
         self.device = device
         self.criterion = criterion
 
-    def get_explanation_node(self, x, labels, node_idx, edge_index, node_idx_label = None, forward_args = None, 
-                                average_variant = True, layer = 0):
+    def get_explanation_node(self, x: torch.Tensor, labels: torch.Tensor, node_idx: int, 
+        edge_index: torch.Tensor, node_idx_label: int = None, forward_args: tuple = None, 
+        average_variant: bool = True, layer: int = 0):
         '''
         Explain a node in the given graph
         Args:
@@ -178,9 +175,6 @@ class Grad_CAM(WalkBase):
         pred, loss = self.__forward_pass(x, labels, edge_index, forward_args)#[node_idx, :].reshape(1, -1)
 
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
-
-        print(walk_steps)
-        print(fc_steps)
 
         L = len(walk_steps)
 
@@ -222,8 +216,8 @@ class Grad_CAM(WalkBase):
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Gradient Class-Activation Mapping')
 
-    def get_explanation_graph(self, x, label, edge_index, num_nodes = None, forward_args = None, 
-                        average_variant = True, layer = 0):
+    def get_explanation_graph(self, x: torch.Tensor, label: int, edge_index: torch.Tensor, num_nodes: int = None, 
+        forward_args: tuple = None, average_variant: bool = True, layer: int = 0):
         '''
         Explain a whole-graph prediction.
 
@@ -248,8 +242,6 @@ class Grad_CAM(WalkBase):
 
         # Calculate predicted class and steps through model:
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
-        print(walk_steps)
-        print(fc_steps)
         
         # Generate explanation for every node in graph
         if average_variant:
@@ -292,7 +284,6 @@ class Grad_CAM(WalkBase):
             # \alpha^{l,c} = Average over nodes of gradients for layer l, after activation over c
             # ''        '' shape: [k,] - k= # output features from layer l
             gradients = self.__grad_by_layer(layer)
-            #gradients = list(list(self.model.children())[layer].parameters())[0].grad.mean(dim=0)
 
         if node_idx is None: # Need to compute for entire graph:
             node_explanations = []
