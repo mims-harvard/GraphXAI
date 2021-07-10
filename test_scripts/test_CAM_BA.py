@@ -74,8 +74,6 @@ for epoch in range(1, 201):
 
 node_idx = random.choice(inhouse)
 
-
-
 model.eval()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
 print('pred shape', pred.shape)
