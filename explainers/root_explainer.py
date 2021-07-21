@@ -14,10 +14,10 @@ class RootExplainer(nn.Module):
 		self.subset = subset
 		self.device = device
 
-	@property
-	"""
-	add different util functions that may be used by differnet explanation methods
-	"""
+	# @property
+	# """
+	# add different util functions that may be used by differnet explanation methods
+	# """
 	
 	def get_subgraph(self, node_idx, num_hops, x, edge_index):
 		subset, sub_edge_index, mapping, hard_edge_mask = k_hop_subgraph(

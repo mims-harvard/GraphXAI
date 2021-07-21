@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-#from torch_geometric import global_mean_pool
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import k_hop_subgraph
 
