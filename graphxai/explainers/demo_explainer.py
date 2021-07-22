@@ -9,11 +9,11 @@ class Demo(RootExplainer):
 	def __init__(self, model):
 		super().__init__(model)
 
-	@dependencies
-	"""
-	the dependencies function can consist of functions used by only the given explanation method.
-	all common dependencies can go to a common separate script
-	"""
+	# @dependencies
+	# """
+	# the dependencies function can consist of functions used by only the given explanation method.
+	# all common dependencies can go to a common separate script
+	# """
 
 	def dependency_1(self, args):
 		pass
@@ -34,14 +34,14 @@ class Demo(RootExplainer):
 
 		return x.grad[torch.where(self.subset==self.node_idx)[0].item(), :]
 
-        def get_explanation_graph(self):
-                """
+	def get_explanation_graph(self):
+		"""
 		Explain a graph prediction
-                """
+		"""
 		pass
 	
 	def get_explanation_link(self):
-                """
+		"""
 		Explain an edge link prediction
-                """
-                pass		
+		"""
+		pass		
