@@ -1,12 +1,11 @@
-import sys, random
-sys.path.append('..')
+import random
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from gnn_ex_eval.explainers.cam import CAM, Grad_CAM
-from gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
-from gnn_ex_eval.explainers.utils.visualizations import *
+from graphxai.gnn_ex_eval.explainers.cam import CAM, Grad_CAM
+from graphxai.gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
+from graphxai.gnn_ex_eval.explainers.utils.visualizations import *
 
 import torch
 import torch.nn.functional as F
