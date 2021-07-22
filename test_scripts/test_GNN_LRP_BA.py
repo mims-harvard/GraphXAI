@@ -4,8 +4,8 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from explainers.utils.testing_datasets import BA_houses_maker as BAH
-from explainers.utils.visualizations import *
+from graphxai.explainers.utils.testing_datasets import BA_houses_maker as BAH
+from graphxai.explainers.utils.visualizations import *
 
 import torch
 import torch.nn.functional as F
@@ -77,7 +77,7 @@ model.eval()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
 pred_class = pred.argmax(dim=0).item()
 
-from explainers.gnn_lrp import GNN_LRP
+from graphxai.explainers.gnn_lrp import GNN_LRP
 
 gnn_lrp = GNN_LRP(model, explain_graph=False)
 # walks, edge_masks, related_predictions, khop_info = gnn_lrp.forward(
