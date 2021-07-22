@@ -1,12 +1,12 @@
-import sys, random
-sys.path.append('..')
+import random
+
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from gnn_ex_eval.explainers.guidedbp import GuidedBP
-from gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
-from gnn_ex_eval.explainers.utils.visualizations import *
+from graphxai.gnn_ex_eval.explainers.guidedbp import GuidedBP
+from graphxai.gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
+from graphxai.gnn_ex_eval.explainers.utils.visualizations import *
 
 import torch
 import torch.nn.functional as F
@@ -72,5 +72,29 @@ for epoch in range(1, 201):
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
 
+node_idx = random.choice(inhouse)
+
 gbp = GuidedBP(model, criterion)
-gbp.get_explanation_node(data.x, 0, data.y, data.edge_index)
+exp, khop_info = gbp.get_explanation_node(data.x, int(node_idx), data.y, data.edge_index)
+exp_list = [exp[i].item() for i in range(exp.shape[0])]
+subgraph_eidx = khop_info[1]
+
+fig, (ax1, ax2) = plt.subplots(1, 2)
+
+visualize_subgraph_explanation(subgraph_eidx, data.y.tolist(), node_idx = int(node_idx), 
+    ax = ax1, show = False)
+ax1.set_title('Ground Truth')
+
+visualize_subgraph_explanation(subgraph_eidx, exp_list, node_idx = int(node_idx), 
+    ax = ax2, show = False)
+ax2.set_title('Guided Backprop')
+
+model.eval()
+pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
+
+ymin, ymax = ax1.get_ylim()
+xmin, xmax = ax1.get_xlim()
+ax1.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(data.y[node_idx].item()))
+ax1.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
+
+plt.show()
