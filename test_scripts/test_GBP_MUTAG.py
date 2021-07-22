@@ -1,5 +1,5 @@
 import sys
-sys.path.append('..')
+
 import numpy as np
 
 import torch
@@ -8,9 +8,10 @@ from torch_geometric.data import DataLoader
 from torch_geometric.nn import global_mean_pool, GCNConv
 import torch.nn.functional as F
 
-from gnn_ex_eval.explainers.guidedbp import GuidedBP
-from gnn_ex_eval.models.gcn import GCN_graph
-from gnn_ex_eval.explainers.utils.visualizations import visualize_mol_explanation
+
+from graphxai.gnn_ex_eval.explainers.guidedbp import GuidedBP
+from graphxai.gnn_ex_eval.models.gcn import GCN_graph
+from graphxai.gnn_ex_eval.explainers.utils.visualizations import visualize_mol_explanation
 
 import matplotlib.pyplot as plt
 
