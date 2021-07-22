@@ -26,6 +26,8 @@ class GNNPool(nn.Module):
 
 EPS = 1e-15
 
+blank_tuple = tuple()
+
 
 class ExplainerBase(nn.Module):
 
@@ -414,3 +416,107 @@ class WalkBase(ExplainerBase):
 
 
         return walk_steps, fc_steps
+
+    def walks_pick(self,
+                   edge_index: Tensor,
+                   pick_edge_indices: List,
+                   walk_indices: List=[],
+                   num_layers=0
+                   ):
+        walk_indices_list = []
+        for edge_idx in pick_edge_indices:
+
+            # Adding one edge
+            walk_indices.append(edge_idx)
+            _, new_src = src, tgt = edge_index[:, edge_idx]
+            next_edge_indices = np.array((edge_index[0, :] == new_src).nonzero().view(-1))
+
+            # Finding next edge
+            if len(walk_indices) >= num_layers:
+                # return one walk
+                walk_indices_list.append(walk_indices.copy())
+            else:
+                walk_indices_list += self.walks_pick(edge_index, next_edge_indices, walk_indices, num_layers)
+
+            # remove the last edge
+            walk_indices.pop(-1)
+
+        return walk_indices_list
+
+    def eval_related_pred(self, x: Tensor, edge_index: Tensor, masks: List[Tensor], forward_args = blank_tuple, **kwargs):
+
+        node_idx = kwargs.get('node_idx')
+        node_idx = 0 if node_idx is None else node_idx # graph level: 0, node level: node_idx
+
+        related_preds = []
+
+        for label, mask in enumerate(masks):
+            # origin pred
+            for edge_mask in self.edge_mask:
+                edge_mask.data = float('inf') * torch.ones(mask.size(), device=self.device)
+            #ori_pred = self.model(x=x, edge_index=edge_index, *forward_args, **kwargs)
+            ori_pred = self.model(x, edge_index, *forward_args, **kwargs)
+
+            for edge_mask in self.edge_mask:
+                edge_mask.data = mask
+            #masked_pred = self.model(x=x, edge_index=edge_index, *forward_args, **kwargs)
+            masked_pred = self.model(x, edge_index, *forward_args, **kwargs)
+
+            # mask out important elements for fidelity calculation
+            for edge_mask in self.edge_mask:
+                edge_mask.data = - mask
+            #maskout_pred = self.model(x=x, edge_index=edge_index, *forward_args, **kwargs)
+            maskout_pred = self.model(x, edge_index, *forward_args, **kwargs)
+
+            # zero_mask
+            for edge_mask in self.edge_mask:
+                edge_mask.data = - float('inf') * torch.ones(mask.size(), device=self.device)
+            #zero_mask_pred = self.model(x=x, edge_index=edge_index, *forward_args, **kwargs)
+            zero_mask_pred = self.model(x, edge_index, *forward_args, **kwargs)
+
+            # Store related predictions for further evaluation.
+            related_preds.append({'zero': zero_mask_pred[node_idx],
+                                  'masked': masked_pred[node_idx],
+                                  'maskout': maskout_pred[node_idx],
+                                  'origin': ori_pred[node_idx]})
+
+            # Adding proper activation function to the models' outputs.
+            related_preds[label] = {key: pred.softmax(0)[label].item()
+                                    for key, pred in related_preds[label].items()}
+
+        return related_preds
+
+
+    def explain_edges_with_loop(self, x: Tensor, walks: Dict[Tensor, Tensor], ex_label):
+
+        walks_ids = walks['ids']
+        walks_score = walks['score'][:walks_ids.shape[0], ex_label].reshape(-1)
+        idx_ensemble = torch.cat([(walks_ids == i).int().sum(dim=1).unsqueeze(0) for i in range(self.num_edges + self.num_nodes)], dim=0)
+        hard_edge_attr_mask = (idx_ensemble.sum(1) > 0).long()
+        hard_edge_attr_mask_value = torch.tensor([float('inf'), 0], dtype=torch.float, device=self.device)[hard_edge_attr_mask]
+        edge_attr = (idx_ensemble * (walks_score.unsqueeze(0))).sum(1)
+        # idx_ensemble1 = torch.cat(
+        #     [(walks_ids == i).int().sum(dim=1).unsqueeze(1) for i in range(self.num_edges + self.num_nodes)], dim=1)
+        # edge_attr1 = (idx_ensemble1 * (walks_score.unsqueeze(1))).sum(0)
+
+        return edge_attr - hard_edge_attr_mask_value
+
+    class connect_mask(object):
+
+        def __init__(self, cls):
+            self.cls = cls
+
+        def __enter__(self):
+
+            self.cls.edge_mask = [nn.Parameter(torch.randn(self.cls.x_batch_size * (self.cls.num_edges + self.cls.num_nodes))) for _ in
+                             range(self.cls.num_layers)] if hasattr(self.cls, 'x_batch_size') else \
+                                 [nn.Parameter(torch.randn(1 * (self.cls.num_edges + self.cls.num_nodes))) for _ in
+                             range(self.cls.num_layers)]
+
+            for idx, module in enumerate(self.cls.mp_layers):
+                module.__explain__ = True
+                module.__edge_mask__ = self.cls.edge_mask[idx]
+
+        def __exit__(self, *args):
+            for idx, module in enumerate(self.cls.mp_layers):
+                module.__explain__ = False
