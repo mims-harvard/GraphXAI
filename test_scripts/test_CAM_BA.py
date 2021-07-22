@@ -1,12 +1,11 @@
-import sys, random
-sys.path.append('..')
+import random
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from gnn_ex_eval.explainers.cam import CAM, Grad_CAM
-from gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
-from gnn_ex_eval.explainers.utils.visualizations import *
+from graphxai.gnn_ex_eval.explainers.cam import CAM, Grad_CAM
+from graphxai.gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
+from graphxai.gnn_ex_eval.explainers.utils.visualizations import *
 
 import torch
 import torch.nn.functional as F
@@ -73,8 +72,6 @@ for epoch in range(1, 201):
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
 node_idx = random.choice(inhouse)
-
-
 
 model.eval()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)

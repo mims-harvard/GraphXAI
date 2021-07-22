@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 import torch
@@ -6,13 +8,16 @@ from torch_geometric.data import DataLoader
 from torch_geometric.nn import global_mean_pool, GCNConv
 import torch.nn.functional as F
 
-from graphxai.gnn_ex_eval.explainers.cam import CAM, Grad_CAM
+from graphxai.gnn_ex_eval.explainers.guidedbp import GuidedBP
 from graphxai.gnn_ex_eval.models.gcn import GCN_graph
 from graphxai.gnn_ex_eval.explainers.utils.visualizations import visualize_mol_explanation
 
 import matplotlib.pyplot as plt
 
 dataset = TUDataset(root='data/TUDataset', name='MUTAG')
+
+mol_num = int(sys.argv[1])
+assert mol_num < len(dataset)
 
 #dataset = dataset.shuffle()
 train_dataset = dataset[:150]
@@ -84,7 +89,7 @@ for epoch in range(1, 201):
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
-mol = dataset[98]
+mol = dataset[mol_num]
 
 atom_list = ['C', 'N', 'O', 'F', 'I', 'Cl', 'Br']
 atom_map = {i:atom_list[i] for i in range(len(atom_list))}
@@ -93,7 +98,7 @@ atoms = []
 for i in range(mol.x.shape[0]):
     atoms.append(atom_map[mol.x[i,:].tolist().index(1)])
 
-cam = Grad_CAM(model, '', criterion = criterion)
+gbp = GuidedBP(model, criterion)
 
 model.eval()
 pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))
@@ -101,34 +106,23 @@ pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))
 print('GROUND TRUTH LABEL: \t {}'.format(mol.y.item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 
-exp = cam.get_explanation_graph(mol.x, mol.y, mol.edge_index,
+exp = gbp.get_explanation_graph(mol.x, mol.y, mol.edge_index,
             forward_args = (torch.zeros(1).type(torch.int64),))
 
-# exp = np.interp(exp, (np.min(exp), np.max(exp)), (0, 10))
-# print(exp)
+exp_list = [torch.sum(exp[i,:]).item() for i in range(exp.shape[0])]
 
-fig, (ax1, ax2) = plt.subplots(1, 2)
+print(np.array(exp).shape)
 
+fig, ax = plt.subplots()
 
-visualize_mol_explanation(mol, exp, atoms = atoms, ax = ax1, show = False)
+visualize_mol_explanation(mol, exp_list, atoms = atoms, ax = ax, show = False)
 
-act = lambda x: torch.argmax(x, dim=1)
-cam = CAM(model, '', activation = act)
+ax.set_title('Guided Backprop (Summed across node gradients)')
 
-exp = cam.get_explanation_graph(mol.x, mol.edge_index,
-            forward_args = (torch.zeros(1).type(torch.int64),))
-
-visualize_mol_explanation(mol, exp, atoms = atoms, ax = ax2, show = False)
-
-
-ax1.set_title('Grad-CAM')
-ax2.set_title('CAM')
-
-
-ymin, ymax = ax1.get_ylim()
-xmin, xmax = ax1.get_xlim()
-ax1.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(mol.y.item()))
-ax1.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=1).item()))
+ymin, ymax = ax.get_ylim()
+xmin, xmax = ax.get_xlim()
+ax.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(mol.y.item()))
+ax.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=1).item()))
 
 # ax1.colorbar()
 # ax2.colorbar()
