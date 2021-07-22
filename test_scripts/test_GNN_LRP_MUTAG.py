@@ -9,9 +9,7 @@ from torch_geometric.nn import global_mean_pool, GCNConv
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 import torch.nn.functional as F
 
-from explainers.guidedbp import GuidedBP
-from gnn_ex_eval.models.gcn import GCN_graph
-from explainers.utils.visualizations import visualize_mol_explanation, parse_GNNLRP_explanations
+from graphxai.explainers.utils.visualizations import visualize_mol_explanation, parse_GNNLRP_explanations
 
 import matplotlib.pyplot as plt
 from torch_sparse import SparseTensor
@@ -19,8 +17,10 @@ from torch import Tensor
 
 dataset = TUDataset(root='data/TUDataset', name='MUTAG')
 
-#mol_num = int(sys.argv[1])
-#assert mol_num < len(dataset)
+assert len(sys.argv) == 2, "Must provide index (0 - {}) for molucule in dataset.".format(len(dataset))
+
+mol_num = int(sys.argv[1])
+assert mol_num < len(dataset), "Index in dataset must be < length of dataset."
 
 #dataset = dataset.shuffle()
 train_dataset = dataset[:150]
@@ -86,7 +86,7 @@ for epoch in range(1, 101):
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
 
-mol = dataset[161]
+mol = dataset[mol_num]
 
 atom_list = ['C', 'N', 'O', 'F', 'I', 'Cl', 'Br']
 atom_map = {i:atom_list[i] for i in range(len(atom_list))}
@@ -102,7 +102,7 @@ print('GROUND TRUTH LABEL: \t {}'.format(mol.y.item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 
 #from dig.xgraph.method import GNN_GI, GNN_LRP
-from explainers.gnn_lrp import GNN_LRP
+from graphxai.explainers.gnn_lrp import GNN_LRP
 
 print('Mol edge index shape', mol.edge_index.shape)
 
@@ -111,12 +111,6 @@ walks, edge_masks, related_predictions = gnn_lrp.forward(
     mol.x, mol.edge_index, num_classes = 2,
     forward_args = (torch.tensor([1], dtype = torch.long),)
 )
-
-# print('Walks:', walks)
-# print('Edge masks:', edge_masks)
-# print('Related Predictions:', related_predictions)
-
-# print('Walk ids:', walks['ids'].unique().tolist())
 
 node_exp, edge_exp = parse_GNNLRP_explanations((walks, edge_masks, related_predictions), mol.edge_index, pred_class)
 
