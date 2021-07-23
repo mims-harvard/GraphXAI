@@ -7,6 +7,8 @@ from torch_geometric.datasets import TUDataset
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import global_mean_pool, GCNConv
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
+from torch_geometric.utils import remove_self_loops
+
 import torch.nn.functional as F
 
 from graphxai.explainers.utils.visualizations import visualize_mol_explanation, parse_GNNLRP_explanations
@@ -101,21 +103,25 @@ pred_class = pred.argmax(dim=1).item()
 print('GROUND TRUTH LABEL: \t {}'.format(mol.y.item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 
-#from dig.xgraph.method import GNN_GI, GNN_LRP
 from graphxai.explainers.gnn_lrp import GNN_LRP
 
-print('Mol edge index shape', mol.edge_index.shape)
-
 gnn_lrp = GNN_LRP(model, explain_graph = True)
-walks, edge_masks, related_predictions = gnn_lrp.forward(
+edge_exp, new_edge_index = gnn_lrp.get_explanation_graph(
     mol.x, mol.edge_index, num_classes = 2,
     forward_args = (torch.tensor([1], dtype = torch.long),)
 )
 
-node_exp, edge_exp = parse_GNNLRP_explanations((walks, edge_masks, related_predictions), mol.edge_index, pred_class)
+# Want to explain our predicted class:
+edge_exp_label = edge_exp[pred_class]
 
-print('Len edge explanations', len(edge_exp))
+# For purposes of visualization, remove self-loops from edge index and explanations:
+mol.edge_index, edge_exp_label = remove_self_loops(edge_index=new_edge_index, edge_attr=torch.tensor(edge_exp_label))
 
-mol.edge_attr = edge_exp
+# Load explanations into edge attributes of molecule
+mol.edge_attr = edge_exp_label
 
-visualize_mol_explanation(mol, atoms = atoms, edge_weights = edge_exp, weight_map = True, directed = True)
+plt.title('Predicted = {:1d}, Ground Truth = {:1d}'.format(pred_class, mol.y.item()))
+visualize_mol_explanation(mol, atoms = atoms, edge_weights = edge_exp_label.tolist(), 
+    weight_map = True, directed = True, show = False)
+
+plt.show()

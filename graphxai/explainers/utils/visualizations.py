@@ -50,6 +50,7 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
                 else {i:atoms[i] for i in range(len(G.nodes))}
 
     edge_cmap = None
+    edge_map = 'k'
     if edge_weights is not None:
         edge_map = {i:[edge_weights[i]] for i in range(len(G.edges))}
         edge_cmap = plt.cm.Reds
@@ -58,16 +59,16 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
         nx.draw(G, pos, node_color = node_weights, 
             node_size = 400, cmap = plt.cm.Blues,
             arrows = False, edge_color = edge_map,
-            edge_cmap = edge_cmap)#, with_labels = True)
+            edge_cmap = edge_cmap)
         nodes = nx.draw_networkx_nodes(G, pos, node_size=400, 
             node_color = node_weights, cmap = plt.cm.Blues)
-        # pc = matplotlib.collections.PatchCollection(nodes, cmap=plt.cm.Blues)
-        # pc.set_array(node_weights)
-        # plt.colorbar(pc)
 
         # Set up colormap:
         if node_weights != '#1f78b4':
             sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=min(node_weights), vmax=max(node_weights)))
+            plt.colorbar(sm, shrink=0.75)
+        elif edge_weights is not None:
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min(edge_weights), vmax=max(edge_weights)))
             plt.colorbar(sm, shrink=0.75)
 
         nx.draw_networkx_labels(G, pos, labels = map)
@@ -196,18 +197,8 @@ def visualize_subgraph_explanation_w_edge(subgraph_nodes, subgraph_edge_index: t
             (default: :obj:`True`)  
     '''
 
-    print('Pre edited edge_index', subgraph_edge_index)
-
     # Trim data to remove self-loops and isolated nodes:
     edge_index, edge_attr = remove_self_loops(subgraph_edge_index, torch.tensor(edge_weights))
-    # print('After rm self loops', edge_index)
-    #edge_index, edge_attr, mask = remove_isolated_nodes(edge_index, edge_attr=edge_attr)
-
-    # Subgraph nodes via unique nodes in edge_index:
-    #subgraph_nodes = torch.unique(edge_index)
-
-    # print('Subgraph nodes', subgraph_nodes)
-    # print('edge_index', edge_index)
 
     # Instantiate data object
     data = Data(x=subgraph_nodes.reshape(-1, 1), edge_index=edge_index, edge_attr=edge_attr)
@@ -217,8 +208,6 @@ def visualize_subgraph_explanation_w_edge(subgraph_nodes, subgraph_edge_index: t
     G = G.subgraph(Gcc)
 
     edge_weights_subgraph = {i:[edge_attr[i].item()] for i in range(len(G.edges))}
-
-    print('G nodes', G.nodes)
 
     pos = nx.kamada_kawai_layout(G)
 

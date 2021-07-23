@@ -80,45 +80,19 @@ pred_class = pred.argmax(dim=0).item()
 from graphxai.explainers.gnn_lrp import GNN_LRP
 
 gnn_lrp = GNN_LRP(model, explain_graph=False)
-# walks, edge_masks, related_predictions, khop_info = gnn_lrp.forward(
-#     data.x, data.edge_index, num_classes = 2,
-#     node_idx = node_idx
-# )
-# edge_scores, khop_info = gnn_lrp.forward(
-#     data.x, data.edge_index, num_classes = 2,
-#     node_idx = node_idx
-# )
+
+
 edge_scores, khop_info = gnn_lrp.get_explanation_node(
     x = data.x, 
     node_idx = node_idx,
     edge_index = data.edge_index, 
-    num_classes = 2
+    num_classes = 2,
+    get_edge_scores=True,
+    edge_aggregator=np.sum
 )
 
-print(edge_scores)
-print(khop_info)
-
 visualize_subgraph_explanation_w_edge(khop_info[0], khop_info[1], edge_weights = edge_scores[pred_class],
-    node_idx=node_idx)
+    node_idx=node_idx, show = False)
 
-# node_exp, edge_exp = parse_GNNLRP_explanations((walks, edge_masks, related_predictions), data.edge_index, pred_class)
-
-# # 2 = # GCN layers
-# #subgraph_nodes, subgraph_eidx, _, edge_mask = k_hop_subgraph(node_idx, 2, data.edge_index)
-# #subgraph_eidx, subgraph_exp = subgraph(subgraph_nodes, edge_index=data.edge_index, edge_attr=torch.tensor(edge_exp))
-
-
-# print('Walks', walks)
-# print('Edge masks', edge_masks)
-# print('Related predictions', related_predictions)
-
-#edge_inds = 
-# edges = (edge_masks[pred_class] > 0).nonzero(as_tuple=True)[0]
-# subgraph_edge_exp = [edge_exp[e] for e in edges]
-
-
-# print('Edge mask stats:')
-# for e in edge_masks:
-#     for i in e.unique():
-#         print(i, (e > 0).nonzero(as_tuple=True)[0])
-#     print('')
+plt.title('GNN-LRP Explanation for Node {}'.format(node_idx))
+plt.show()
