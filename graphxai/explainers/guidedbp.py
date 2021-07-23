@@ -49,6 +49,13 @@ class GuidedBP(WalkBase):
             edge_index (torch.tensor): edge_index of entire graph
             forward_args (tuple, optional): additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
+
+        :rtype: (:class:`torch.Tensor` (size (n,k)), `tuple` (size (4,)))
+            filtered_exp (torch.Tensor, size (n,)): Explanations for each node, size `(n,k)` where `n` is number
+                of nodes in the entire graph described by `edge_index` and `k` is number of node input
+                features.
+            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
+                computational graph around node `node_idx`.
         '''
 
         # Run whole-graph prediction:
@@ -91,7 +98,12 @@ class GuidedBP(WalkBase):
             label (int): label for which to compute Grad-CAM against
             edge_index (torch.tensor): edge_index of entire graph
             forward_args (tuple, optional): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)        
+                beyond x and edge_index. (default: :obj:`None`)     
+
+        :rtype: :class:`torch.Tensor` (size (n,k))
+            exp (torch.Tensor, size (n,)): Explanations for each node, size `(n,k)` where `n` is number
+                of nodes in the entire graph described by `edge_index` and `k` is number of node input
+                features.   
         '''
 
         # Run whole-graph prediction:

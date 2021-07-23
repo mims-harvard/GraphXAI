@@ -41,6 +41,12 @@ class CAM(WalkBase):
             edge_index (torch.tensor): edge_index of entire graph
             forward_args (tuple): additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
+
+        :rtype: (`numpy.ndarray` (size (n,)), `tuple` (size (4,)))
+            cam (ndarray, size (n,)): Explanations for each node, size `(n,)` where `n` is number
+                of nodes in the entire graph described by `edge_index`.
+            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
+                computational graph around node `node_idx`.
         '''
         pred = self.__forward_pass(x, edge_index, forward_args)[node_idx, :].reshape(1, -1)
         predicted_c = self.activation(pred)
@@ -79,6 +85,9 @@ class CAM(WalkBase):
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
             forward_args (tuple, optional): additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
+
+        :rtype: :class:`list`, size (n,)
+            Explanations for each node in the graph (n is number of nodes).
         '''
 
         N = maybe_num_nodes(edge_index, num_nodes)
@@ -164,6 +173,12 @@ class Grad_CAM(WalkBase):
             layer (int, optional): Layer by which to compute the Grad-CAM. Argument only has an effect if 
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
+
+        :rtype: (`numpy.ndarray` (size (n,)), `tuple` (size (4,)))
+            gcam (ndarray, size (n,)): Explanations for each node, size `(n,)` where `n` is number
+                of nodes in the entire graph described by `edge_index`.
+            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
+                computational graph around node `node_idx`.
         '''
 
         x.requires_grad = True
@@ -232,6 +247,9 @@ class Grad_CAM(WalkBase):
             layer (int, optional): Layer by which to compute the Grad-CAM. Argument only has an effect if 
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
+
+        :rtype: :class:`numpy.ndarray`, size (n,)
+            Explanations for each node in the graph (n is number of nodes).
         '''
 
         self.N = maybe_num_nodes(edge_index, num_nodes)
@@ -256,7 +274,7 @@ class Grad_CAM(WalkBase):
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            return self.__get_gCAM_layer(walk_steps, layer=layer)
+            return np.array(self.__get_gCAM_layer(walk_steps, layer=layer))
 
     def __forward_pass(self, x, label, edge_index, forward_args):
         x.requires_grad = True # Enforce that x needs gradient
