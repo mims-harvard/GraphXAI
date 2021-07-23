@@ -4,6 +4,7 @@ import torch.nn as nn
 import copy
 import numpy as np
 from collections import Iterable
+from typing import Callable
 from torch_geometric.utils.loop import add_self_loops
 #from ..models.utils import subgraph
 from torch_geometric.utils import k_hop_subgraph
@@ -59,19 +60,52 @@ class GNN_LRP(WalkBase):
 
     def get_explanation_node(self, 
             x: Tensor, 
+            edge_index: Tensor,
             node_idx: int,
             num_classes: int,
-            edge_index: Tensor,
             forward_args: tuple = None,
+            get_edge_scores: bool = True,
+            edge_aggregator: Callable[[list], float] = np.sum,
             **kwargs
         ):
+        '''
+        Get explanation for computational graph around one node.
+
+        .. note:: 
+            `edge_aggregator` must take one argument, a list, and return one scalar (float).
+
+        Args:
+            x (Tensor): Graph input features.
+            edge_index (Tensor): Input edge_index of graph.
+            node_idx (int): Index of node for which to generate prediction and explanation 
+                for corresponding prediction.
+            num_classes (int): Number of classes in model.
+            forward_args (tuple, optional): Any additional inputs to model.forward method (other 
+                than x and edge_index). (default: :obj:`None`)
+            get_edge_scores (bool, optional): If true, returns edge scores as combined by
+                `edge_aggregator` function. (default: :obj:`True`)
+            edge_aggregator (function, optional): Function to combine scores from multiple walks
+                across one edge. Argument only has effect if `get_edge_scores == True`.
+                (default: :obj:`numpy.sum`)
+
+        :rtype: 
+            If `get_edge_scores == True`, (:obj:`list`, :obj:`tuple`). Return is list of aggregated
+                explanation values for each edge in subgraph. First dimension of list corresponds to label 
+                that those values explain, i.e. `len(exp) == num_classes` with 
+                `len(exp[i]) == # nodes in subgraph` for all i. Second return in tuple is `khop_info`,
+                the information about the computational graph around node `node_idx` as is returned
+                by `torch_geometric.utils.k_hop_subgraph`. Index in list corresponds exactly to 
+                index of edges in `khop_info` (`khop_info[1]`), the second return in the tuple.
+            If `get_edge_scores == False`, (:obj:`dict`, :obj:`tuple`). Return is dict of walks, with
+                keys `'ids'` and `'scores'`, corresponding to walks as denoted by edge indices and scores
+                of those corresponding walks, respectively. Second return is still `khop_info`.
+        '''
 
         super().forward(x, edge_index, **kwargs)
         self.model.eval()
 
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=False, split_fc=True, 
             forward_args = forward_args)
-
 
         edge_index_with_loop, _ = add_self_loops(edge_index, num_nodes=self.num_nodes)
 
@@ -251,22 +285,56 @@ class GNN_LRP(WalkBase):
                 # else:
                 #     related_preds = self.eval_related_pred(x, edge_index, masks, forward_args=forward_args, **kwargs)
 
-        subgraph_edge_mask = khop_info[3]
-        mask_inds = subgraph_edge_mask.nonzero(as_tuple=True)[0]
-        khop_info = list(khop_info)
-        khop_info[1] = edge_index_with_loop[:,mask_inds] # Ensure reordering occurs
-        edge_scores = [self.__parse_edges(walks, mask_inds, i) for i in labels]
+        if get_edge_scores:
+            subgraph_edge_mask = khop_info[3]
+            mask_inds = subgraph_edge_mask.nonzero(as_tuple=True)[0]
+            khop_info = list(khop_info)
+            khop_info[1] = edge_index_with_loop[:,mask_inds] # Ensure reordering occurs
+            edge_scores = [self.__parse_edges(walks, mask_inds, i, agg = edge_aggregator) for i in labels]
 
+            # edge_scores has same edge score ordering as khop_info[1] (i.e. edge_index of subgraph)
+            return edge_scores, khop_info 
+        
+        return walks, khop_info # Returns scores in terms of walks
         #return walks, masks, related_preds, khop_info
-        return edge_scores, khop_info
     
     def get_explanation_graph(self,
             x: Tensor,
             edge_index: Tensor,
             num_classes: int,
             forward_args: tuple = None,
+            get_edge_scores: bool = True,
+            edge_aggregator: Callable[[list], float] = np.sum,
             **kwargs
         ):
+        '''
+        Get explanation for computational graph around one node.
+
+        .. note:: 
+            `edge_aggregator` must take one argument, a list, and return one scalar (float).
+
+        Args:
+            x (Tensor): Graph input features.
+            num_classes (int): Number of classes in model.
+            edge_index (Tensor): Input edge_index of graph.
+            forward_args (tuple, optional): Any additional inputs to model.forward method (other 
+                than x and edge_index). (default: :obj:`None`)
+            get_edge_scores (bool, optional): If true, returns edge scores as combined by
+                `edge_aggregator` function. (default: :obj:`True`)
+            edge_aggregator (Callable[[list], float], optional): Function to combine scores from 
+                multiple walks across one edge. Argument only has effect if `get_edge_scores == True`.
+                (default: :obj:`numpy.sum`)
+
+        :rtype: 
+            If `get_edge_scores == True`, (:obj:`list`, :obj:`tuple`). Return is list of aggregated
+                explanation values for each edge in graph. First dimension of list corresponds to label 
+                that those values explain, i.e. `len(exp) == num_classes` with 
+                `len(exp[i]) == # nodes in graph` for all i. Second return in tuple is `edge_index_with_loop`,
+                the new edge index that is used for computation within the explanation method and model.
+            If `get_edge_scores == False`, (:obj:`dict`, :obj:`tuple`). Return is dict of walks, with
+                keys `'ids'` and `'scores'`, corresponding to walks as denoted by edge indices and scores
+                of those corresponding walks, respectively. Second return is still `edge_index_with_loop`.
+        '''
 
         super().forward(x, edge_index, **kwargs)
         self.model.eval()
@@ -432,12 +500,19 @@ class GNN_LRP(WalkBase):
                     mask = self.control_sparsity(mask, kwargs.get('sparsity'))
                     masks.append(mask.detach())
 
-                if forward_args is None:
-                    related_preds = self.eval_related_pred(x, edge_index, masks, **kwargs)
-                else:
-                    related_preds = self.eval_related_pred(x, edge_index, masks, forward_args=forward_args, **kwargs)
+                # if forward_args is None:
+                #     related_preds = self.eval_related_pred(x, edge_index, masks, **kwargs)
+                # else:
+                #     related_preds = self.eval_related_pred(x, edge_index, masks, forward_args=forward_args, **kwargs)
 
-        return walks, masks, related_preds
+        if get_edge_scores:
+            edge_ind_range = torch.arange(start = 0, end=edge_index_with_loop.shape[1])
+            edge_scores = [self.__parse_edges(walks, edge_ind_range, i, agg = edge_aggregator) for i in labels]
+            # Returns edge scores, whose indices correspond to scores for each edge in edge_index_with_loop
+            return edge_scores, edge_index_with_loop
+
+        #return walks, masks, related_preds
+        return walks, edge_index_with_loop # walks dictionary version of scores
 
 
     def forward(self,
@@ -669,7 +744,16 @@ class GNN_LRP(WalkBase):
         else:
             return walks, masks, related_preds
 
-    def __parse_edges(self, walks, mask_inds, label_idx):
+    def __parse_edges(self, walks: dict, mask_inds: torch.Tensor, label_idx: int, 
+        agg: Callable[[list], float] = np.sum):
+        '''
+        Retrieves and aggregates all walk scores into concise edge scores.
+        Args:
+            walks (dict): Contains 'ids' and 'score' keys as returned by functions.
+            mask_inds (torch.Tensor): Edges to compute walk score over
+            label_idx (int): index of label
+            agg (Callable[[list], float]): Aggregation function for edge scores
+        '''
         walk_ids = walks['ids']
         walk_scores = walks['score']
 
@@ -685,7 +769,7 @@ class GNN_LRP(WalkBase):
                 index_in_mask = (mask_inds == wn.item()).nonzero(as_tuple=True)[0].item()
                 edge_maps[index_in_mask].append(score)
 
-        edge_scores = [np.sum(e) for e in edge_maps]
+        edge_scores = [agg(e) for e in edge_maps]
         return edge_scores
 
     def __parse_GNNLRP_explanations(self, walks, edge_index, label_idx, 
