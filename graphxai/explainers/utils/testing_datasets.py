@@ -8,23 +8,24 @@ from torch_geometric.utils import from_networkx
 from torch_geometric.data import Data
 
 
-class BA_houses_maker:
+class BA_Houses:
 
     def __init__(self, n, m):
         self.n = n
         self.m = m
         self.in_house = set()
 
+    def get_data(self, num_houses):
+        BAG = self.make_BA_shapes(num_houses)
+        data = self.make_data(BAG)
+        inhouse = self.in_house
+        return data, list(inhouse)
+
     def make_house(self, G, encode_num = 1):
-
         pivot = random.choice(list(set(G.nodes) - self.in_house))
-
         mx = np.max(G.nodes)
-
         new_nodes = [mx + i for i in range(1, 5)]
-
         house_option = random.choice(list(range(3)))
-
         G.add_nodes_from(new_nodes)
 
         if house_option == 0:
