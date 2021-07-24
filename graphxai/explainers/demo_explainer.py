@@ -6,42 +6,30 @@ from .root_explainer import RootExplainer
 
 
 class Demo(RootExplainer):
-	def __init__(self, model):
-		super().__init__(model)
+    def __init__(self, model):
+        super().__init__(model)
 
-	# @dependencies
-	# """
-	# the dependencies function can consist of functions used by only the given explanation method.
-	# all common dependencies can go to a common separate script
-	# """
+    def get_explanation_node(self, x):
+        """
+        Explain a node prediction
+        """
+        self.model.eval()
+        output = self.model(x.to(self.device), self.edge_index.to(self.device))
 
-	def dependency_1(self, args):
-		pass
+        # NLL_loss
+        loss = F.nll_loss(output[self.mapping], self.label[self.mapping].to(self.device))
+        loss.backward()
 
-	def dependency_2(self, args):
-		pass
+        return x.grad[torch.where(self.subset==self.node_idx)[0].item(), :]
 
-	def get_explanation_node(self, x):
-		"""
-		Explain a node prediction
-		"""
-		self.model.eval()
-		output = self.model(x.to(self.device), self.edge_index.to(self.device))
+    def get_explanation_graph(self):
+        """
+        Explain a graph prediction
+        """
+        pass
 
-		# NLL_loss
-		loss = F.nll_loss(output[self.mapping], self.label[self.mapping].to(self.device))
-		loss.backward()
-
-		return x.grad[torch.where(self.subset==self.node_idx)[0].item(), :]
-
-	def get_explanation_graph(self):
-		"""
-		Explain a graph prediction
-		"""
-		pass
-	
-	def get_explanation_link(self):
-		"""
-		Explain an edge link prediction
-		"""
-		pass		
+    def get_explanation_link(self):
+        """
+        Explain an edge link prediction
+        """
+        pass
