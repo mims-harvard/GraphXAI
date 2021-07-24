@@ -1,45 +1,20 @@
 import random
-
-import numpy as np
-import networkx as nx
+import torch
 import matplotlib.pyplot as plt
 
-from graphxai.gnn_ex_eval.explainers.guidedbp import GuidedBP
-from graphxai.gnn_ex_eval.explainers.utils.testing_datasets import BA_houses_maker as BAH
-from graphxai.gnn_ex_eval.explainers.utils.visualizations import *
+from graphxai.explainers.guidedbp import GuidedBP
+from graphxai.explainers.utils.testing_datasets import BA_Houses
+from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
+from graphxai.gnns import GCN
+from graphxai.gnns.utils import train, test
 
-import torch
-import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from torch_geometric.utils import subgraph, to_networkx
-from torch_geometric.data import Data
 
-def get_data(n, m, num_houses):
-    bah = BAH(n, m)
-    BAG = bah.make_BA_shapes(num_houses)
-    data = bah.make_data(BAG)
-    inhouse = bah.in_house
-    return data, list(inhouse)
-
-n = 500
+n = 300
 m = 2
 num_houses = 20
 
-data, inhouse = get_data(n, m, num_houses)
-
-
-class GCN(torch.nn.Module):
-    def __init__(self, hidden_channels, input_feat, classes):
-        super(GCN, self).__init__()
-        self.conv1 = GCNConv(input_feat, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, classes)
-
-    def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
-        x = x.relu()
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = self.conv2(x, edge_index)
-        return x
+bah = BA_Houses(n, m)
+data, inhouse = bah.get_data(num_houses)
 
 model = GCN(64, input_feat = 1, classes = 2)
 print(model)
@@ -47,30 +22,10 @@ print(model)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 
-def train():
-      model.train()
-      optimizer.zero_grad()  # Clear gradients.
-      out = model(data.x, data.edge_index)  # Perform a single forward pass.
-    #   print('Out shape', out.shape)
-    #   print('y shape', data.y.shape)
-      loss = criterion(out[data.train_mask], data.y[data.train_mask])  # Compute the loss solely based on the training nodes.
-      loss.backward()  # Derive gradients.
-      optimizer.step()  # Update parameters based on gradients.
-      return loss
-
-def test():
-      model.eval()
-      out = model(data.x, data.edge_index)
-      pred = out.argmax(dim=1)  # Use the class with highest probability.
-      test_correct = pred[data.test_mask] == data.y[data.test_mask]  # Check against ground-truth labels.
-      test_acc = int(test_correct.sum()) / int(data.test_mask.sum())  # Derive ratio of correct predictions.
-      return test_acc
-
 for epoch in range(1, 201):
-    loss = train()
-    acc = test()
+    loss = train(model, optimizer, criterion, data)
+    acc = test(model, data)
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
-
 
 node_idx = random.choice(inhouse)
 
