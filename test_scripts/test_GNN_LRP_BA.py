@@ -3,11 +3,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from graphxai.explainers.gnn_lrp import GNN_LRP
-from graphxai.explainers.utils.testing_datasets import BA_Houses
-from graphxai.explainers.utils.visualizations import *
-from graphxai.gnns import GCN
-from graphxai.gnns.utils import train, test
+from graphxai.explainers import GNN_LRP
+from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation_w_edge
+from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
 
 n = 300

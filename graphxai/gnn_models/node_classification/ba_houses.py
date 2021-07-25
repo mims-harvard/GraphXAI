@@ -4,7 +4,6 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from torch_geometric.utils import from_networkx
 from torch_geometric.data import Data
 
 
@@ -106,15 +105,6 @@ class BA_Houses:
 
     def draw(self, G):
         pos = nx.kamada_kawai_layout(G)
-        nx.draw(G, pos, node_color = self.node_attr, 
-            node_size = 400, cmap = plt.cm.Blues,
-            arrows = False)
+        nx.draw(G, pos, node_color = self.node_attr, node_size = 400,
+                cmap = plt.cm.Blues, arrows = False)
         plt.show()
-
-
-if __name__ == '__main__':
-    bah=BA_houses_maker(40, 2)
-    G = bah.make_BA_shapes(num_houses=5)
-    print(G.edges)
-    print(G.nodes)
-    bah.draw(G)
