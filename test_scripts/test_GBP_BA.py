@@ -2,11 +2,9 @@ import random
 import torch
 import matplotlib.pyplot as plt
 
-from graphxai.explainers.guidedbp import GuidedBP
-from graphxai.explainers.utils.testing_datasets import BA_Houses
+from graphxai.explainers import GuidedBP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
-from graphxai.gnns import GCN
-from graphxai.gnns.utils import train, test
+from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
 
 n = 300

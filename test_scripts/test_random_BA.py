@@ -2,9 +2,8 @@ import random
 import torch
 
 from graphxai.explainers import RandomExplainer
-from graphxai.explainers.utils.testing_datasets import BA_Houses
-from graphxai.gnns import GCN
-from graphxai.gnns.utils import train, test
+from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
+from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
 
 n = 300
