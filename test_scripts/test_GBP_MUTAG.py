@@ -45,9 +45,7 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 exp = gbp.get_explanation_graph(mol.x, mol.y, mol.edge_index,
             forward_args = (torch.zeros(1).type(torch.int64),))
 
-exp_list = [torch.sum(exp[i,:]).item() for i in range(exp.shape[0])]
-
-print(np.array(exp).shape)
+exp_list = [torch.sum(exp['feature'][i,:]).item() for i in range(exp['feature'].shape[0])]
 
 fig, ax = plt.subplots()
 
@@ -59,8 +57,5 @@ ymin, ymax = ax.get_ylim()
 xmin, xmax = ax.get_xlim()
 ax.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(mol.y.item()))
 ax.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=1).item()))
-
-# ax1.colorbar()
-# ax2.colorbar()
 
 plt.show()
