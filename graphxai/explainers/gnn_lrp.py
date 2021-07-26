@@ -60,12 +60,12 @@ class GNN_LRP(WalkBase):
 
     def get_explanation_node(self, 
             x: Tensor, 
+            label: int,
             edge_index: Tensor,
             node_idx: int,
-            num_classes: int,
             forward_args: tuple = None,
             get_edge_scores: bool = True,
-            edge_aggregator: Callable[[list], float] = np.sum,
+            edge_aggregator: Callable[[torch.Tensor], torch.Tensor] = torch.sum,
             **kwargs
         ):
         '''
@@ -104,6 +104,11 @@ class GNN_LRP(WalkBase):
         super().forward(x, edge_index, **kwargs)
         self.model.eval()
 
+        # Ensure types:
+        label = int(label)
+        node_idx = int(node_idx)
+
+        # Step through the model:
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=False, split_fc=True, 
             forward_args = forward_args)
 
@@ -257,28 +262,28 @@ class GNN_LRP(WalkBase):
                 walk_scores.append(r)
 
         #labels = tuple(i for i in range(kwargs.get('num_classes')))
-        labels = tuple(i for i in range(num_classes))
-        walk_scores_tensor_list = [None for i in labels]
-        for label in labels:
+        # labels = tuple(i for i in range(num_classes))
+        # walk_scores_tensor_list = [None for i in labels]
+        # for label in labels:
 
-            walk_scores = []
+        walk_scores = []
 
-            compute_walk_score()
-            walk_scores_tensor_list[label] = torch.stack(walk_scores, dim=0).view(-1, 1)
+        compute_walk_score()
+        walk_scores_tensor_list = torch.stack(walk_scores, dim=0).view(-1, 1)
 
-        walks = {'ids': walk_indices_list, 'score': torch.cat(walk_scores_tensor_list, dim=1)}
+        walks = {'ids': walk_indices_list, 'score': walk_scores_tensor_list}
 
 
         # --- Apply edge mask evaluation ---
-        with torch.no_grad():
-            with self.connect_mask(self):
-                ex_labels = tuple(torch.tensor([label]).to(self.device) for label in labels)
-                masks = []
-                for ex_label in ex_labels:
-                    edge_attr = self.explain_edges_with_loop(x, walks, ex_label)
-                    mask = edge_attr
-                    mask = self.control_sparsity(mask, kwargs.get('sparsity'))
-                    masks.append(mask.detach())
+        # with torch.no_grad():
+        #     with self.connect_mask(self):
+        #         ex_labels = tuple(torch.tensor([label]).to(self.device) for label in labels)
+        #         masks = []
+        #         for ex_label in ex_labels:
+        #             edge_attr = self.explain_edges_with_loop(x, walks, ex_label)
+        #             mask = edge_attr
+        #             mask = self.control_sparsity(mask, kwargs.get('sparsity'))
+        #             masks.append(mask.detach())
 
                 # if forward_args is None:
                 #     related_preds = self.eval_related_pred(x, edge_index, masks, **kwargs)
@@ -290,21 +295,22 @@ class GNN_LRP(WalkBase):
             mask_inds = subgraph_edge_mask.nonzero(as_tuple=True)[0]
             khop_info = list(khop_info)
             khop_info[1] = edge_index_with_loop[:,mask_inds] # Ensure reordering occurs
-            edge_scores = [self.__parse_edges(walks, mask_inds, i, agg = edge_aggregator) for i in labels]
+            #edge_scores = [self.__parse_edges(walks, mask_inds, i, agg = edge_aggregator) for i in labels]
+            edge_scores = self.__parse_edges(walks, mask_inds, label, agg = edge_aggregator)
 
             # edge_scores has same edge score ordering as khop_info[1] (i.e. edge_index of subgraph)
-            return edge_scores, khop_info 
+            return {'feature': None, 'edge': edge_scores}, khop_info 
         
-        return walks, khop_info # Returns scores in terms of walks
+        return {'feature': None, 'edge': walks}, khop_info # Returns scores in terms of walks
         #return walks, masks, related_preds, khop_info
     
     def get_explanation_graph(self,
             x: Tensor,
+            label: int,
             edge_index: Tensor,
-            num_classes: int,
             forward_args: tuple = None,
             get_edge_scores: bool = True,
-            edge_aggregator: Callable[[list], float] = np.sum,
+            edge_aggregator: Callable[[torch.Tensor], torch.Tensor] = torch.sum,
             **kwargs
         ):
         '''
@@ -321,9 +327,11 @@ class GNN_LRP(WalkBase):
                 than x and edge_index). (default: :obj:`None`)
             get_edge_scores (bool, optional): If true, returns edge scores as combined by
                 `edge_aggregator` function. (default: :obj:`True`)
-            edge_aggregator (Callable[[list], float], optional): Function to combine scores from 
-                multiple walks across one edge. Argument only has effect if `get_edge_scores == True`.
-                (default: :obj:`numpy.sum`)
+            edge_aggregator (Callable[[torch.Tensor], torch.Tensor], optional): Function to combine scores from 
+                multiple walks across one edge. Must take a shape (n,) tensor and output a tensor of a single element 
+                (i.e. dimension 0 tensor). Other examples include `torch.mean` and `torch.norm`. Argument only has 
+                effect if `get_edge_scores == True`.
+                (default: :obj:`torch.sum`)
 
         :rtype: 
             If `get_edge_scores == True`, (:obj:`list`, :obj:`tuple`). Return is list of aggregated
@@ -338,6 +346,8 @@ class GNN_LRP(WalkBase):
 
         super().forward(x, edge_index, **kwargs)
         self.model.eval()
+
+        label = int(label) # Ensure label is an int
 
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=False, split_fc=True, 
             forward_args = forward_args)
@@ -477,42 +487,46 @@ class GNN_LRP(WalkBase):
                 walk_scores.append(r)
 
         #labels = tuple(i for i in range(kwargs.get('num_classes')))
-        labels = tuple(i for i in range(num_classes))
-        walk_scores_tensor_list = [None for i in labels]
-        for label in labels:
+        #labels = tuple(i for i in range(num_classes))
+        # walk_scores_tensor_list = [None for i in labels]
+        # for label in labels:
 
-            walk_scores = []
+        #     walk_scores = []
 
-            compute_walk_score()
-            walk_scores_tensor_list[label] = torch.stack(walk_scores, dim=0).view(-1, 1)
+        #     compute_walk_score()
+        #     walk_scores_tensor_list[label] = torch.stack(walk_scores, dim=0).view(-1, 1)
+        walk_scores = []
+        compute_walk_score()
+        walk_scores_tensor_list = torch.stack(walk_scores, dim=0).view(-1, 1)
 
-        walks = {'ids': walk_indices_list, 'score': torch.cat(walk_scores_tensor_list, dim=1)}
+        walks = {'ids': walk_indices_list, 'score': walk_scores_tensor_list} # One scalar score for each walk
 
 
-        # --- Apply edge mask evaluation ---
-        with torch.no_grad():
-            with self.connect_mask(self):
-                ex_labels = tuple(torch.tensor([label]).to(self.device) for label in labels)
-                masks = []
-                for ex_label in ex_labels:
-                    edge_attr = self.explain_edges_with_loop(x, walks, ex_label)
-                    mask = edge_attr
-                    mask = self.control_sparsity(mask, kwargs.get('sparsity'))
-                    masks.append(mask.detach())
+        # # --- Apply edge mask evaluation ---
+        # with torch.no_grad():
+        #     with self.connect_mask(self):
+        #         #ex_labels = tuple(torch.tensor([label]).to(self.device) for label in labels)
+        #         ex_label = torch.tensor([label]).to(self.device)
+        #         # masks = []
+        #         # for ex_label in ex_labels:
+        #         edge_attr = self.explain_edges_with_loop(x, walks, ex_label)
+        #         mask = edge_attr
+        #         mask = self.control_sparsity(mask, kwargs.get('sparsity')).detach()
+        #         masks.append(mask.detach())
 
-                # if forward_args is None:
-                #     related_preds = self.eval_related_pred(x, edge_index, masks, **kwargs)
-                # else:
-                #     related_preds = self.eval_related_pred(x, edge_index, masks, forward_args=forward_args, **kwargs)
+        #         # if forward_args is None:
+        #         #     related_preds = self.eval_related_pred(x, edge_index, masks, **kwargs)
+        #         # else:
+        #         #     related_preds = self.eval_related_pred(x, edge_index, masks, forward_args=forward_args, **kwargs)
 
         if get_edge_scores:
             edge_ind_range = torch.arange(start = 0, end=edge_index_with_loop.shape[1])
-            edge_scores = [self.__parse_edges(walks, edge_ind_range, i, agg = edge_aggregator) for i in labels]
+            #edge_scores = [self.__parse_edges(walks, edge_ind_range, i, agg = edge_aggregator) for i in labels]
+            edge_scores = self.__parse_edges(walks, edge_ind_range, label, agg = edge_aggregator)
             # Returns edge scores, whose indices correspond to scores for each edge in edge_index_with_loop
-            return edge_scores, edge_index_with_loop
+            return {'feature': None, 'edge': edge_scores}, edge_index_with_loop
 
-        #return walks, masks, related_preds
-        return walks, edge_index_with_loop # walks dictionary version of scores
+        return {'feature': None, 'edge': walks}, edge_index_with_loop # walks dictionary version of scores
 
 
     def forward(self,
@@ -745,7 +759,7 @@ class GNN_LRP(WalkBase):
             return walks, masks, related_preds
 
     def __parse_edges(self, walks: dict, mask_inds: torch.Tensor, label_idx: int, 
-        agg: Callable[[list], float] = np.sum):
+        agg: Callable[[list], float] = torch.sum):
         '''
         Retrieves and aggregates all walk scores into concise edge scores.
         Args:
@@ -763,13 +777,16 @@ class GNN_LRP(WalkBase):
 
         for i in range(walk_ids.shape[0]): # Over all walks:
             walk = walk_ids[i,:]
-            score = walk_scores[i,label_idx].item()
+            if walk_scores.shape[1] > 1:
+                score = walk_scores[i,label_idx].item()
+            else:
+                score = walk_scores[i].item()
             #walk_edges = walk.unique().tolist()
             for wn in walk:
                 index_in_mask = (mask_inds == wn.item()).nonzero(as_tuple=True)[0].item()
                 edge_maps[index_in_mask].append(score)
 
-        edge_scores = [agg(e) for e in edge_maps]
+        edge_scores = [agg(torch.tensor(e)).item() for e in edge_maps]
         return edge_scores
 
     def __parse_GNNLRP_explanations(self, walks, edge_index, label_idx, 
@@ -816,6 +833,6 @@ class GNN_LRP(WalkBase):
 
         # Now combine all incoming edge scores for nodes:
         node_scores = [sum([abs(xi) for xi in x]) for x in node_map]
-        print('len node_scores', len(node_scores))
+        #print('len node_scores', len(node_scores))
 
         return node_scores, edge_scores
