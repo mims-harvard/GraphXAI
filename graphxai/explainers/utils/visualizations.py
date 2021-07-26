@@ -88,7 +88,8 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
 
 def get_node_weights_subgraph(node_weights, subgraph_nodes):
     if isinstance(node_weights, torch.Tensor):
-        node_weights_new = [node_weights[n.item()] for n in subgraph_nodes]
+        #node_weights_new = [node_weights[n.item()] for n in subgraph_nodes]
+        node_weights_new = [node_weights[n] for n in subgraph_nodes]
     else:
         node_weights_new = [node_weights[n] for n in subgraph_nodes]
 
@@ -105,8 +106,8 @@ def get_node_weights_dict(node_weights, subgraph_nodes):
     return node_weights_dict
 
 def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list = None, 
-    edge_weights: list = None, node_idx: int = None, 
-    ax: matplotlib.axes.Axes = None, weight_map: bool = False, show: bool = True):
+    edge_weights: list = None, node_idx: int = None, ax: matplotlib.axes.Axes = None, 
+    weight_map: bool = False, show: bool = True, connected: bool = True):
     '''
     Visualize node explanation on a subgraph.
     :note: Only shows the largest connected component of the subgraph.
@@ -126,46 +127,76 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
             (default: :obj:`True`)  
     '''
 
+    if edge_weights is None:
+        edge_index, _ = remove_self_loops(edge_index)
+    else:
+        edge_index, edge_attr = remove_self_loops(edge_index, torch.tensor(edge_weights))
+        
     # Subgraph nodes via unique nodes in edge_index:
     subgraph_nodes = torch.unique(edge_index)
 
     data = Data(x=subgraph_nodes.reshape(-1, 1), edge_index=edge_index)
-    bigG = to_networkx(data, to_undirected=True, remove_self_loops=True)
-    Gcc = max(nx.connected_components(bigG), key=len)
-    G = bigG.subgraph(Gcc)
+    G = to_networkx(data, to_undirected=True, remove_self_loops=True)
+    if connected:
+        Gcc = max(nx.connected_components(G), key=len)
+        G = G.subgraph(Gcc)
 
-    node_weights_subgraph = get_node_weights_subgraph(node_weights, G.nodes)
+    print('nodes', G.nodes)
+    print('edges', G.edges)
+    #G = bigG
+
+    if node_weights is None:
+        node_weights_subgraph = '#1f78b4' # Default value for node color
+        cmap = None
+    else:
+        node_weights_subgraph = get_node_weights_subgraph(node_weights, G.nodes)
+        cmap = plt.cm.Blues
+
+    if edge_weights is None:
+        edge_weights_subgraph = 'k'
+        edge_cmap = None
+    else:
+        edge_weights_subgraph = {i:[edge_attr[i].item()] for i in range(len(G.edges))}
+        edge_cmap = plt.cm.Reds
 
     pos = nx.kamada_kawai_layout(G)
-
-    if weight_map:
-        map = get_node_weights_dict(node_weights, subgraph_nodes)
 
     if ax is None:
         if weight_map:
             nx.draw(G, pos, node_color = node_weights_subgraph, 
-                node_size = 400, cmap = plt.cm.Blues,
+                node_size = 400, cmap = plt.cm.Blues, 
+                edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False)
-            nx.draw_networkx_labels(G, pos, labels = map)
+            nx.draw_networkx_labels(G, pos, 
+                labels = get_node_weights_dict(node_weights, subgraph_nodes))
         else:
             nx.draw(G, pos, node_color = node_weights_subgraph, 
-                node_size = 400, cmap = plt.cm.Blues,
+                node_size = 400, cmap = cmap,
+                edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False, with_labels = True)
 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 
                 node_size = 400)
 
+        if edge_weights is not None:
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min(edge_attr.tolist()), 
+                vmax=max(edge_attr.tolist())))
+            plt.colorbar(sm, shrink=0.75)
+
     else:
         if weight_map:
             nx.draw(G, pos, node_color = node_weights_subgraph, 
-                node_size = 400, cmap = plt.cm.Blues,
+                node_size = 400, cmap = cmap,
+                edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False, ax = ax)
-            nx.draw_networkx_labels(G, pos, labels = map, ax = ax)
+            nx.draw_networkx_labels(G, pos, 
+                labels = get_node_weights_dict(node_weights, subgraph_nodes), ax = ax)
 
         else: 
             nx.draw(G, pos, node_color = node_weights_subgraph, 
-                node_size = 400, cmap = plt.cm.Blues,
+                node_size = 400, cmap = cmap,
+                edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False, ax = ax, with_labels = True)
 
         if node_idx is not None:
@@ -259,24 +290,39 @@ def visualize_subgraph_explanation_w_edge(subgraph_nodes, subgraph_edge_index: t
     if show:
         plt.show()
 
-def visualize_categorical_graph(data: Data, show: bool = True):
+def visualize_categorical_graph(data: Data = None, nx_graph: nx.classes.graph.Graph = None, node_idx: int = None,
+    show: bool = True):
     '''
     Shows a graph structure with nodes colored corresponding to their 
         classification.
 
+    .. note::
+        Either data or nx_graph must be specified, but not both. If by some error, both are specified as
+        arguments, data argument will be preferred.
+
     Args:
-        data (torch_geometric.data.Data): Data object containing x and edge_index
-            attributes. Contains graph information
+        data (torch_geometric.data.Data, optional): Data object containing x and edge_index
+            attributes. Contains graph information. (default: :obj:`None`)
+        nx_graph (nx.classes.graph.Graph, optional): Networkx graph to draw. (default: :obj:`None`)
         show (bool, optional): If `True`, calls `plt.show()` to display visualization.
             (default: :obj:`True`)  
     '''
-    datagraph = Data(x=data.x, edge_index=data.edge_index)
-    bigG = to_networkx(datagraph, to_undirected=True, remove_self_loops=True)
+    assert (data is not None) or (nx_graph is not None), 'Either data or nx_graph args must not be none.'
+
+    if nx_graph is None:
+        datagraph = Data(x=data.x, edge_index=data.edge_index)
+        bigG = to_networkx(datagraph, to_undirected=True, remove_self_loops=True)
+    else:
+        bigG = nx_graph
 
     pos = nx.kamada_kawai_layout(bigG)
     nx.draw(bigG, pos, node_color = data.y.tolist(),
             node_size = 400, cmap = plt.cm.Blues,
             arrows = False, with_labels = True)
+
+    if node_idx is not None:
+        nx.draw(bigG.subgraph(node_idx), pos, node_color = 'yellow', 
+                node_size = 400)
 
     if show:
         plt.show()
