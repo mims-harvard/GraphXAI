@@ -44,13 +44,13 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 from graphxai.explainers.gnn_lrp import GNN_LRP
 
 gnn_lrp = GNN_LRP(model, explain_graph = True)
-edge_exp, new_edge_index = gnn_lrp.get_explanation_graph(
-    mol.x, mol.edge_index, num_classes = 2,
+exp, new_edge_index = gnn_lrp.get_explanation_graph(
+    mol.x, pred_class, edge_index = mol.edge_index,
     forward_args = (torch.tensor([1], dtype = torch.long),)
 )
 
 # Want to explain our predicted class:
-edge_exp_label = edge_exp[pred_class]
+edge_exp_label = exp['edge']
 
 # For purposes of visualization, remove self-loops from edge index and explanations:
 mol.edge_index, edge_exp_label = remove_self_loops(edge_index=new_edge_index, edge_attr=torch.tensor(edge_exp_label))
