@@ -14,6 +14,12 @@ class CAM(WalkBase):
 
     def __init__(self, model: torch.nn.Module, device: str, activation = None):
         '''
+        .. note::
+            From Pope et al., CAM requires that the layer immediately before the softmax layer be
+            a global average pooling layer, or in the case of node classification, a graph convolutional
+            layer. Therefore, for this algorithm to theoretically work, there can be no fully-connected
+            layers after global pooling. There is no restriction in the code for this, but be warned. 
+
         Args:
             model (torch.nn.Module): model on which to make predictions
             device: device on which model is to run
@@ -31,10 +37,11 @@ class CAM(WalkBase):
         else:
             self.activation = activation # Set activation function
 
-    def get_explanation_node(self, x: torch.Tensor, node_idx: int, edge_index: torch.Tensor, 
+    def get_explanation_node(self, x: torch.Tensor, node_idx: int, label: int, edge_index: torch.Tensor, 
         forward_args: tuple = None):
         '''
         Explain one node prediction by the model
+
         Args:
             x (torch.tensor): tensor of node features from the entire graph
             node_idx (int): node index for which to explain a prediction around
@@ -49,7 +56,7 @@ class CAM(WalkBase):
                 computational graph around node `node_idx`.
         '''
         pred = self.__forward_pass(x, edge_index, forward_args)[node_idx, :].reshape(1, -1)
-        predicted_c = self.activation(pred)
+        #predicted_c = self.activation(pred)
 
         # Perform walk:
         walk_steps, fc_steps = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_args = forward_args)
@@ -64,17 +71,17 @@ class CAM(WalkBase):
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
 
-        cam = np.zeros(N) # Compute CAM only over the subgraph (all others are zero)
+        cam = torch.zeros(N) # Compute CAM only over the subgraph (all others are zero)
         for i in range(subgraph_N):
             n = subgraph_nodes[i]
-            cam[n] += self.__exp_node(n, walk_steps, predicted_c)
+            cam[n] += self.__exp_node(n, walk_steps, label)
 
-        return cam, khop_info
+        return {'feature': cam, 'edge': None}, khop_info
 
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
 
-    def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor, num_nodes: int = None, 
+    def get_explanation_graph(self, x: torch.Tensor, label: int, edge_index: torch.Tensor, num_nodes: int = None, 
         forward_args: tuple = None):
         '''
         Explain a whole-graph prediction.
@@ -85,6 +92,9 @@ class CAM(WalkBase):
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
             forward_args (tuple, optional): additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
+
+        :rtype: dict
+            Contains a tensor of length
 
         :rtype: :class:`list`, size (n,)
             Explanations for each node in the graph (n is number of nodes).
@@ -100,15 +110,16 @@ class CAM(WalkBase):
             pred = self.model(x, edge_index, *forward_args)
 
         # Calculate predicted class and steps through model:
-        predicted_c = self.activation(pred)
+        #predicted_c = self.activation(pred)
+
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
         
         # Generate explanation for every node in graph
         node_explanations = []
         for n in range(N):
-            node_explanations.append(self.__exp_node(n, walk_steps, predicted_c))
+            node_explanations.append(self.__exp_node(n, walk_steps, label))
 
-        return node_explanations
+        return {'feature': torch.tensor(node_explanations), 'edge': []}
 
     def __forward_pass(self, x, edge_index, forward_args):
         # Forward pass:
@@ -201,7 +212,7 @@ class Grad_CAM(WalkBase):
 
         if average_variant:
             # Size of all nodes in graph; Sets all values to zero if not in subgraph
-            avg_gcam = np.zeros(N)
+            avg_gcam = torch.zeros(N)
 
             for l in range(L):
                 # Compute gradients for this layer ahead of time:
@@ -213,7 +224,7 @@ class Grad_CAM(WalkBase):
 
             avg_gcam /= L # Apply average
 
-            return avg_gcam, khop_info
+            return {'feature': avg_gcam, 'edge': None}, khop_info
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
@@ -224,7 +235,7 @@ class Grad_CAM(WalkBase):
                 n = subgraph_nodes[i]
                 gcam[n] += self.__get_gCAM_layer(walk_steps, layer, n, gradients)#[0]
 
-            return gcam, khop_info
+            return {'feature': gcam, 'edge': None}, khop_info
                 
 
     def get_explanation_link(self, x, node_idx):
@@ -262,19 +273,21 @@ class Grad_CAM(WalkBase):
         
         # Generate explanation for every node in graph
         if average_variant:
-            avg_gcam = np.zeros(self.N)
+            avg_gcam = torch.zeros(self.N)
 
             for l in range(len(walk_steps)): # Get Grad
                 avg_gcam += np.array(self.__get_gCAM_layer(walk_steps, layer=l))
 
             # Element-wise average over all nodes:
             avg_gcam /= len(walk_steps)
-            return avg_gcam
+            #return avg_gcam
+            return {'feature': avg_gcam, 'edge': None}
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            return np.array(self.__get_gCAM_layer(walk_steps, layer=layer))
+            #return np.array(self.__get_gCAM_layer(walk_steps, layer=layer))
+            return {'feature': torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer)), 'edge': None}
 
     def __forward_pass(self, x, label, edge_index, forward_args):
         x.requires_grad = True # Enforce that x needs gradient
