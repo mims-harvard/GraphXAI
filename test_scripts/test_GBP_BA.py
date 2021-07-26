@@ -6,7 +6,6 @@ from graphxai.explainers import GuidedBP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
-
 n = 300
 m = 2
 num_houses = 20
@@ -29,7 +28,7 @@ node_idx = random.choice(inhouse)
 
 gbp = GuidedBP(model, criterion)
 exp, khop_info = gbp.get_explanation_node(data.x, int(node_idx), data.y, data.edge_index)
-exp_list = [exp[i].item() for i in range(exp.shape[0])]
+exp_list = [exp['feature'][i].item() for i in range(exp['feature'].shape[0])]
 subgraph_eidx = khop_info[1]
 
 fig, (ax1, ax2) = plt.subplots(1, 2)

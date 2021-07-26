@@ -51,7 +51,7 @@ class GuidedBP(WalkBase):
                 beyond x and edge_index. (default: :obj:`None`)
 
         :rtype: (:class:`torch.Tensor` (size (n,k)), `tuple` (size (4,)))
-            filtered_exp (torch.Tensor, size (n,)): Explanations for each node, size `(n,k)` where `n` is number
+            filtered_exp (torch.Tensor, size (n,k)): Explanations for each node, size `(n,k)` where `n` is number
                 of nodes in the entire graph described by `edge_index` and `k` is number of node input
                 features.
             khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
@@ -86,7 +86,7 @@ class GuidedBP(WalkBase):
             if i in subgraph_nodes:
                 filtered_exp[i,:] = graph_exp[i,:]
 
-        return filtered_exp, khop_info
+        return {'feature': filtered_exp, 'edge': None}, khop_info
 
     def get_explanation_graph(self, x: torch.Tensor, label: torch.Tensor, edge_index: torch.Tensor, 
         forward_args: tuple = None) -> torch.Tensor:
@@ -121,7 +121,7 @@ class GuidedBP(WalkBase):
 
         xhook.remove() # Remove hook from x
 
-        return x.grad
+        return {'feature': x.grad, 'edge': None}
 
     def __apply_hooks(self):
         self.registered_hooks = []
