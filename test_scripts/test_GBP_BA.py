@@ -11,9 +11,9 @@ m = 2
 num_houses = 20
 
 bah = BA_Houses(n, m)
-data, inhouse = bah.get_data(num_houses)
+data, inhouse = bah.get_data(num_houses, multiple_features=True)
 
-model = GCN(64, input_feat = 1, classes = 2)
+model = GCN(64, input_feat = 3, classes = 2)
 print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -28,18 +28,24 @@ node_idx = random.choice(inhouse)
 
 gbp = GuidedBP(model, criterion)
 exp, khop_info = gbp.get_explanation_node(data.x, int(node_idx), data.y, data.edge_index)
-exp_list = [exp['feature'][i].item() for i in range(exp['feature'].shape[0])]
+exp_list = [exp['feature'][i,0].item() for i in khop_info[0]] # Index degree with [i,0]
+print(exp_list)
 subgraph_eidx = khop_info[1]
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-visualize_subgraph_explanation(subgraph_eidx, data.y.tolist(), node_idx = int(node_idx), 
+y_subgraph = data.y[khop_info[0]].tolist()
+print(y_subgraph)
+
+# visualize_subgraph_explanation(subgraph_eidx, node_weights = data.y.tolist(), node_idx = int(node_idx), 
+#     ax = ax1, show = False)
+visualize_subgraph_explanation(subgraph_eidx, node_weights = y_subgraph, node_idx = int(node_idx), 
     ax = ax1, show = False)
 ax1.set_title('Ground Truth')
 
 visualize_subgraph_explanation(subgraph_eidx, exp_list, node_idx = int(node_idx), 
     ax = ax2, show = False)
-ax2.set_title('Guided Backprop')
+ax2.set_title('Guided Backprop (Explanation wrt Degree)')
 
 model.eval()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
