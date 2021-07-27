@@ -7,35 +7,35 @@ from .root_explainer import RootExplainer
 
 class RandomExplainer(RootExplainer):
     """
-    Random Explanation for GNNs
+    Get Random Explanation for GNNs
     """
-    def __init__(self, model):
+    def __init__(self, model, criterion):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
+            criterion (torch.nn.Module): loss function
         """
-        super().__init__(model)
+        super().__init__(model, criterion)
 
-    def get_explanation_node(self, x: torch.Tensor, node_idx: int,
+    def get_explanation_node(self, node_idx: int, x: torch.Tensor,
                              edge_index: torch.Tensor, *_):
         """
         Get the explanation for a node.
 
         Args:
+            node_idx (int): index of the node to be explained
             x (torch.Tensor, [n x d]): tensor of node features
-            node_idx (int): index of the interested node
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
 
-        Return:
+        Returns:
             exp (dict):
                 exp['feature'] (torch.Tensor, [d]): feature mask explanation
                 exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
-            khop_info (tuple):
-                (0) the nodes involved in the subgraph
-                (1) the filtered edge_index (torch.Tensor, [2 x m])
-                (2) the mapping from node indices in node_idx to their new location
-                    (not useful since node_idx contains only one node here)
-                (3) the edge mask indicating which edges were preserved (torch.Tensor, [m])
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved
         """
         exp = {'feature': None, 'edge': None}
         exp['feature'] = torch.randn(x[0, :].shape)
@@ -56,16 +56,15 @@ class RandomExplainer(RootExplainer):
             edge_index (torch.Tensor, [2 x m]): edge index of entire graph
             num_nodes (int, optional): number of nodes in graph
 
-        Return:
+        Returns:
             exp (dict):
                 exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): edge mask explanation
-            khop_info (tuple):
-                (0) the nodes involved in the subgraph
-                (1) the filtered edge_index (torch.Tensor, [2 x m])
-                (2) the mapping from node indices in node_idx to their new location
-                    (not useful since node_idx contains only one node here)
-                (3) the edge mask indicating which edges were preserved (torch.Tensor, [m])
+                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved
         """
         exp = {'feature': None, 'edge': None}
 

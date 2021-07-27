@@ -1,12 +1,24 @@
 import torch
 import torch.nn as nn
+from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 
 class RootExplainer(nn.Module):
-    def __init__(self, model):
+    """
+    Explainer Base Class
+    """
+    def __init__(self, model, criterion):
+        """
+        Args:
+            model (torch.nn.Module): model on which to make predictions
+            criterion (torch.nn.Module): loss function
+        """
         super().__init__()
         self.model = model
+        self.criterion = criterion
+        self.L = len([module for module in self.model.modules()
+                      if isinstance(module, MessagePassing)])
 
     # @property
     # """
