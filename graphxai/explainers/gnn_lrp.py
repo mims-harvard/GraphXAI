@@ -88,17 +88,21 @@ class GNN_LRP(WalkBase):
                 across one edge. Argument only has effect if `get_edge_scores == True`.
                 (default: :obj:`numpy.sum`)
 
-        :rtype: 
-            If `get_edge_scores == True`, (:obj:`list`, :obj:`tuple`). Return is list of aggregated
-                explanation values for each edge in subgraph. First dimension of list corresponds to label 
-                that those values explain, i.e. `len(exp) == num_classes` with 
-                `len(exp[i]) == # nodes in subgraph` for all i. Second return in tuple is `khop_info`,
-                the information about the computational graph around node `node_idx` as is returned
-                by `torch_geometric.utils.k_hop_subgraph`. Index in list corresponds exactly to 
-                index of edges in `khop_info` (`khop_info[1]`), the second return in the tuple.
-            If `get_edge_scores == False`, (:obj:`dict`, :obj:`tuple`). Return is dict of walks, with
-                keys `'ids'` and `'scores'`, corresponding to walks as denoted by edge indices and scores
-                of those corresponding walks, respectively. Second return is still `khop_info`.
+        :rtype: (:obj:`dict`, :obj:`tuple`)
+            `dict` contains keys `feature` and `edge`. `feature` key is None while `edge` value depends on
+            value of `get_edge_scores`. If `get_edge_scores == True`, `edge` consists of a tensor of shape
+            `(e,)` where `e` is the number of edges in the k-hop subgraph of node specified by
+            `node_idx`. These are each aggregated scores from the combinations of walks over each edge.
+            If `get_edge_scores == False`, `edge` consists of a dict that specifies walks.
+            This dict contains keys `ids` and `scores`, where `ids` are indices of edges in the original
+            `edge_index` with added self-loops; these values correspond to walks on the graph. The `scores`
+            key consists of a `(1,w)` tensor, where `w` is the number of walks on the k-hop subgraph around
+            node_idx; these values are each scores for each of their corresponding walks in the `ids` key.  
+
+            Second return in tuple is `khop_info`,
+            the information about the computational graph around node `node_idx` as is returned
+            by `torch_geometric.utils.k_hop_subgraph`. Index in list corresponds exactly to 
+            index of edges in `khop_info` (`khop_info[1]`), the second return in the tuple.
         '''
 
         super().forward(x, edge_index, **kwargs)
@@ -342,6 +346,20 @@ class GNN_LRP(WalkBase):
             If `get_edge_scores == False`, (:obj:`dict`, :obj:`tuple`). Return is dict of walks, with
                 keys `'ids'` and `'scores'`, corresponding to walks as denoted by edge indices and scores
                 of those corresponding walks, respectively. Second return is still `edge_index_with_loop`.
+
+        :rtype: (:obj:`dict`, :obj:`torch.Tensor`)
+            `dict` contains keys `feature` and `edge`. `feature` key is None while `edge` value depends on
+            value of `get_edge_scores`. If `get_edge_scores == True`, `edge` consists of a tensor of shape
+            `(e,)` where `e` is the number of edges in the k-hop subgraph of node specified by
+            `node_idx`. These are each aggregated scores from the combinations of walks over each edge.
+            If `get_edge_scores == False`, `edge` consists of a dict that specifies walks.
+            This dict contains keys `ids` and `scores`, where `ids` are indices of edges in the original
+            `edge_index` with added self-loops; these values correspond to walks on the graph. The `scores`
+            key consists of a `(1,w)` tensor, where `w` is the number of walks on the graph; these values 
+            are each scores for each of their corresponding walks in the `ids` key.  
+
+            Second return in tuple is `edge_index_with_loop`, the new edge index that is used for computation 
+            within the explanation method and model.
         '''
 
         super().forward(x, edge_index, **kwargs)
