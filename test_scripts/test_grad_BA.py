@@ -1,7 +1,7 @@
 import random
 import torch
 
-from graphxai.explainers import RandomExplainer
+from graphxai.explainers import GradExplainer
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
@@ -13,7 +13,7 @@ num_houses = 20
 bah = BA_Houses(n, m)
 data, inhouse = bah.get_data(num_houses)
 
-model = GCN(64, input_feat = 1, classes = 2)
+model = GCN(64, input_feat=1, classes=2)
 print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -33,6 +33,7 @@ print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
 act = lambda x: torch.argmax(x, dim=1)
-explainer = RandomExplainer(model)
+explainer = GradExplainer(model, criterion)
 
-exp, khop_info = explainer.get_explanation_node(int(node_idx), data.x, data.edge_index)
+exp, khop_info = explainer.get_explanation_node(int(node_idx), data.edge_index,
+                                                data.x, data.y)
