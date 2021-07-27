@@ -8,6 +8,8 @@ from torch_geometric.utils import to_networkx, remove_self_loops, remove_isolate
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.data import Data
 
+from . import to_networkx_conv
+
 def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None, 
             edge_weights: list = None,
             ax: matplotlib.axes.Axes = None, atoms: list = None, 
@@ -28,17 +30,15 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
             `False`, atoms are used. (default: :obj:`False`)
         show (bool, optional): If `True`, calls `plt.show()` to display visualization.
             (default: :obj:`True`)  
+        directed (bool, optional): If `True`, shows molecule as directed graph.
+            (default: :obj:`False`) 
         fig (matplotlib.Figure, optional): Figure for plots being drawn with this
             function. Will be used to direct the colorbar. (default: :obj:`None`)
     '''
     if directed:
-        G = to_networkx(data, to_undirected=False, remove_self_loops=True)
+        G = to_networkx_conv(data, to_undirected=False, remove_self_loops=True)
     else:
-        G = to_networkx(data, to_undirected=True, remove_self_loops=True)
-    # print(G.edges)
-    # print('Dim of edge_index', data.edge_index.shape)
-    # print('Len of networkx edges', len(G.edges))
-    # print([G.get_edge_data(*e) for e in G.edges])
+        G = to_networkx_conv(data, to_undirected=True, remove_self_loops=True)
 
     pos = nx.kamada_kawai_layout(G)
 
@@ -113,8 +113,15 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
     :note: Only shows the largest connected component of the subgraph.
     Args:
         edge_index (torch.Tensor): edge index of the subgraph for which you wish to plot.
-        node_weights (list): weights by which to color the nodes in the graph. Must contain 
-            node weights for every node in the graph (not just the subgraph).
+        node_weights (list size(n,), optional): Weights by which to color the nodes in the graph.
+            Must be of size (n,), where n is the number of nodes in the subgraph. 
+            Contains node weights for every node in the subgraph, ordered by sorted ordering
+            of nodes in edge_index.If `None`, all nodes are given same color in drawing. 
+            (default: :obj:`None`)
+        edge_weights (list size(e,), optional): Weights by which to color the edges in the graph.
+            Must be of size (e,), where e is the number of nodes in the subgraph.
+            Contains edge_weights for every node in the subgraph, ordered with respect to the
+            edges in `edge_index`. (default: :obj:`None`)
         node_idx (bool, optional): Node index for which to highlight in visualization.
             If `None`, no node is highlighted. (default: :obj:`None`)
         ax (matplotlib.Axes, optional): axis on which to plot the visualization. 
@@ -125,6 +132,8 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
             `False`, subgraph node indices are used. (default: :obj:`False`)
         show (bool, optional): If `True`, calls `plt.show()` to display visualization.
             (default: :obj:`True`)  
+        connected (bool, optional): If `True`, forces the drawn subgraph to be connected.
+            (default: :obj:`True`)
     '''
 
     if edge_weights is None:
@@ -136,14 +145,15 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
     subgraph_nodes = torch.unique(edge_index)
 
     data = Data(x=subgraph_nodes.reshape(-1, 1), edge_index=edge_index)
-    G = to_networkx(data, to_undirected=True, remove_self_loops=True)
+    #G = to_networkx(data, to_undirected=True, remove_self_loops=True)
+    G, node_map = to_networkx_conv(data, to_undirected=True, remove_self_loops=True, get_map = True)
+    rev_map = {v:k for k, v in node_map.items()}
+
+    node_idx = node_map[node_idx] if node_idx is not None else None
+
     if connected:
         Gcc = max(nx.connected_components(G), key=len)
         G = G.subgraph(Gcc)
-
-    print('nodes', G.nodes)
-    print('edges', G.edges)
-    #G = bigG
 
     if node_weights is None:
         node_weights_subgraph = '#1f78b4' # Default value for node color
@@ -173,7 +183,8 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
             nx.draw(G, pos, node_color = node_weights_subgraph, 
                 node_size = 400, cmap = cmap,
                 edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
-                arrows = False, with_labels = True)
+                arrows = False)#, with_labels = True)
+            nx.draw_networkx_labels(G, pos, labels = {n:rev_map[n] for n in G.nodes})
 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 
@@ -197,7 +208,8 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
             nx.draw(G, pos, node_color = node_weights_subgraph, 
                 node_size = 400, cmap = cmap,
                 edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
-                arrows = False, ax = ax, with_labels = True)
+                arrows = False, ax = ax)#, with_labels = True)
+            nx.draw_networkx_labels(G, pos, labels = {n:rev_map[n] for n in G.nodes}, ax = ax)
 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 
