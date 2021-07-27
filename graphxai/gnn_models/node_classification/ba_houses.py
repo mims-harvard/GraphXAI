@@ -14,9 +14,9 @@ class BA_Houses:
         self.m = m
         self.in_house = set()
 
-    def get_data(self, num_houses):
+    def get_data(self, num_houses, test_size = 0.25, multiple_features = False):
         BAG = self.make_BA_shapes(num_houses)
-        data = self.make_data(BAG)
+        data = self.make_data(BAG, test_size, multiple_features)
         inhouse = self.in_house
         return data, list(inhouse)
 
@@ -55,7 +55,7 @@ class BA_Houses:
 
         return G
 
-    def make_data(self, G, test_size = 0.25):
+    def make_data(self, G, test_size = 0.25, multiple_features = False):
         # One hot lookup:
         onehot = {}
         for i in range(self.num_houses + 1):
@@ -63,9 +63,11 @@ class BA_Houses:
             onehot[i][i] = 1
 
         # Encode with degree as feature
-        x = torch.stack([torch.tensor([G.degree[i]]) for i in range(len(list(G.nodes)))]).float()
-        #print('x shape:', x.shape)
-        #y = torch.tensor([onehot[n] for n in self.node_attr.tolist()], dtype=torch.long)
+        deg_cent = nx.degree_centrality(G)
+        if multiple_features:
+            x = torch.stack([torch.tensor([G.degree[i], nx.clustering(G, i), deg_cent[i]]) for i in range(len(list(G.nodes)))]).float()
+        else:
+            x = torch.stack([torch.tensor([G.degree[i]]) for i in range(len(list(G.nodes)))]).float()
 
         edge_index = torch.tensor(list(G.edges), dtype=torch.long)
 
