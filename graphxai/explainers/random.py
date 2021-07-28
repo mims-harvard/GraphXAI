@@ -60,11 +60,6 @@ class RandomExplainer(RootExplainer):
             exp (dict):
                 exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
                 exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved
         """
         exp = {'feature': None, 'edge': None}
 
