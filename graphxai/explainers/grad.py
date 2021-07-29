@@ -1,21 +1,22 @@
 import torch
+from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
-from .root_explainer import RootExplainer
 
-
-class GradExplainer(RootExplainer):
+class GradExplainer:
     """
     Vanilla Gradient Explanation for GNNs
     """
-    def __init__(self, model, criterion):
+    def __init__(self, model, criterion, *_):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
             criterion (torch.nn.Module): loss function
         """
-        super().__init__(model, criterion)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = model
+        self.criterion = criterion
+        self.L = len([module for module in self.model.modules()
+                      if isinstance(module, MessagePassing)])
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, label: torch.Tensor, *_):
@@ -48,8 +49,8 @@ class GradExplainer(RootExplainer):
 
         self.model.eval()
         sub_x.requires_grad = True
-        output = self.model(sub_x.to(self.device), sub_edge_index.to(self.device))
-        loss = self.criterion(output[mapping], label[mapping].to(self.device))
+        output = self.model(sub_x, sub_edge_index)
+        loss = self.criterion(output[mapping], label[mapping])
         loss.backward()
 
         exp['feature'] = sub_x.grad[torch.where(subset == node_idx)[0].item(), :]
@@ -79,10 +80,10 @@ class GradExplainer(RootExplainer):
         self.model.eval()
         x.requires_grad = True
         if forward_args is None:
-            output = self.model(x.to(self.device), edge_index.to(self.device))
+            output = self.model(x, edge_index)
         else:
-            output = self.model(x.to(self.device), edge_index.to(self.device), *forward_args)
-        loss = self.criterion(output, label.to(self.device))
+            output = self.model(x, edge_index, *forward_args)
+        loss = self.criterion(output, label)
         loss.backward()
 
         exp['feature'] = x.grad
@@ -91,6 +92,6 @@ class GradExplainer(RootExplainer):
 
     def get_explanation_link(self):
         """
-        Get the explanation for a link.
+        Explain a link prediction.
         """
         raise NotImplementedError()
