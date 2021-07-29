@@ -2,20 +2,13 @@ import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
-from .root_explainer import RootExplainer
 
-
-class RandomExplainer(RootExplainer):
+class RandomExplainer:
     """
-    Get Random Explanation for GNNs
+    Random Explanation for GNNs
     """
-    def __init__(self, model, criterion):
-        """
-        Args:
-            model (torch.nn.Module): model on which to make predictions
-            criterion (torch.nn.Module): loss function
-        """
-        super().__init__(model, criterion)
+    def __init__(self, *_):
+        pass
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
                              edge_index: torch.Tensor, *_):
@@ -73,6 +66,6 @@ class RandomExplainer(RootExplainer):
 
     def get_explanation_link(self):
         """
-        Get the explanation for a link.
+        Explain a link prediction.
         """
         raise NotImplementedError()
