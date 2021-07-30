@@ -20,7 +20,8 @@ class IntegratedGradExplainer:
 
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
-                             x: torch.Tensor, label: torch.Tensor, *_):
+                             x: torch.Tensor, label: torch.Tensor,
+                             num_hops: int = None, *_):
         """
         Explain a node prediction.
 
@@ -29,6 +30,7 @@ class IntegratedGradExplainer:
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
             x (torch.Tensor, [n x d]): node features
             label (torch.Tensor, [n x ...]): labels to explain
+            num_hops (int): number of hops to consider
 
         Returns:
             exp (dict):
@@ -42,7 +44,7 @@ class IntegratedGradExplainer:
         """
         exp = {'feature': None, 'edge': None}
 
-        num_hops = self.L
+        num_hops = num_hops if num_hops is not None else self.L
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
