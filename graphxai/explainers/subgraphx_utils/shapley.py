@@ -9,6 +9,11 @@ from torch_geometric.utils import to_networkx
 from torch_geometric.data import Data, Batch, Dataset, DataLoader
 #from .utils.testing_datasets import MarginalSubgraphDataset
 
+'''
+Code adapted from Dive into Graphs (DIG)
+Code: https://github.com/divelab/DIG
+'''
+
 empty_tuple = tuple()
 
 class MarginalSubgraphDataset(Dataset):
