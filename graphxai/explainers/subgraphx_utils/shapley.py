@@ -39,11 +39,11 @@ class MarginalSubgraphDataset(Dataset):
         include_data = Data(x=include_graph_X, edge_index=include_graph_edge_index)
         return exclude_data, include_data
 
-def GnnNets_GC2value_func(gnnNets, target_class, forward_args = empty_tuple):
+def GnnNets_GC2value_func(gnnNets, target_class, forward_kwargs = {}):
     def value_func(batch):
         with torch.no_grad():
             #logits = gnnNets(data=batch)
-            logits = gnnNets(batch.x, batch.edge_index, *forward_args)
+            logits = gnnNets(batch.x, batch.edge_index, **forward_kwargs)
             probs = F.softmax(logits, dim=-1)
             score = probs[:, target_class]
         return score
