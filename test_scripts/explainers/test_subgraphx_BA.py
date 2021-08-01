@@ -62,8 +62,7 @@ model.eval()
 pred = model(data.x, data.edge_index)[node_idx,:].view(-1, 1)#.reshape(-1, 1)
 pred_class = pred.argmax(dim=0).item()
 
-explainer = SubgraphX(model, device='cpu', explain_graph=False,
-    reward_method = 'gnn_score')
+explainer = SubgraphX(model, reward_method = 'gnn_score')
 
 exp = explainer.get_node_explanation(data.x, label = int(pred_class), edge_index = data.edge_index, node_idx = node_idx, max_nodes = 10)
 
