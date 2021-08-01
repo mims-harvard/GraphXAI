@@ -8,6 +8,10 @@ from torch_geometric.utils import to_networkx, remove_self_loops, remove_isolate
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.data import Data
 
+# For DIG function:
+from torch_geometric.utils import k_hop_subgraph, add_self_loops
+from math import sqrt
+
 from . import to_networkx_conv
 
 def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None, 
@@ -401,3 +405,113 @@ def parse_GNNLRP_explanations(ret_tuple, edge_index, label_idx,
     print('len node_scores', len(node_scores))
 
     return node_scores, edge_scores
+
+
+def visualize_graph(self, node_idx: int, edge_index: torch.Tensor, edge_mask: torch.Tensor, y: torch.Tensor = None,
+                        threshold: float = None, nolabel: bool = True, **kwargs): #-> Tuple[Axes, nx.DiGraph]:
+    r"""
+    Code adapted from Dive into Graphs (DIG)
+    Code: https://github.com/divelab/DIG
+
+    Visualizes the subgraph around :attr:`node_idx` given an edge mask
+    :attr:`edge_mask`.
+    Args:
+        node_idx (int): The node id to explain.
+        edge_index (LongTensor): The edge indices.
+        edge_mask (Tensor): The edge mask.
+        y (Tensor, optional): The ground-truth node-prediction labels used
+            as node colorings. (default: :obj:`None`)
+        threshold (float, optional): Sets a threshold for visualizing
+            important edges. If set to :obj:`None`, will visualize all
+            edges with transparancy indicating the importance of edges.
+            (default: :obj:`None`)
+        **kwargs (optional): Additional arguments passed to
+            :func:`nx.draw`.
+    :rtype: :class:`matplotlib.axes.Axes`, :class:`networkx.DiGraph`
+    """
+    edge_index, _ = add_self_loops(edge_index, num_nodes=kwargs.get('num_nodes'))
+    assert edge_mask.size(0) == edge_index.size(1)
+
+    if self.molecule:
+        atomic_num = torch.clone(y)
+
+    # Only operate on a k-hop subgraph around `node_idx`.
+    subset, edge_index, _, hard_edge_mask = k_hop_subgraph(
+        node_idx, self.__num_hops__, edge_index, relabel_nodes=True,
+        num_nodes=None, flow=self.__flow__())
+
+    edge_mask = edge_mask[hard_edge_mask]
+
+    # --- temp ---
+    edge_mask[edge_mask == float('inf')] = 1
+    edge_mask[edge_mask == - float('inf')] = 0
+    # ---
+
+    if threshold is not None:
+        edge_mask = (edge_mask >= threshold).to(torch.float)
+
+    if kwargs.get('dataset_name') == 'ba_lrp':
+        y = torch.zeros(edge_index.max().item() + 1,
+                        device=edge_index.device)
+    if y is None:
+        y = torch.zeros(edge_index.max().item() + 1,
+                        device=edge_index.device)
+    else:
+        y = y[subset]
+
+    if self.molecule:
+        atom_colors = {6: '#8c69c5', 7: '#71bcf0', 8: '#aef5f1', 9: '#bdc499', 15: '#c22f72', 16: '#f3ea19',
+                        17: '#bdc499', 35: '#cc7161'}
+        node_colors = [None for _ in range(y.shape[0])]
+        for y_idx in range(y.shape[0]):
+            node_colors[y_idx] = atom_colors[y[y_idx].int().tolist()]
+    else:
+        atom_colors = {0: '#8c69c5', 1: '#c56973', 2: '#a1c569', 3: '#69c5ba'}
+        node_colors = [None for _ in range(y.shape[0])]
+        for y_idx in range(y.shape[0]):
+            node_colors[y_idx] = atom_colors[y[y_idx].int().tolist()]
+
+
+    data = Data(edge_index=edge_index, att=edge_mask, y=y,
+                num_nodes=y.size(0)).to('cpu')
+    G = to_networkx(data, node_attrs=['y'], edge_attrs=['att'])
+    mapping = {k: i for k, i in enumerate(subset.tolist())}
+    G = nx.relabel_nodes(G, mapping)
+
+    kwargs['with_labels'] = kwargs.get('with_labels') or True
+    kwargs['font_size'] = kwargs.get('font_size') or 10
+    kwargs['node_size'] = kwargs.get('node_size') or 250
+    kwargs['cmap'] = kwargs.get('cmap') or 'cool'
+
+    # calculate Graph positions
+    pos = nx.kamada_kawai_layout(G)
+    ax = plt.gca()
+
+    for source, target, data in G.edges(data=True):
+        ax.annotate(
+            '', xy=pos[target], xycoords='data', xytext=pos[source],
+            textcoords='data', arrowprops=dict(
+                arrowstyle="->",
+                lw=max(data['att'], 0.5) * 2,
+                alpha=max(data['att'], 0.4),  # alpha control transparency
+                color='#e1442a',  # color control color
+                shrinkA=sqrt(kwargs['node_size']) / 2.0,
+                shrinkB=sqrt(kwargs['node_size']) / 2.0,
+                connectionstyle="arc3,rad=0.08",  # rad control angle
+            ))
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors, **kwargs)
+    # define node labels
+    if self.molecule:
+        if nolabel:
+            node_labels = {n: f'{self.table(atomic_num[n].int().item())}'
+                            for n in G.nodes()}
+            nx.draw_networkx_labels(G, pos, labels=node_labels, **kwargs)
+        else:
+            node_labels = {n: f'{n}:{self.table(atomic_num[n].int().item())}'
+                            for n in G.nodes()}
+            nx.draw_networkx_labels(G, pos, labels=node_labels, **kwargs)
+    else:
+        if not nolabel:
+            nx.draw_networkx_labels(G, pos, **kwargs)
+
+    return ax, G

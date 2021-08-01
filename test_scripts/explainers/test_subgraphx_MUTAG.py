@@ -48,25 +48,14 @@ pred_class = pred.argmax(dim=1).item()
 
 from graphxai.explainers.subgraphx import SubgraphX
 
-explainer = SubgraphX(model, device='cpu', explain_graph=False,
-    reward_method = 'gnn_score')
+explainer = SubgraphX(model, reward_method = 'gnn_score')
 
 exp = explainer.get_graph_explanation(
     mol.x, 
-    label = int(pred_class), 
-    edge_index = mol.edge_index, 
+    edge_index = mol.edge_index,  
     max_nodes = 10,
-    forward_args = (torch.zeros(1, dtype = torch.long),) 
+    forward_kwargs = {'batch':torch.zeros(1, dtype = torch.long)} 
 )
-
-# subgraph_edge_index = mol.edge_index[:,exp['edge']]
-# print('subgraph edge index', subgraph_edge_index)
-# subgraph_atoms = [atoms[i] for i in range(exp['feature'].shape[0]) if exp['feature'][i]]
-# print('subgraph atoms', subgraph_atoms)
-
-# print(exp['feature'].nonzero(as_tuple=True)[0])
-# print(exp['feature'].nonzero(as_tuple=True)[0].shape)
-#subgraph_data = Data(x=mol.x[exp['feature']], edge_index=subgraph_edge_index, num_nodes = mol.x[exp['feature']].shape[0])
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
