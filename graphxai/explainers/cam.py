@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from typing import Tuple
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import k_hop_subgraph
 
@@ -12,7 +13,7 @@ class CAM(WalkBase):
     Class-Activation Mapping for GNNs
     '''
 
-    def __init__(self, model: torch.nn.Module, device: str, activation = None):
+    def __init__(self, model: torch.nn.Module, activation = None):
         '''
         .. note::
             From Pope et al., CAM requires that the layer immediately before the softmax layer be
@@ -22,7 +23,6 @@ class CAM(WalkBase):
 
         Args:
             model (torch.nn.Module): model on which to make predictions
-            device: device on which model is to run
             activation (method): activation funciton for final layer in network. If `activation = None`,
                 explainer assumes linear activation. Use `activation = None` if the activation is applied
                 within the `forward` method of `model`, only set this parameter if another activation is
@@ -30,15 +30,18 @@ class CAM(WalkBase):
         '''
         super(WalkBase, self).__init__(model)
         self.model = model
-        self.device = device
 
-        if activation is None:
-            self.activation = lambda x: x # i.e. linear activation
-        else:
-            self.activation = activation # Set activation function
+        # Set activation function
+        self.activation = lambda x: x  if activation is None else activation
+        # i.e. linear activation if none provided
 
-    def get_explanation_node(self, x: torch.Tensor, node_idx: int, label: int, edge_index: torch.Tensor, 
-        forward_args: tuple = None):
+    def get_explanation_node(self, 
+                x: torch.Tensor, 
+                node_idx: int, 
+                edge_index: torch.Tensor, 
+                label: int = None,  
+                forward_kwargs: dict = {}
+            ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         '''
         Explain one node prediction by the model
 
@@ -46,27 +49,36 @@ class CAM(WalkBase):
             x (torch.tensor): tensor of node features from the entire graph
             node_idx (int): node index for which to explain a prediction around
             edge_index (torch.tensor): edge_index of entire graph
-            forward_args (tuple): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)
+            label (int, optional): Label on which to compute the explanation for
+                this node. If `None`, the predicted label from the model will be
+                used. (default: :obj:`None`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
 
-        :rtype: (`numpy.ndarray` (size (n,)), `tuple` (size (4,)))
-            cam (ndarray, size (n,)): Explanations for each node, size `(n,)` where `n` is number
-                of nodes in the entire graph described by `edge_index`.
-            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
-                computational graph around node `node_idx`.
+        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (s,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the entire graph.
+                exp['edge'] is `None` since there is no edge explanation generated.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved 
         '''
-        pred = self.__forward_pass(x, edge_index, forward_args)[node_idx, :].reshape(1, -1)
-        #predicted_c = self.activation(pred)
+        label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item()) if label is None else label
 
         # Perform walk:
-        walk_steps, fc_steps = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_args = forward_args)
+        walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
 
         L = len(walk_steps)
 
         # Get subgraph:
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
-        subgraph_eidx = khop_info[1]
 
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
@@ -81,53 +93,59 @@ class CAM(WalkBase):
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
 
-    def get_explanation_graph(self, x: torch.Tensor, label: int, edge_index: torch.Tensor, num_nodes: int = None, 
-        forward_args: tuple = None):
+    def get_explanation_graph(self, 
+                x: torch.Tensor, 
+                edge_index: torch.Tensor, 
+                label: int = None, 
+                num_nodes: int = None, 
+                forward_kwargs: dict = {}
+        ) -> dict:
         '''
         Explain a whole-graph prediction.
 
         Args:
             x (torch.tensor): tensor of node features from the entire graph
             edge_index (torch.tensor): edge_index of entire graph
+            label (int, optional): Label on which to compute the explanation for
+                this graph. If `None`, the predicted label from the model will be
+                used. (default: :obj:`None`)
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
-            forward_args (tuple, optional): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward beyond x and edge_index. 
+                Must be keyed on argument name. (default: :obj:`{}`)
 
-        :rtype: dict
-            Contains a tensor of length
+        :rtype: :class:`dict`
 
-        :rtype: :class:`list`, size (n,)
-            Explanations for each node in the graph (n is number of nodes).
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (s,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the entire graph.
+                exp['edge'] is `None` since there is no edge explanation generated.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved 
         '''
 
         N = maybe_num_nodes(edge_index, num_nodes)
 
         # Forward pass:
-        self.model.eval()
-        if forward_args is None:
-            pred = self.model(x, edge_index)
-        else:
-            pred = self.model(x, edge_index, *forward_args)
+        label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item()) if label is None else label
 
-        # Calculate predicted class and steps through model:
-        #predicted_c = self.activation(pred)
-
-        walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
+        # Steps through model:
+        walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
         
         # Generate explanation for every node in graph
         node_explanations = []
         for n in range(N):
             node_explanations.append(self.__exp_node(n, walk_steps, label))
 
-        return {'feature': torch.tensor(node_explanations), 'edge': []}
+        return {'feature': torch.tensor(node_explanations), 'edge': None}
 
-    def __forward_pass(self, x, edge_index, forward_args):
+    def __forward_pass(self, x, edge_index, forward_kwargs = {}):
         # Forward pass:
         self.model.eval()
-        if forward_args is None:
-            pred = self.model(x, edge_index)
-        else:
-            pred = self.model(x, edge_index, *forward_args)
+        pred = self.model(x, edge_index, **forward_kwargs)
 
         return pred
 
@@ -152,7 +170,7 @@ class Grad_CAM(WalkBase):
     Gradient Class-Activation Mapping for GNNs
     '''
 
-    def __init__(self, model: torch.Tensor, device: str, criterion = F.cross_entropy):
+    def __init__(self, model: torch.Tensor, criterion = F.cross_entropy):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -162,22 +180,29 @@ class Grad_CAM(WalkBase):
         '''
         super(WalkBase, self).__init__(model)
         self.model = model
-        self.device = device
         self.criterion = criterion
 
-    def get_explanation_node(self, x: torch.Tensor, labels: torch.Tensor, node_idx: int, 
-        edge_index: torch.Tensor, node_idx_label: int = None, forward_args: tuple = None, 
-        average_variant: bool = True, layer: int = 0):
+    def get_explanation_node(self, 
+            x: torch.Tensor, 
+            y: torch.Tensor, 
+            node_idx: int, 
+            edge_index: torch.Tensor, 
+            label: int = None, 
+            forward_kwargs: dict = {}, 
+            average_variant: bool = True, 
+            layer: int = 0
+        ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         '''
         Explain a node in the given graph
         Args:
-            x (torch.tensor): tensor of node features from the entire graph
+            x (torch.Tensor, (n,)): Tensor of node features from the entire graph, with n nodes.
+            y (torch.Tensor, (n,)): Ground-truth labels for all n nodes in the graph.
             node_idx (int): node index for which to explain a prediction around
-            edge_index (torch.tensor): edge_index of entire graph
-            node_idx_label (int, optional): label for which to compute Grad-CAM against. If None, computes
+            edge_index (torch.Tensor): edge_index of entire graph
+            label (int, optional): Label for which to compute Grad-CAM against. If None, computes
                 the Grad-CAM with respect to the model's predicted class for this node.
                 (default :obj:`None`)
-            forward_args (tuple, optional): additional arguments to model.forward 
+            forward_kwargs (dict, optional): additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
             average_variant (bool, optional): If True, computes the average Grad-CAM across all convolutional
                 layers in the model. If False, computes Grad-CAM for `layer`. (default: :obj:`True`)
@@ -185,27 +210,35 @@ class Grad_CAM(WalkBase):
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
 
-        :rtype: (`numpy.ndarray` (size (n,)), `tuple` (size (4,)))
-            gcam (ndarray, size (n,)): Explanations for each node, size `(n,)` where `n` is number
-                of nodes in the entire graph described by `edge_index`.
-            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
-                computational graph around node `node_idx`.
+        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (n,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the entire graph.
+                exp['edge'] is `None` since there is no edge explanation generated.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved 
         '''
 
         x.requires_grad = True
 
-        if node_idx_label is not None: # Transform node_idx's label if provided by user
-            labels[node_idx] = node_idx_label
+        if label is None:
+            pred = self.__forward_pass(x, y, edge_index, forward_kwargs)[0][node_idx, :].reshape(1, -1)
+            y[node_idx] = pred.argmax(dim=1).item()
+        else: # Transform node_idx's label if provided by user
+            pred, loss = self.__forward_pass(x, y, edge_index, forward_kwargs)
+            y[node_idx] = label
 
-        pred, loss = self.__forward_pass(x, labels, edge_index, forward_args)#[node_idx, :].reshape(1, -1)
-
-        walk_steps, fc_steps = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
+        walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
 
         L = len(walk_steps)
 
         khop_info = k_hop_subgraph(node_idx, L, edge_index)
         subgraph_nodes = khop_info[0]
-        subgraph_eidx = khop_info[1]
 
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
@@ -237,39 +270,61 @@ class Grad_CAM(WalkBase):
 
             return {'feature': gcam, 'edge': None}, khop_info
                 
-
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Gradient Class-Activation Mapping')
 
-    def get_explanation_graph(self, x: torch.Tensor, label: int, edge_index: torch.Tensor, num_nodes: int = None, 
-        forward_args: tuple = None, average_variant: bool = True, layer: int = 0):
+    def get_explanation_graph(self, 
+                x: torch.Tensor, 
+                edge_index: torch.Tensor, 
+                label: int = None, 
+                num_nodes: int = None, 
+                forward_kwargs: dict = {}, 
+                average_variant: bool = True, 
+                layer: int = 0
+        ) -> dict:
         '''
         Explain a whole-graph prediction.
 
         Args:
             x (torch.tensor): tensor of node features from the entire graph
-            label (int): label for which to compute Grad-CAM against
             edge_index (torch.tensor): edge_index of entire graph
+            label (int, optional): Label for which to compute Grad-CAM against. If None, computes the 
+                Grad-CAM with respect to the model's predicted class for this node. (default :obj:`None`)
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
-            forward_args (tuple, optional): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward beyond x and edge_index. 
+                Must be keyed on argument name. (default: :obj:`{}`)
             average_variant (bool, optional): If True, computes the average Grad-CAM across all convolutional
                 layers in the model. If False, computes Grad-CAM for `layer`. (default: :obj:`True`)
             layer (int, optional): Layer by which to compute the Grad-CAM. Argument only has an effect if 
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
 
-        :rtype: :class:`numpy.ndarray`, size (n,)
-            Explanations for each node in the graph (n is number of nodes).
+        :rtype: :class:`dict`
+        
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (n,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the entire graph.
+                exp['edge'] is `None` since there is no edge explanation generated.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved 
         '''
 
         self.N = maybe_num_nodes(edge_index, num_nodes)
 
+        if label is None:
+            self.model.eval()
+            pred = self.model(x, edge_index, **forward_kwargs)
+            label = pred.argmax(dim=1).item()
+
         # Execute forward pass:
-        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long), edge_index, forward_args)
+        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long), edge_index, forward_kwargs)
 
         # Calculate predicted class and steps through model:
-        walk_steps, fc_steps = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_args = forward_args)
+        walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
         
         # Generate explanation for every node in graph
         if average_variant:
@@ -280,24 +335,19 @@ class Grad_CAM(WalkBase):
 
             # Element-wise average over all nodes:
             avg_gcam /= len(walk_steps)
-            #return avg_gcam
             return {'feature': avg_gcam, 'edge': None}
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            #return np.array(self.__get_gCAM_layer(walk_steps, layer=layer))
             return {'feature': torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer)), 'edge': None}
 
-    def __forward_pass(self, x, label, edge_index, forward_args):
+    def __forward_pass(self, x, label, edge_index, forward_kwargs):
         x.requires_grad = True # Enforce that x needs gradient
 
         # Forward pass:
         self.model.eval()
-        if forward_args is None:
-            pred = self.model(x, edge_index)
-        else:
-            pred = self.model(x, edge_index, *forward_args)
+        pred = self.model(x, edge_index, **forward_kwargs)
 
         loss = self.criterion(pred, label)
         loss.backward() # Propagate loss backward through network

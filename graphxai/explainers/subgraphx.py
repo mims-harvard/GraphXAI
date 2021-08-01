@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 import torch.nn.functional as F
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.nn import MessagePassing
 
@@ -47,7 +47,7 @@ class SubgraphX(object):
 
         self.model = model
         self.model.eval()
-        self.model.to(self.device)
+        #self.model.to(self.device)
         self.num_hops = self.update_num_hops(num_hops)
 
         # mcts hyper-parameters
@@ -100,8 +100,14 @@ class SubgraphX(object):
                     expand_atoms=self.expand_atoms,
                     high2low=self.high2low)
 
-    def get_node_explanation(self, x: Tensor, edge_index: Tensor, node_idx: int, label: int = None, max_nodes: int = 14, 
-        forward_args: tuple = None, **kwargs):
+    def get_node_explanation(self, 
+            x: Tensor, 
+            edge_index: Tensor, 
+            node_idx: int, 
+            label: int = None, 
+            max_nodes: int = 14, 
+            forward_kwargs: dict = {}
+        ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         '''
         Get explanation for a single node within a graph.
         Args:
@@ -113,21 +119,37 @@ class SubgraphX(object):
                 is set to the prediction directly from the model. (default: :obj:`None`)
             max_nodes (int, optional): Maximum number of nodes to include in the subgraph 
                 generated from the explanation. (default: :obj:`14`)
-            forward_args (tuple, optional): Arguments in the forward method of model
-                argument to `__init__`. (default: :obj:`None`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
+
+        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
+                    is number of nodes in the entire graph described by `edge_index`. 
+                    Type is `torch.bool`, with `True` indices corresponding to nodes 
+                    included in the subgraph.
+                exp['edge'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
+                    is number of edges in the entire graph described by `edge_index`. 
+                    Type is `torch.bool`, with `True` indices corresponding to edges 
+                    included in the subgraph.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved 
         '''
 
         if label is None:
             self.model.eval()
-            pred = self.model(x, edge_index, *forward_args)
+            pred = self.model(x, edge_index, **forward_kwargs)
             label = int(pred.argmax(dim=1).item())
         else:
             label = int(label)
 
-        forward_args = tuple() if forward_args is None else forward_args
-
         # collect all the class index
-        logits = self.model(x, edge_index, *forward_args)
+        logits = self.model(x, edge_index, **forward_kwargs)
         probs = F.softmax(logits, dim=-1)
         probs = probs.squeeze()
 
@@ -150,8 +172,13 @@ class SubgraphX(object):
 
         return {'feature': node_mask, 'edge': edge_mask}
 
-    def get_graph_explanation(self, x: Tensor, edge_index: Tensor, label: int = None, max_nodes: int = 14, 
-        forward_args: tuple = None, **kwargs):
+    def get_graph_explanation(self, 
+            x: Tensor, 
+            edge_index: Tensor, 
+            label: int = None, 
+            max_nodes: int = 14, 
+            forward_kwargs: dict = {}, 
+        ):
         '''
         Get explanation for a whole graph prediction.
         Args:
@@ -162,23 +189,34 @@ class SubgraphX(object):
                 is set to the prediction directly from the model. (default: :obj:`None`)
             max_nodes (int, optional): Maximum number of nodes to include in the subgraph 
                 generated from the explanation. (default: :obj:`14`)
-            forward_args (tuple, optional): Arguments in the forward method of model
-                argument to `__init__`. (default: :obj:`None`)
-        '''
-        forward_args = tuple() if forward_args is None else forward_args
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
 
+        :rtype: :class:`dict`
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
+                    is number of nodes in the entire graph described by `edge_index`. 
+                    Type is `torch.bool`, with `True` indices corresponding to nodes 
+                    included in the subgraph.
+                exp['edge'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
+                    is number of edges in the entire graph described by `edge_index`. 
+                    Type is `torch.bool`, with `True` indices corresponding to edges 
+                    included in the subgraph.
+        '''
         if label is None:
             self.model.eval()
-            pred = self.model(x, edge_index, *forward_args)
+            pred = self.model(x, edge_index, **forward_kwargs)
             label = int(pred.argmax(dim=1).item())
 
         # collect all the class index
-        logits = self.model(x, edge_index, *forward_args)
+        logits = self.model(x, edge_index, **forward_kwargs)
         probs = F.softmax(logits, dim=-1)
         probs = probs.squeeze()
 
         prediction = probs.argmax(-1)
-        value_func = GnnNets_GC2value_func(self.model, target_class=label, forward_args=forward_args)
+        value_func = GnnNets_GC2value_func(self.model, target_class=label, forward_kwargs=forward_kwargs)
         payoff_func = self.get_reward_func(value_func, explain_graph = True)
         self.mcts_state_map = self.get_mcts_class(x, edge_index, score_func=payoff_func, explain_graph = True)
         results = self.mcts_state_map.mcts(verbose=False)
@@ -189,8 +227,7 @@ class SubgraphX(object):
 
         return {'feature': node_mask, 'edge': edge_mask}
 
-
-    def __parse_results(self, best_subgraph, edge_index, node_idx = None):
+    def __parse_results(self, best_subgraph, edge_index):
         # Function strongly based on torch_geometric.utils.subgraph function
         # Citation: https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/subgraph.html#subgraph
 

@@ -34,7 +34,7 @@ atoms = []
 for i in range(mol.x.shape[0]):
     atoms.append(atom_map[mol.x[i,:].tolist().index(1)])
 
-cam = Grad_CAM(model, '', criterion = criterion)
+cam = Grad_CAM(model, criterion = criterion)
 
 model.eval()
 pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))
@@ -42,8 +42,8 @@ pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))
 print('GROUND TRUTH LABEL: \t {}'.format(mol.y.item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 
-exp = cam.get_explanation_graph(mol.x, mol.y, mol.edge_index,
-            forward_args = (torch.zeros(1).type(torch.int64),))
+exp = cam.get_explanation_graph(mol.x, edge_index = mol.edge_index, label = mol.y,
+            forward_kwargs = {'batch':torch.zeros(1).type(torch.int64)})
 
 # Show the plots of both CAM and Grad-CAM on separate axes:
 fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -52,10 +52,10 @@ visualize_mol_explanation(mol, exp['feature'], atoms = atoms, ax = ax1, show = F
 
 # Get CAM explanation:
 act = lambda x: torch.argmax(x, dim=1)
-cam = CAM(model, '', activation = act)
+cam = CAM(model, activation = act)
 
-exp = cam.get_explanation_graph(mol.x, mol.y, mol.edge_index,
-            forward_args = (torch.zeros(1).type(torch.int64),))
+exp = cam.get_explanation_graph(mol.x, edge_index = mol.edge_index, label = mol.y,
+            forward_kwargs = {'batch':torch.zeros(1).type(torch.int64)})
 
 visualize_mol_explanation(mol, exp['feature'], atoms = atoms, ax = ax2, show = False, fig = fig)
 

@@ -27,7 +27,7 @@ for epoch in range(1, 201):
 node_idx = random.choice(inhouse)
 
 gbp = GuidedBP(model, criterion)
-exp, khop_info = gbp.get_explanation_node(data.x, int(node_idx), data.y, data.edge_index)
+exp, khop_info = gbp.get_explanation_node(data.x, data.y, edge_index = data.edge_index, node_idx = int(node_idx))
 exp_list = [exp['feature'][i,0].item() for i in khop_info[0]] # Index degree with [i,0]
 print(exp_list)
 subgraph_eidx = khop_info[1]

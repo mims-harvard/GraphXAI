@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-
+from typing import Tuple
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
@@ -26,7 +26,6 @@ class GuidedBP(WalkBase):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
-            device: device on which model is to run
             criterion (PyTorch Loss Function): loss function used to train the model.
                 Needed to pass gradients backwards in the network to obtain gradients.
         '''
@@ -38,24 +37,39 @@ class GuidedBP(WalkBase):
 
         self.registered_hooks = []
 
-    def get_explanation_node(self, x: torch.Tensor, node_idx: int, labels: torch.Tensor, 
-        edge_index: torch.Tensor, forward_args: tuple = None) -> torch.Tensor:
+    def get_explanation_node(self, 
+                x: torch.Tensor, 
+                y: torch.Tensor,
+                edge_index: torch.Tensor,  
+                node_idx: int, 
+                forward_kwargs: dict = {}
+            ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         '''
         Get Guided Backpropagation explanation for one node in the graph
         Args:
             x (torch.tensor): tensor of node features from the entire graph
             node_idx (int): node index for which to explain a prediction around
-            labels (torch.Tensor): labels correspond to each node's classification
-            edge_index (torch.tensor): edge_index of entire graph
-            forward_args (tuple, optional): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)
+            y (torch.Tensor): Ground truth labels correspond to each node's 
+                classification. This argument is input to the `criterion` 
+                function provided in `__init__()`.
+            edge_index (torch.tensor): Edge_index of entire graph.
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
 
-        :rtype: (:class:`torch.Tensor` (size (n,k)), `tuple` (size (4,)))
-            filtered_exp (torch.Tensor, size (n,k)): Explanations for each node, size `(n,k)` where `n` is number
-                of nodes in the entire graph described by `edge_index` and `k` is number of node input
-                features.
-            khop_info (tuple): return of `torch_geometric.utils.k_hop_subgraph` corresponding to the 
-                computational graph around node `node_idx`.
+        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (s,k)): Explanations for each node, 
+                    size `(s,k)` where `s` is number of nodes in the computational graph 
+                    described around node `node_idx` and `k` is number of node input features. 
+                exp['edge'] is `None` since there is no edge explanation generated.
+            khop_info (4-tuple of torch.Tensor):
+                0. the nodes involved in the subgraph
+                1. the filtered `edge_index`
+                2. the mapping from node indices in `node_idx` to their new location
+                3. the `edge_index` mask indicating which edges were preserved  
         '''
 
         # Run whole-graph prediction:
@@ -65,8 +79,8 @@ class GuidedBP(WalkBase):
         xhook = x.register_hook(clip_hook)
         
         self.model.zero_grad()
-        pred = self.__forward_pass(x, edge_index, forward_args)
-        loss = self.criterion(pred, labels)
+        pred = self.__forward_pass(x, edge_index, forward_kwargs)
+        loss = self.criterion(pred, y)
         self.__apply_hooks()
         loss.backward()
         self.__rm_hooks()
@@ -74,8 +88,6 @@ class GuidedBP(WalkBase):
         xhook.remove() # Remove hook from x
 
         graph_exp = x.grad
-
-        #graph_exp = torch.flatten(x.grad).tolist()
 
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
@@ -88,22 +100,32 @@ class GuidedBP(WalkBase):
 
         return {'feature': filtered_exp, 'edge': None}, khop_info
 
-    def get_explanation_graph(self, x: torch.Tensor, label: torch.Tensor, edge_index: torch.Tensor, 
-        forward_args: tuple = None) -> torch.Tensor:
+    def get_explanation_graph(self, 
+                x: torch.Tensor, 
+                y: torch.Tensor, 
+                edge_index: torch.Tensor, 
+                forward_kwargs: dict = {}
+        ) -> dict:
         '''
         Explain a whole-graph prediction with Guided Backpropagation
 
         Args:
-            x (torch.tensor): tensor of node features from the entire graph
-            label (int): label for which to compute Grad-CAM against
-            edge_index (torch.tensor): edge_index of entire graph
-            forward_args (tuple, optional): additional arguments to model.forward 
-                beyond x and edge_index. (default: :obj:`None`)     
+            x (torch.tensor): Tensor of node features from the entire graph.
+            y (torch.tensor): Ground truth label of given input. This argument is 
+                input to the `criterion` function provided in `__init__()`.
+            edge_index (torch.tensor): Edge_index of entire graph.
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)     
 
-        :rtype: :class:`torch.Tensor` (size (n,k))
-            exp (torch.Tensor, size (n,)): Explanations for each node, size `(n,k)` where `n` is number
-                of nodes in the entire graph described by `edge_index` and `k` is number of node input
-                features.   
+        :rtype: :class:`dict`
+        
+        Returns:
+            exp (dict):
+                exp['feature'] (torch.Tensor, (n,k)): Explanations for each node, 
+                    size `(n,k)` where `n` is number of nodes in the entire graph 
+                    described by `edge_index` and `k` is number of node input features. 
+                exp['edge'] is `None` since there is no edge explanation generated.
         '''
 
         # Run whole-graph prediction:
@@ -113,8 +135,8 @@ class GuidedBP(WalkBase):
         xhook = x.register_hook(clip_hook)
         
         self.model.zero_grad()
-        pred = self.__forward_pass(x, edge_index, forward_args)
-        loss = self.criterion(pred, label)
+        pred = self.__forward_pass(x, edge_index, forward_kwargs)
+        loss = self.criterion(pred, y)
         self.__apply_hooks()
         loss.backward()
         self.__rm_hooks()
@@ -134,14 +156,11 @@ class GuidedBP(WalkBase):
             h.remove()
         self.registered_hooks = []
     
-    def __forward_pass(self, x, edge_index, forward_args):
+    def __forward_pass(self, x, edge_index, forward_kwargs):
         #@torch.enable_grad()
         # Forward pass:
         self.model.eval()
         self.__apply_hooks()
-        if forward_args is None:
-            pred = self.model(x, edge_index)
-        else:
-            pred = self.model(x, edge_index, *forward_args)
+        pred = self.model(x, edge_index, **forward_kwargs)
 
         return pred
