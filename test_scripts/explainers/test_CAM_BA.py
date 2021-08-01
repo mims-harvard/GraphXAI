@@ -35,14 +35,13 @@ print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
 act = lambda x: torch.argmax(x, dim=1)
-cam = CAM(model, '', activation = act)
+cam = CAM(model, activation = act)
 
 exp, khop_info = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_class, edge_index = data.edge_index)
 subgraph_eidx = khop_info[1]
 
 y_subgraph = data.y[khop_info[0]]
 trim_exp = exp['feature'][khop_info[0]]
-print('CAM trim_exp', trim_exp)
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
@@ -54,8 +53,13 @@ ax1.set_title('Ground Truth')
 visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax2, show = False)
 ax2.set_title('CAM')
 
-gcam = Grad_CAM(model, '', criterion = criterion)
-exp, khop_info = gcam.get_explanation_node(data.x, data.y, int(node_idx), data.edge_index, average_variant=False)
+gcam = Grad_CAM(model, criterion = criterion)
+exp, khop_info = gcam.get_explanation_node(
+                    data.x, 
+                    y = data.y, 
+                    node_idx = int(node_idx), 
+                    edge_index = data.edge_index, 
+                    average_variant=True)
 
 trim_exp = exp['feature'][khop_info[0]]
 
