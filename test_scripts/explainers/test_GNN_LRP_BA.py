@@ -32,7 +32,7 @@ model.eval()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
 pred_class = pred.argmax(dim=0).item()
 
-gnn_lrp = GNN_LRP(model, explain_graph=False)
+gnn_lrp = GNN_LRP(model)
 
 
 exp, khop_info = gnn_lrp.get_explanation_node(

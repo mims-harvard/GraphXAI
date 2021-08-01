@@ -42,8 +42,11 @@ pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))
 print('GROUND TRUTH LABEL: \t {}'.format(mol.y.item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 
-exp = gbp.get_explanation_graph(mol.x, mol.y, mol.edge_index,
-            forward_args = (torch.zeros(1).type(torch.int64),))
+exp = gbp.get_explanation_graph(
+            x = mol.x, 
+            y = mol.y, 
+            edge_index = mol.edge_index,
+            forward_kwargs = {'batch': torch.zeros(1).type(torch.int64)})
 
 exp_list = [torch.sum(exp['feature'][i,:]).item() for i in range(exp['feature'].shape[0])]
 
