@@ -1,7 +1,7 @@
 import random
 import torch
 
-from graphxai.explainers import GraphLIME
+from graphxai.explainers import GNNExplainer
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
@@ -32,8 +32,10 @@ print('pred shape', pred.shape)
 print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
-act = lambda x: torch.argmax(x, dim=1)
-explainer = GraphLIME(model, rho=0.1)
-
+explainer = GNNExplainer(model)
+# With true label
 exp, khop_info = explainer.get_explanation_node(int(node_idx), data.edge_index,
                                                 data.x, data.y)
+# Without true label
+exp_no_label, khop_info = explainer.get_explanation_node(int(node_idx), data.edge_index,
+                                                         data.x)

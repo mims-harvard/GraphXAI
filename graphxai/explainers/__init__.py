@@ -6,3 +6,4 @@ from .random import RandomExplainer
 from .grad import GradExplainer
 from .integrated_grad import IntegratedGradExplainer
 from .graphlime import GraphLIME
+from .gnn_explainer import GNNExplainer
