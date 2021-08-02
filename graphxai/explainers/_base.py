@@ -11,16 +11,14 @@ class _BaseExplainer:
     """
     Base Class for Explainers
     """
-    def __init__(self, model: nn.Module, criterion: nn.Module, *_):
+    def __init__(self, model: nn.Module):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
                 The output of the model should be unnormalized class score.
                 For example, last layer = GCNConv or Linear.
-            criterion (torch.nn.Module): loss function
         """
         self.model = model
-        self.criterion = criterion
         self.L = len([module for module in self.model.modules()
                       if isinstance(module, MessagePassing)])
 
@@ -43,18 +41,18 @@ class _BaseExplainer:
             output = self.model(x, edge_index, **forward_kwargs)
 
         if return_type == 'label':
-            return output.argmax(axis=1)
+            return output.argmax(dim=1)
         elif return_type == 'logit':
-            return F.softmax(output)
+            return F.softmax(output, dim=1)
         elif return_type == 'log_logit':
-            return F.log_softmax(output)
+            return F.log_softmax(output, dim=1)
         else:
             raise ValueError("return_type must be 'label', 'logit', or 'log_logit'")
 
     def _subgraph(self):
         """
         # TODO: Design this function
-        # Return numpy version
+        # 1) Add option to return numpy version
         """
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
@@ -66,7 +64,7 @@ class _BaseExplainer:
                              edge_index: torch.Tensor,
                              label: Optional[torch.Tensor] = None,
                              num_hops: Optional[int] = None,
-                             forward_kwargs: dict = {}, *_):
+                             forward_kwargs: dict = {}):
         """
         Explain a node prediction.
 
@@ -113,7 +111,7 @@ class _BaseExplainer:
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_kwargs: Optional[dict] = None, *_):
+                              forward_kwargs: Optional[dict] = None):
         """
         Explain a whole-graph prediction.
 

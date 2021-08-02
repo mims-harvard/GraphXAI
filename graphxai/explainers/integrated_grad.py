@@ -2,26 +2,25 @@ import torch
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
+from ._base import _BaseExplainer
 
-class IntegratedGradExplainer:
+
+class IntegratedGradExplainer(_BaseExplainer):
     """
     Integrated Gradient Explanation for GNNs
     """
-    def __init__(self, model, criterion, *_):
+    def __init__(self, model, criterion):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
             criterion (torch.nn.Module): loss function
         """
-        self.model = model
+        super().__init__(model)
         self.criterion = criterion
-        self.L = len([module for module in self.model.modules()
-                      if isinstance(module, MessagePassing)])
-
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, label: torch.Tensor,
-                             num_hops: int = None, *_):
+                             num_hops: int = None):
         """
         Explain a node prediction.
 
@@ -75,7 +74,7 @@ class IntegratedGradExplainer:
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_args=None, *_):
+                              forward_args=None):
         """
         Explain a whole-graph prediction.
 
