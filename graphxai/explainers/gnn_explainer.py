@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from typing import Optional
@@ -7,20 +8,28 @@ from torch_geometric.utils import k_hop_subgraph
 from ._base import _BaseExplainer
 
 
-class GradExplainer(_BaseExplainer):
+class GNNExplainer(_BaseExplainer):
     """
-    Vanilla Gradient Explanation for GNNs
+    GNNExplainer: node only
     """
-    def __init__(self, model, criterion):
+    def __init__(self, model, coeff=None):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
                 The output of the model should be unnormalized class score.
                 For example, last layer = CNConv or Linear.
-            criterion (torch.nn.Module): loss function
+            coeff (dict, optional): coefficient of the entropy term and the size term
+                for learning edge mask and node feature mask
+                Default setting:
+                    coeff = {'edge': {'entropy': 1.0, 'size': 0.005},
+                             'feature': {'entropy': 0.1, 'size': 1.0}}
         """
         super().__init__(model)
-        self.criterion = criterion
+        if coeff is not None:
+            self.coeff = coeff
+        else:
+            self.coeff = {'edge': {'entropy': 1.0, 'size': 0.005},
+                          'feature': {'entropy': 0.1, 'size': 1.0}}
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, label: Optional[torch.Tensor] = None,
@@ -56,14 +65,47 @@ class GradExplainer(_BaseExplainer):
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
+        num_features = x.shape[1]
+        sub_num_nodes = subset.shape[0]
+        sub_num_edges = sub_edge_index.shape[1]
+
+        # Initialize edge_mask and feature_mask for learning
+        std = torch.nn.init.calculate_gain('relu') * np.sqrt(2.0 / (2 * sub_num_nodes))
+        edge_mask = torch.nn.Parameter(torch.randn(sub_num_edges) * std)
+        feature_mask = torch.nn.Parameter(torch.randn(num_features) * 0.1)
 
         self.model.eval()
-        sub_x.requires_grad = True
-        output = self.model(sub_x, sub_edge_index)
-        loss = self.criterion(output[mapping], label[mapping])
-        loss.backward()
+        num_epochs = 200
+        optimizer = torch.optim.Adam([edge_mask], lr=0.01)
 
-        exp['feature'] = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
+        # Loss function for GNNExplainer's objective
+        def loss_fn(logit, mask, mask_type):
+            # Select the logit and the label of node_idx
+            node_logit = logit[torch.where(subset==node_idx)].squeeze()
+            node_label = label[mapping]
+            # Select the label's logit value
+            loss = node_logit[node_label].item()
+            # Q: 1) Why this logit term? 2) No joint learning of feature and edge masks
+            a = mask.sigmoid()
+            loss = loss + self.coeff[mask_type]['size'] * torch.sum(a)
+            entropy = -a * torch.log(a + 1e-15) - (1-a) * torch.log(1-a + 1e-15)
+            loss = loss + self.coeff[mask_type]['entropy'] * entropy.mean()
+            return loss
+
+        def train(mask, mask_type):
+            optimizer = torch.optim.Adam([mask], lr=0.01)
+            for epoch in range(1, num_epochs+1):
+                optimizer.zero_grad()
+                logit = self._predict(sub_x, sub_edge_index, return_type='logit')
+                loss = loss_fn(logit, mask, mask_type)
+                loss.backward()
+                optimizer.step()
+
+        train(feature_mask, 'feature')
+        train(edge_mask, 'edge')
+
+        exp['feature'] = feature_mask.data
+        exp['edge'] = edge_mask.data
 
         return exp, khop_info
 
@@ -85,20 +127,8 @@ class GradExplainer(_BaseExplainer):
                 exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
                 exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
         """
-        exp = {'feature': None, 'edge': None}
-
-        self.model.eval()
-        x.requires_grad = True
-        if forward_kwargs is None:
-            output = self.model(x, edge_index)
-        else:
-            output = self.model(x, edge_index, **forward_kwargs)
-        loss = self.criterion(output, label)
-        loss.backward()
-
-        exp['feature'] = x.grad
-
-        return exp
+        raise Exception('GNNExplainer cannot provide explanation \
+                         for graph-level prediction.')
 
     def get_explanation_link(self):
         """
