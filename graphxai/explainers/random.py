@@ -2,16 +2,18 @@ import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
+from ._base import _BaseExplainer
 
-class RandomExplainer:
+
+class RandomExplainer(_BaseExplainer):
     """
     Random Explanation for GNNs
     """
-    def __init__(self, *_):
-        pass
+    def __init__(self, model):
+        super().__init__(model)
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, *_):
+                             edge_index: torch.Tensor):
         """
         Get the explanation for a node.
 
@@ -30,17 +32,17 @@ class RandomExplainer:
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved
         """
+        num_hops = self.L if num_hops is None else num_hops
+        khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
+
         exp = {'feature': None, 'edge': None}
         exp['feature'] = torch.randn(x[0, :].shape)
         exp['edge'] = torch.randn(edge_index[0, :].shape)
 
-        num_hops = 2
-        khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
-
         return exp, khop_info
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
-                              num_nodes : int = None, *_):
+                              num_nodes : int = None):
         """
         Get the explanation for the whole graph.
 

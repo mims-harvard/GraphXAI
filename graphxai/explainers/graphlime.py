@@ -10,22 +10,20 @@ from ._base import _BaseExplainer
 
 class GraphLIME(_BaseExplainer):
     """
-    GraphLIME Explanation for GNNs
+    GraphLIME: node only
 
     (Code adapted from https://github.com/WilliamCCHuang/GraphLIME)
     """
     def __init__(self, model: nn.Module,
-                 criterion: nn.Module,
                  rho: float = 0.1, *_):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
                 The output of the model should be unnormalized class score.
                 For example, last layer = GCNConv or Linear.
-            criterion (torch.nn.Module): loss function
             rho (float): regularization strength
         """
-        super().__init__(model, criterion)
+        super().__init__(model)
         self.rho = rho
 
     def _compute_kernel(self, x: np.ndarray, reduce: bool):
@@ -57,7 +55,7 @@ class GraphLIME(_BaseExplainer):
         Standardize the kernel matrix.
 
         Args:
-            K (np.ndarray, [n x n x d): kernel matrix
+            K (np.ndarray, [n x n x d]): kernel matrix
 
         Returns:
             K_bar (np.ndarray, [n x n x d]): centralized and normalized kernel matrix
@@ -78,8 +76,8 @@ class GraphLIME(_BaseExplainer):
         Args:
             node_idx (int): index of the node to be explained
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
-            x (torch.Tensor, [n x d]): node features
-            label (torch.Tensor, [n x ...]): labels to explain
+            x (torch.Tensor, [N x d]): node features
+            label (torch.Tensor, [N x ...]): labels to explain
             num_hops (int): number of hops to consider
 
         Returns:
@@ -98,8 +96,8 @@ class GraphLIME(_BaseExplainer):
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
-        sub_x = x[subset].detach().cpu().numpy()
-        sub_y = y[subset].detach().cpu().numpy()
+        sub_x = x[subset].detach().cpu().numpy()  # [n x d]
+        sub_y = y[subset].detach().cpu().numpy()  # [n x 1]
 
         exp = {'feature': None, 'edge': None}
 
