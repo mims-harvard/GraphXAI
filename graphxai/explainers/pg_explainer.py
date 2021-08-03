@@ -6,7 +6,7 @@ from torch_geometric.utils import k_hop_subgraph
 from ._base import _BaseExplainer
 
 
-class GradExplainer(_BaseExplainer):
+class PGExplainer(_BaseExplainer):
     """
     Vanilla Gradient Explanation for GNNs
     """

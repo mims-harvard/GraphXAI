@@ -2,7 +2,6 @@ import numpy as np
 import torch
 
 from typing import Optional
-from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 from ._base import _BaseExplainer
@@ -84,8 +83,7 @@ class GNNExplainer(_BaseExplainer):
             node_logit = logit[torch.where(subset==node_idx)].squeeze()
             node_label = label[mapping]
             # Select the label's logit value
-            loss = node_logit[node_label].item()
-            # Q: 1) Why this logit term? 2) No joint learning of feature and edge masks
+            loss = -node_logit[node_label].item()
             a = mask.sigmoid()
             loss = loss + self.coeff[mask_type]['size'] * torch.sum(a)
             entropy = -a * torch.log(a + 1e-15) - (1-a) * torch.log(1-a + 1e-15)
