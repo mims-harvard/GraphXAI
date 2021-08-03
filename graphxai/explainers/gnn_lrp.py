@@ -5,7 +5,6 @@ import copy
 from typing import Callable, Tuple
 from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
-#from torch_geometric.utils.num_nodes import maybe_num_nodes
 from .utils.base_explainer import WalkBase
 
 EPS = 1e-15
@@ -91,13 +90,14 @@ class GNN_LRP(WalkBase):
 
         Returns:
             exp (dict):
-                exp['feature'] is :obj:`None` because no feature explanations are generated.
+                exp['feature_imp'] is :obj:`None` because no feature explanations are generated.
+                exp['node_imp'] is :obj:`None` because no node explanations are generated.
                 If `get_edge_scores == True`: 
-                    exp['edge'] (torch.Tensor): tensor of shape `(e,)` where `e` is the number of edges 
+                    exp['edge_imp'] (torch.Tensor): tensor of shape `(e,)` where `e` is the number of edges 
                         in the k-hop subgraph of node specified by `node_idx`. These are each aggregated scores 
                         from the combinations of walks over each edge.
                 If `get_edge_scores == False`:
-                    exp['edge'] (dict): dict containing keys `ids` and `scores`, where `ids` are indices of edges in the original
+                    exp['edge_imp'] (dict): dict containing keys `ids` and `scores`, where `ids` are indices of edges in the original
                         `edge_index` with added self-loops; these values correspond to walks on the graph. The `scores`
                         key consists of a `(1,w)` tensor, where `w` is the number of walks on the k-hop subgraph around
                         node_idx; these values are each scores for each of their corresponding walks in the `ids` key.
@@ -271,7 +271,7 @@ class GNN_LRP(WalkBase):
         walks = {'ids': walk_indices_list, 'score': walk_scores_tensor_list}
 
         if get_walk_scores:
-            return {'feature': None, 'edge': walks}, khop_info # Returns scores in terms of walks
+            return {'feature_imp': None, 'node_imp': None, 'edge_imp': walks}, khop_info # Returns scores in terms of walks
         
         # if returning edge scores:
         subgraph_edge_mask = khop_info[3]
@@ -281,7 +281,7 @@ class GNN_LRP(WalkBase):
         edge_scores = self.__parse_edges(walks, mask_inds, label, agg = edge_aggregator)
 
         # edge_scores has same edge score ordering as khop_info[1] (i.e. edge_index of subgraph)
-        return {'feature': None, 'edge': edge_scores}, khop_info 
+        return {'feature_imp': None, 'node_imp': None, 'edge_imp': edge_scores}, khop_info 
         
     
     def get_explanation_graph(self,
@@ -317,12 +317,13 @@ class GNN_LRP(WalkBase):
         
         Returns:
             exp (dict):
-                exp['feature'] is :obj:`None` because no feature explanations are generated.
+                exp['feature_imp'] is :obj:`None` because no feature explanations are generated.
+                exp['node_imp'] is :obj:`None` because no node explanations are generated.
                 If `get_edge_scores == True`: 
-                    exp['edge'] (torch.Tensor): tensor of shape `(e,)` where `e` is the number of edges in the graph. 
+                    exp['edge_imp'] (torch.Tensor): tensor of shape `(e,)` where `e` is the number of edges in the graph. 
                         These are each aggregated scores from the combinations of walks over each edge.
                 If `get_edge_scores == False`:
-                    exp['edge'] (dict): dict containing keys `ids` and `scores`, where `ids` are indices of edges in the original
+                    exp['edge_imp'] (dict): dict containing keys `ids` and `scores`, where `ids` are indices of edges in the original
                         `edge_index` with added self-loops; these values correspond to walks on the graph. The `scores`
                         key consists of a `(1,w)` tensor, where `w` is the number of walks on the graph; these values are each 
                         scores for each of their corresponding walks in the `ids` key.
@@ -471,14 +472,14 @@ class GNN_LRP(WalkBase):
         walks = {'ids': walk_indices_list, 'score': walk_scores_tensor_list} # One scalar score for each walk
 
         if get_walk_scores:
-            return {'feature': None, 'edge': walks}, edge_index_with_loop # walks dictionary version of scores
+            return {'feature_imp': None, 'node_imp':None, 'edge_imp': walks}, edge_index_with_loop # walks dictionary version of scores
 
         # If returning edge scores:
         edge_ind_range = torch.arange(start = 0, end=edge_index_with_loop.shape[1])
         edge_scores = self.__parse_edges(walks, edge_ind_range, label, agg = edge_aggregator)
 
         # Returns edge scores, whose indices correspond to scores for each edge in edge_index_with_loop
-        return {'feature': None, 'edge': edge_scores}, edge_index_with_loop
+        return {'feature_imp': None, 'node_imp': None, 'edge_imp': edge_scores}, edge_index_with_loop
 
     def __parse_edges(self, walks: dict, mask_inds: torch.Tensor, label_idx: int, 
         agg: Callable[[list], float] = torch.mean):
