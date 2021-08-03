@@ -1,5 +1,4 @@
 import torch
-from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 from ._base import _BaseExplainer

@@ -7,3 +7,4 @@ from .grad import GradExplainer
 from .integrated_grad import IntegratedGradExplainer
 from .graphlime import GraphLIME
 from .gnn_explainer import GNNExplainer
+from .pg_explainer import PGExplainer

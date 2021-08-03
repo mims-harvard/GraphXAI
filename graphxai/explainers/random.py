@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
@@ -13,7 +15,7 @@ class RandomExplainer(_BaseExplainer):
         super().__init__(model)
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor):
+                             edge_index: torch.Tensor, num_hops: Optional[int] = None):
         """
         Get the explanation for a node.
 
