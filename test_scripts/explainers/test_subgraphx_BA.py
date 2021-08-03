@@ -68,9 +68,9 @@ exp = explainer.get_node_explanation(data.x, label = int(pred_class), edge_index
 
 L_hop = k_hop_subgraph(node_idx, num_hops = L, edge_index = data.edge_index)
 
-subgraph_edge_index = data.edge_index[:,exp['edge']]
+subgraph_edge_index = data.edge_index[:,exp['edge_imp']]
 
-subgraph_node_mask, _ = whole_graph_mask_to_subgraph(node_mask = exp['feature'], subgraph_nodes = L_hop[0])
+subgraph_node_mask, _ = whole_graph_mask_to_subgraph(node_mask = exp['node_imp'], subgraph_nodes = L_hop[0])
 
 fig, axs = plt.subplots(1, 2)
 
