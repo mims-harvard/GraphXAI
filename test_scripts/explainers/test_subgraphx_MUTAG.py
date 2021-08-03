@@ -65,12 +65,12 @@ ax1.set_title('Original Molecule')
 
 visualize_mol_explanation(
     mol, 
-    node_weights = exp['feature'].type(torch.int32).tolist(), 
+    node_weights = exp['node_imp'].type(torch.int32).tolist(), 
     atoms = atoms, 
     ax = ax2, 
     show = False, 
     directed = False)
-ax2.set_title('Subgraph Explanation')
+ax2.set_title('SubgraphX')
 
 ymin, ymax = ax1.get_ylim()
 xmin, xmax = ax1.get_xlim()

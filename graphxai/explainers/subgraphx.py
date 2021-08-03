@@ -126,11 +126,12 @@ class SubgraphX(object):
         :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
+                exp['feature_imp'] is `None` because no feature explanations are generated.
+                exp['node_imp'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
                     is number of nodes in the entire graph described by `edge_index`. 
                     Type is `torch.bool`, with `True` indices corresponding to nodes 
                     included in the subgraph.
-                exp['edge'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
+                exp['edge_imp'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
                     is number of edges in the entire graph described by `edge_index`. 
                     Type is `torch.bool`, with `True` indices corresponding to edges 
                     included in the subgraph.
@@ -170,7 +171,7 @@ class SubgraphX(object):
         # Need to parse results:
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
-        return {'feature': node_mask, 'edge': edge_mask}
+        return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
 
     def get_graph_explanation(self, 
             x: Tensor, 
@@ -196,11 +197,12 @@ class SubgraphX(object):
         :rtype: :class:`dict`
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
+                exp['feature_imp'] is `None` because no feature explanations are generated.
+                exp['node_imp'] (torch.Tensor, (n,)): Node mask of size `(n,)` where `n` 
                     is number of nodes in the entire graph described by `edge_index`. 
                     Type is `torch.bool`, with `True` indices corresponding to nodes 
                     included in the subgraph.
-                exp['edge'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
+                exp['edge_imp'] (torch.Tensor, (e,)): Edge mask of size `(e,)` where `e` 
                     is number of edges in the entire graph described by `edge_index`. 
                     Type is `torch.bool`, with `True` indices corresponding to edges 
                     included in the subgraph.
@@ -225,7 +227,7 @@ class SubgraphX(object):
 
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
-        return {'feature': node_mask, 'edge': edge_mask}
+        return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
 
     def __parse_results(self, best_subgraph, edge_index):
         # Function strongly based on torch_geometric.utils.subgraph function
