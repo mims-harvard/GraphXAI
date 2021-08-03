@@ -45,12 +45,12 @@ from graphxai.explainers.gnn_lrp import GNN_LRP
 
 gnn_lrp = GNN_LRP(model)
 exp, new_edge_index = gnn_lrp.get_explanation_graph(
-    mol.x, pred_class, edge_index = mol.edge_index,
-    forward_args = (torch.tensor([1], dtype = torch.long),)
+    mol.x, edge_index = mol.edge_index, label = pred_class, 
+    forward_kwargs = {'batch':torch.tensor([1], dtype = torch.long)}
 )
 
 # Want to explain our predicted class:
-edge_exp_label = exp['edge']
+edge_exp_label = exp['edge_imp']
 
 # For purposes of visualization, remove self-loops from edge index and explanations:
 mol.edge_index, edge_exp_label = remove_self_loops(edge_index=new_edge_index, edge_attr=torch.tensor(edge_exp_label))
@@ -58,8 +58,15 @@ mol.edge_index, edge_exp_label = remove_self_loops(edge_index=new_edge_index, ed
 # Load explanations into edge attributes of molecule
 mol.edge_attr = edge_exp_label
 
-plt.title('Predicted = {:1d}, Ground Truth = {:1d}'.format(pred_class, mol.y.item()))
-visualize_mol_explanation(mol, atoms = atoms, edge_weights = edge_exp_label.tolist(), 
-    weight_map = True, directed = True, show = False)
+fig, ax = plt.subplots()
 
+visualize_mol_explanation(mol, atoms = atoms, edge_weights = edge_exp_label.tolist(), 
+    weight_map = True, directed = True, ax = ax, show = False, fig = fig)
+
+ymin, ymax = ax.get_ylim()
+xmin, xmax = ax.get_xlim()
+ax.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(mol.y.item()))
+ax.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred_class))
+
+fig.suptitle('GNN-LRP')
 plt.show()
