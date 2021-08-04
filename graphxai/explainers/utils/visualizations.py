@@ -18,7 +18,7 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
             edge_weights: list = None,
             ax: matplotlib.axes.Axes = None, atoms: list = None, 
             weight_map: bool = False, show: bool = True,
-            directed: bool = False, fig = None):
+            directed: bool = False, fig: matplotlib.figure.Figure = None):
     '''
     Visualize explanation for predictions on a graph
     Args:
@@ -36,7 +36,7 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
             (default: :obj:`True`)  
         directed (bool, optional): If `True`, shows molecule as directed graph.
             (default: :obj:`False`) 
-        fig (matplotlib.Figure, optional): Figure for plots being drawn with this
+        fig (matplotlib.figure.Figure, optional): Figure for plots being drawn with this
             function. Will be used to direct the colorbar. (default: :obj:`None`)
     '''
     if directed:
@@ -80,12 +80,18 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
     else:
         nx.draw(G, pos, node_color = node_weights, 
             node_size = 400, cmap = plt.cm.Blues,
+            edge_color = edge_map,
             arrows = False, edge_cmap = edge_cmap, ax = ax)#, with_labels = True)
         nx.draw_networkx_labels(G, pos, labels = map, ax = ax)
 
-        # if node_weights != '#1f78b4' and fig is not None:
-        #     sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=min(node_weights), vmax=max(node_weights)))
-        #     fig.colorbar(sm, shrink=0.75, cax=ax)
+        if node_weights != '#1f78b4' and (fig is not None):
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=min(node_weights), vmax=max(node_weights)))
+            fig.colorbar(sm, shrink=0.75, ax=ax)
+
+        if (edge_weights is not None) and (fig is not None):
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min(edge_weights), 
+                vmax=max(edge_weights)))
+            fig.colorbar(sm, shrink=0.75, ax = ax)
     
     if show:
         plt.show()
@@ -111,7 +117,8 @@ def get_node_weights_dict(node_weights, subgraph_nodes):
 
 def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list = None, 
     edge_weights: list = None, node_idx: int = None, ax: matplotlib.axes.Axes = None, 
-    weight_map: bool = False, show: bool = True, connected: bool = True):
+    weight_map: bool = False, show: bool = True, connected: bool = True, 
+    fig: matplotlib.figure.Figure = None):
     '''
     Visualize node explanation on a subgraph.
     :note: Only shows the largest connected component of the subgraph.
@@ -138,6 +145,8 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
             (default: :obj:`True`)  
         connected (bool, optional): If `True`, forces the drawn subgraph to be connected.
             (default: :obj:`True`)
+        fig (matplotlib.figure.Figure, optional): Provided if one desires a colorbar for the 
+            node or edge coloring in the ax option of the function. (default: :obj:`True`)
     '''
 
     if edge_weights is None:
@@ -218,6 +227,11 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 
                 node_size = 400, ax = ax)
+
+        if (edge_weights is not None) and (fig is not None):
+            sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min(edge_attr.tolist()), 
+                vmax=max(edge_attr.tolist())))
+            fig.colorbar(sm, shrink=0.75, ax = ax)
     
     if show:
         plt.show()
