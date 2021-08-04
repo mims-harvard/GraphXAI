@@ -24,6 +24,7 @@ for epoch in range(1, 201):
     acc = test(model, data)
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
+#random.seed(345)
 node_idx = random.choice(inhouse)
 
 model.eval()
@@ -41,7 +42,7 @@ exp, khop_info = cam.get_explanation_node(data.x, node_idx = int(node_idx), labe
 subgraph_eidx = khop_info[1]
 
 y_subgraph = data.y[khop_info[0]]
-trim_exp = exp['feature'][khop_info[0]]
+#trim_exp = exp['feature'][khop_info[0]]
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
@@ -50,7 +51,8 @@ visualize_subgraph_explanation(subgraph_eidx, y_subgraph, node_idx = int(node_id
 ax1.set_title('Ground Truth')
 
 # CAM plot:
-visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax2, show = False)
+#visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax2, show = False)
+visualize_subgraph_explanation(subgraph_eidx, exp['node_imp'], node_idx = int(node_idx), ax = ax2, show = False)
 ax2.set_title('CAM')
 
 gcam = Grad_CAM(model, criterion = criterion)
@@ -61,10 +63,11 @@ exp, khop_info = gcam.get_explanation_node(
                     edge_index = data.edge_index, 
                     average_variant=True)
 
-trim_exp = exp['feature'][khop_info[0]]
+#trim_exp = exp['feature'][khop_info[0]]
 
 #Grad-CAM plot:
-visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax3, show = False)
+#visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax3, show = False)
+visualize_subgraph_explanation(subgraph_eidx, exp['node_imp'], node_idx = int(node_idx), ax = ax3, show = False)
 ax3.set_title('Grad-CAM')
 
 ymin, ymax = ax1.get_ylim()

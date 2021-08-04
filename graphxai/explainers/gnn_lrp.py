@@ -6,6 +6,7 @@ from typing import Callable, Tuple
 from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
 from .utils.base_explainer import WalkBase
+from .decomp_base import BaseDecomposition
 
 EPS = 1e-15
 
@@ -26,7 +27,8 @@ class GraphSequential(nn.Sequential):
                 input = module(input)
         return input
 
-class GNN_LRP(WalkBase):
+#class GNN_LRP(WalkBase):
+class GNN_LRP(BaseDecomposition):
     r"""
     Code adapted from Dive into Graphs (DIG)
     Code: https://github.com/divelab/DIG
@@ -108,7 +110,8 @@ class GNN_LRP(WalkBase):
                 3. the `edge_index` mask indicating which edges were preserved 
         '''
 
-        super().forward(x, edge_index, **kwargs)
+        #super().forward(x, edge_index, **kwargs)
+        super().set_graph_attr(x, edge_index, explain_graph = False, **kwargs)
         self.model.eval()
 
         # Ensure types:
@@ -124,7 +127,7 @@ class GNN_LRP(WalkBase):
 
         walk_indices_list = torch.tensor(
             self.walks_pick(edge_index_with_loop.cpu(), list(range(edge_index_with_loop.shape[1])),
-                            num_layers=self.num_layers), device=self.device)
+                            num_layers=self.L), device=self.device)
 
         # Get subgraph of nodes in computational graph:
         khop_info  = k_hop_subgraph(
@@ -329,7 +332,8 @@ class GNN_LRP(WalkBase):
                         scores for each of their corresponding walks in the `ids` key.
         '''
 
-        super().forward(x, edge_index, **kwargs)
+        #super().forward(x, edge_index, **kwargs)
+        super().set_graph_attr(x, edge_index, explain_graph = True, **kwargs)
         self.model.eval()
 
         # Ensure label is an int
@@ -342,7 +346,7 @@ class GNN_LRP(WalkBase):
 
         walk_indices_list = torch.tensor(
             self.walks_pick(edge_index_with_loop.cpu(), list(range(edge_index_with_loop.shape[1])),
-                            num_layers=self.num_layers), device=self.device)
+                            num_layers=self.L), device=self.device)
         
         def compute_walk_score():
 
