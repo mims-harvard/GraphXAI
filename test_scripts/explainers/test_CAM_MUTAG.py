@@ -48,7 +48,7 @@ exp = cam.get_explanation_graph(mol.x, edge_index = mol.edge_index, label = mol.
 # Show the plots of both CAM and Grad-CAM on separate axes:
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-visualize_mol_explanation(mol, exp['feature'], atoms = atoms, ax = ax1, show = False)
+visualize_mol_explanation(mol, exp['node_imp'], atoms = atoms, ax = ax1, show = False)
 
 # Get CAM explanation:
 act = lambda x: torch.argmax(x, dim=1)
@@ -57,7 +57,7 @@ cam = CAM(model, activation = act)
 exp = cam.get_explanation_graph(mol.x, edge_index = mol.edge_index, label = mol.y,
             forward_kwargs = {'batch':torch.zeros(1).type(torch.int64)})
 
-visualize_mol_explanation(mol, exp['feature'], atoms = atoms, ax = ax2, show = False, fig = fig)
+visualize_mol_explanation(mol, exp['node_imp'], atoms = atoms, ax = ax2, show = False, fig = fig)
 
 ax1.set_title('Grad-CAM')
 ax2.set_title('CAM')
