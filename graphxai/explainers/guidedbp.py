@@ -5,6 +5,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 from .utils.base_explainer import WalkBase
+from .decomp_base import BaseDecomposition
 
 def clip_hook(grad):
     # Apply ReLU activation to gradient
@@ -20,7 +21,7 @@ def matching_explanations(nodes, exp):
 
     return new_exp.tolist()
 
-class GuidedBP(WalkBase):
+class GuidedBP(BaseDecomposition):
 
     def __init__(self, model, criterion = F.cross_entropy):
         '''
@@ -29,7 +30,7 @@ class GuidedBP(WalkBase):
             criterion (PyTorch Loss Function): loss function used to train the model.
                 Needed to pass gradients backwards in the network to obtain gradients.
         '''
-        super(WalkBase, self).__init__(model)
+        super().__init__(model)
         self.model = model
         self.criterion = criterion
 

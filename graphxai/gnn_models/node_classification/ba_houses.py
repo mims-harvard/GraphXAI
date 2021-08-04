@@ -9,15 +9,18 @@ from torch_geometric.data import Data
 
 class BA_Houses:
 
-    def __init__(self, n, m):
+    def __init__(self, n, m, seed = None):
         self.n = n
         self.m = m
         self.in_house = set()
+        self.seed = seed
 
     def get_data(self, num_houses, test_size = 0.25, multiple_features = False):
+        random.seed(self.seed)
         BAG = self.make_BA_shapes(num_houses)
         data = self.make_data(BAG, test_size, multiple_features)
         inhouse = self.in_house
+        random.seed()
         return data, list(inhouse)
 
     def make_house(self, G, encode_num = 1):
@@ -92,7 +95,7 @@ class BA_Houses:
 
     def make_BA_shapes(self, num_houses = 1, make_pyg = False):
         start_n = self.n - (4 * num_houses)
-        G = nx.barabasi_albert_graph(start_n, self.m)
+        G = nx.barabasi_albert_graph(start_n, self.m, seed = self.seed)
         self.node_attr = torch.zeros(self.n, dtype = torch.long)
 
         # Set num_houses:
