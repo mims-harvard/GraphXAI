@@ -7,8 +7,9 @@ from torch_geometric.utils import k_hop_subgraph
 import numpy as np
 
 from .utils.base_explainer import WalkBase
+from .decomp_base import BaseDecomposition
 
-class CAM(WalkBase):
+class CAM(BaseDecomposition):
     '''
     Class-Activation Mapping for GNNs
     '''
@@ -28,7 +29,7 @@ class CAM(WalkBase):
                 within the `forward` method of `model`, only set this parameter if another activation is
                 applied in the training procedure outside of model. 
         '''
-        super(WalkBase, self).__init__(model)
+        super().__init__(model=model)
         self.model = model
 
         # Set activation function
@@ -60,9 +61,11 @@ class CAM(WalkBase):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (s,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the entire graph.
-                exp['edge'] is `None` since there is no edge explanation generated.
+                exp['feature_imp'] is `None` because no feature mask is generated.
+                exp['node_imp'] (torch.Tensor, (s,)): Explanations for each node, 
+                    size `(s,)` where `s` is number of nodes in the computational
+                    graph around node `node_idx`.
+                exp['edge_imp'] is `None` since there is no edge explanation generated.
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -74,21 +77,22 @@ class CAM(WalkBase):
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
 
-        L = len(walk_steps)
+        #L = len(walk_steps)
 
         # Get subgraph:
-        khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = L, edge_index = edge_index)
+        khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
 
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
 
-        cam = torch.zeros(N) # Compute CAM only over the subgraph (all others are zero)
+        #cam = torch.zeros(N) # Compute CAM only over the subgraph (all others are zero)
+        cam = torch.zeros(subgraph_N)
         for i in range(subgraph_N):
             n = subgraph_nodes[i]
-            cam[n] += self.__exp_node(n, walk_steps, label)
+            cam[i] += self.__exp_node(n, walk_steps, label)
 
-        return {'feature': cam, 'edge': None}, khop_info
+        return {'feature_imp': None, 'node_imp': cam, 'edge_imp': None}, khop_info
 
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
@@ -117,14 +121,10 @@ class CAM(WalkBase):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (s,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the entire graph.
-                exp['edge'] is `None` since there is no edge explanation generated.
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved 
+                exp['feature_imp'] is `None` because no feature mask is generated.
+                exp['node_imp'] (torch.Tensor, (n,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the graph.
+                exp['edge_imp'] is `None` since there is no edge explanation generated. 
         '''
 
         N = maybe_num_nodes(edge_index, num_nodes)
@@ -140,7 +140,7 @@ class CAM(WalkBase):
         for n in range(N):
             node_explanations.append(self.__exp_node(n, walk_steps, label))
 
-        return {'feature': torch.tensor(node_explanations), 'edge': None}
+        return {'feature_imp': None, 'node_imp': torch.tensor(node_explanations), 'edge_imp': None}
 
     def __forward_pass(self, x, edge_index, forward_kwargs = {}):
         # Forward pass:
@@ -165,7 +165,7 @@ class CAM(WalkBase):
         return L_cam_n.item()
 
 
-class Grad_CAM(WalkBase):
+class Grad_CAM(BaseDecomposition):
     '''
     Gradient Class-Activation Mapping for GNNs
     '''
@@ -174,11 +174,10 @@ class Grad_CAM(WalkBase):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
-            device: device on which model is to run
             criterion (PyTorch Loss Function): loss function used to train the model.
                 Needed to pass gradients backwards in the network to obtain gradients.
         '''
-        super(WalkBase, self).__init__(model)
+        super().__init__(model)
         self.model = model
         self.criterion = criterion
 
@@ -214,9 +213,11 @@ class Grad_CAM(WalkBase):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (n,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the entire graph.
-                exp['edge'] is `None` since there is no edge explanation generated.
+                exp['feature_imp'] is `None` because no feature mask is generated.
+                exp['node_imp'] (torch.Tensor, (s,)): Explanations for each node, 
+                    size `(s,)` where `s` is number of nodes in computational graph
+                    around node `node_idx`.
+                exp['edge_imp'] is `None` since there is no edge explanation generated.
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -235,9 +236,9 @@ class Grad_CAM(WalkBase):
 
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
 
-        L = len(walk_steps)
+        #L = len(walk_steps)
 
-        khop_info = k_hop_subgraph(node_idx, L, edge_index)
+        khop_info = k_hop_subgraph(node_idx, self.L, edge_index)
         subgraph_nodes = khop_info[0]
 
         N = maybe_num_nodes(edge_index, None)
@@ -245,30 +246,31 @@ class Grad_CAM(WalkBase):
 
         if average_variant:
             # Size of all nodes in graph; Sets all values to zero if not in subgraph
-            avg_gcam = torch.zeros(N)
+            #avg_gcam = torch.zeros(N)
+            avg_gcam = torch.zeros(subgraph_N)
 
-            for l in range(L):
+            for l in range(self.L):
                 # Compute gradients for this layer ahead of time:
                 gradients = self.__grad_by_layer(l)
 
                 for i in range(subgraph_N): # Over all subgraph nodes
                     n = subgraph_nodes[i]
-                    avg_gcam[n] += self.__get_gCAM_layer(walk_steps, l, n, gradients)#[0]
+                    avg_gcam[i] += self.__get_gCAM_layer(walk_steps, l, n, gradients)#[0]
 
-            avg_gcam /= L # Apply average
+            avg_gcam /= self.L # Apply average
 
-            return {'feature': avg_gcam, 'edge': None}, khop_info
+            return {'feature_imp': None, 'node_imp': avg_gcam, 'edge_imp': None}, khop_info
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            gcam = np.zeros(N)
+            gcam = torch.zeros(subgraph_N)
             gradients = self.__grad_by_layer(layer)
             for i in range(subgraph_N):
                 n = subgraph_nodes[i]
-                gcam[n] += self.__get_gCAM_layer(walk_steps, layer, n, gradients)#[0]
+                gcam[i] += self.__get_gCAM_layer(walk_steps, layer, n, gradients)#[0]
 
-            return {'feature': gcam, 'edge': None}, khop_info
+            return {'feature_imp': None, 'node_imp': gcam, 'edge_imp': None}, khop_info
                 
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Gradient Class-Activation Mapping')
@@ -303,14 +305,10 @@ class Grad_CAM(WalkBase):
         
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, (n,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the entire graph.
-                exp['edge'] is `None` since there is no edge explanation generated.
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved 
+                exp['feature_imp'] is `None` because no feature mask is generated.
+                exp['node_imp'] (torch.Tensor, (n,)): Explanations for each node, 
+                    size `(n,)` where `n` is number of nodes in the graph.
+                exp['edge_imp'] is `None` since there is no edge explanation generated.
         '''
 
         self.N = maybe_num_nodes(edge_index, num_nodes)
@@ -330,17 +328,19 @@ class Grad_CAM(WalkBase):
         if average_variant:
             avg_gcam = torch.zeros(self.N)
 
-            for l in range(len(walk_steps)): # Get Grad
+            for l in range(self.L): # Get Grad
                 avg_gcam += np.array(self.__get_gCAM_layer(walk_steps, layer=l))
 
             # Element-wise average over all nodes:
-            avg_gcam /= len(walk_steps)
-            return {'feature': avg_gcam, 'edge': None}
+            avg_gcam /= self.L
+            return {'feature_imp': None, 'node_imp': avg_gcam, 'edge_imp': None}
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            return {'feature': torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer)), 'edge': None}
+            return {'feature_imp': None, 
+                'node_imp': torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer)), 
+                'edge_imp': None}
 
     def __forward_pass(self, x, label, edge_index, forward_kwargs):
         x.requires_grad = True # Enforce that x needs gradient
