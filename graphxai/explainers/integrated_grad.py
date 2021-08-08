@@ -1,7 +1,7 @@
 import torch
 from torch_geometric.utils import k_hop_subgraph
 
-from ._base import _BaseExplainer
+from graphxai.explainers._base import _BaseExplainer
 
 
 class IntegratedGradExplainer(_BaseExplainer):
@@ -32,15 +32,16 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved
         """
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         num_hops = num_hops if num_hops is not None else self.L
         khop_info = subset, sub_edge_index, mapping, _ = \
@@ -67,7 +68,7 @@ class IntegratedGradExplainer(_BaseExplainer):
         avg_grads = torch.mean(grads, axis=0)
         integrated_gradients = ((x[torch.where(subset == node_idx)[0].item()]
                                  - baseline[0]) * avg_grads)
-        exp['feature'] = integrated_gradients
+        exp['feature_imp'] = integrated_gradients
 
         return exp, khop_info
 
@@ -86,10 +87,11 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         steps = 40
 
@@ -112,7 +114,7 @@ class IntegratedGradExplainer(_BaseExplainer):
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
         integrated_gradients = (x - baseline) * avg_grads
-        exp['feature'] = integrated_gradients
+        exp['feature_imp'] = integrated_gradients
 
         return exp
 
