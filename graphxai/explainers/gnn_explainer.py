@@ -4,7 +4,8 @@ import torch
 from typing import Optional
 from torch_geometric.utils import k_hop_subgraph
 
-from ._base import _BaseExplainer
+from graphxai.explainers._base import _BaseExplainer
+from graphxai.utils.constants import EXP_TYPES
 
 
 class GNNExplainer(_BaseExplainer):
@@ -32,7 +33,8 @@ class GNNExplainer(_BaseExplainer):
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, label: Optional[torch.Tensor] = None,
-                             num_hops: Optional[int] = None):
+                             num_hops: Optional[int] = None,
+                             explain_feature: bool = False):
         """
         Explain a node prediction.
 
@@ -44,11 +46,13 @@ class GNNExplainer(_BaseExplainer):
                 If not provided, we use the output of the model.
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
+            explain_feature (bool): whether to explain the feature or not
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -58,34 +62,30 @@ class GNNExplainer(_BaseExplainer):
         label = self._predict(x, edge_index) if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
-        num_features = x.shape[1]
-        sub_num_nodes = subset.shape[0]
-        sub_num_edges = sub_edge_index.shape[1]
 
-        # Initialize edge_mask and feature_mask for learning
-        std = torch.nn.init.calculate_gain('relu') * np.sqrt(2.0 / (2 * sub_num_nodes))
-        edge_mask = torch.nn.Parameter(torch.randn(sub_num_edges) * std)
-        feature_mask = torch.nn.Parameter(torch.randn(num_features) * 0.1)
+        self._set_masks(sub_x, sub_edge_index, explain_feature)
 
         self.model.eval()
         num_epochs = 200
-        optimizer = torch.optim.Adam([edge_mask], lr=0.01)
 
         # Loss function for GNNExplainer's objective
         def loss_fn(logit, mask, mask_type):
             # Select the logit and the label of node_idx
             node_logit = logit[torch.where(subset==node_idx)].squeeze()
             node_label = label[mapping]
-            # Select the label's logit value
+            # Maximize the probability of predicting the label
             loss = -node_logit[node_label].item()
             a = mask.sigmoid()
+            # Size regularization
             loss = loss + self.coeff[mask_type]['size'] * torch.sum(a)
+            # Element-wise entropy regularization
+            # Low entropy implies the mask is close to binary
             entropy = -a * torch.log(a + 1e-15) - (1-a) * torch.log(1-a + 1e-15)
             loss = loss + self.coeff[mask_type]['entropy'] * entropy.mean()
             return loss
@@ -94,22 +94,29 @@ class GNNExplainer(_BaseExplainer):
             optimizer = torch.optim.Adam([mask], lr=0.01)
             for epoch in range(1, num_epochs+1):
                 optimizer.zero_grad()
-                logit = self._predict(sub_x, sub_edge_index, return_type='logit')
+                if mask_type == 'feature':
+                    h = sub_x * mask.view(1, -1).sigmoid()
+                else:
+                    h = sub_x
+                logit = self._predict(h, sub_edge_index, return_type='log_logit')
                 loss = loss_fn(logit, mask, mask_type)
                 loss.backward()
                 optimizer.step()
 
-        train(feature_mask, 'feature')
-        train(edge_mask, 'edge')
+        if explain_feature:
+            train(self.feature_mask, 'feature')
+            exp['feature_imp'] = self.feature_mask.data
 
-        exp['feature'] = feature_mask.data
-        exp['edge'] = edge_mask.data
+        train(self.edge_mask, 'edge')
+        exp['edge_imp'] = self.edge_mask.data
+
+        self._clear_masks()
 
         return exp, khop_info
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_kwargs=None):
+                              forward_kwargs: dict = None, explain_feature: bool = False):
         """
         Explain a whole-graph prediction.
 
@@ -119,14 +126,15 @@ class GNNExplainer(_BaseExplainer):
             label (torch.Tensor, [n x ...]): labels to explain
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
+            explain_feature (bool): whether to explain the feature or not
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        raise Exception('GNNExplainer cannot provide explanation \
-                         for graph-level prediction.')
+        raise Exception('GNNExplainer does not support graph-level explanation.') 
 
     def get_explanation_link(self):
         """

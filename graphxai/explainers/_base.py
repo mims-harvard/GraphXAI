@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,6 +22,33 @@ class _BaseExplainer:
         self.model = model
         self.L = len([module for module in self.model.modules()
                       if isinstance(module, MessagePassing)])
+
+    def _set_masks(self, x: torch.Tensor, edge_index: torch.Tensor,
+                   explain_feature: bool = False):
+        """
+        Initialize the edge (and feature) masks.
+        """
+        (n, d), m = x.shape, edge_index.shape[1]
+
+        # Initialize edge_mask and feature_mask for learning
+        std = torch.nn.init.calculate_gain('relu') * np.sqrt(2.0 / (2 * n))
+        self.edge_mask = torch.nn.Parameter(torch.randn(m) * std)
+        if explain_feature:
+            self.feature_mask = torch.nn.Parameter(torch.randn(d) * 0.1)
+
+        # Tell pytorch geometric to apply edge masks
+        for module in self.model.modules():
+            if isinstance(module, MessagePassing):
+                module.__explain__ = True
+                module.__edge_mask__ = self.edge_mask
+
+    def _clear_masks(self):
+        for module in self.model.modules():
+            if isinstance(module, MessagePassing):
+                module.__explain__ = False
+                module.__edge_mask__ = None
+        self.edge_mask = None
+        self.feature_mask = None
 
     def _predict(self, x: torch.Tensor,
                  edge_index: torch.Tensor,
@@ -81,8 +109,9 @@ class _BaseExplainer:
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -102,7 +131,7 @@ class _BaseExplainer:
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
 
-        exp = {'feature': None, 'edge': None}
+        exp = {'feature_imp': None, 'edge_imp': None}
 
         # Compute exp
         raise NotImplementedError()
@@ -124,10 +153,11 @@ class _BaseExplainer:
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {'feature': None, 'edge': None}
+        exp = {'feature_imp': None, 'edge_imp': None}
 
         # Compute exp
         raise NotImplementedError()

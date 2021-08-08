@@ -5,7 +5,8 @@ import torch.nn as nn
 from sklearn.linear_model import LassoLars
 from torch_geometric.utils import k_hop_subgraph
 
-from ._base import _BaseExplainer
+from graphxai.explainers._base import _BaseExplainer
+from graphxai.utils.constants import EXP_TYPES
 
 
 class GraphLIME(_BaseExplainer):
@@ -82,8 +83,9 @@ class GraphLIME(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -99,7 +101,7 @@ class GraphLIME(_BaseExplainer):
         sub_x = x[subset].detach().cpu().numpy()  # [n x d]
         sub_y = y[subset].detach().cpu().numpy()  # [n x 1]
 
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         n, d = sub_x.shape
 
@@ -115,7 +117,7 @@ class GraphLIME(_BaseExplainer):
         solver = LassoLars(self.rho, fit_intercept=False, normalize=False, positive=True)
         solver.fit(K_bar * n, L_bar * n)
 
-        exp['feature'] = torch.from_numpy(solver.coef_)
+        exp['feature_imp'] = torch.from_numpy(solver.coef_)
 
         return exp, khop_info
 
@@ -134,8 +136,9 @@ class GraphLIME(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
         raise Exception('GraphLIME cannot provide explanation \
                         for graph-level prediction.')
