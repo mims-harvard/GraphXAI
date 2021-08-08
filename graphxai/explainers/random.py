@@ -4,7 +4,8 @@ import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
-from ._base import _BaseExplainer
+from graphxai.explainers._base import _BaseExplainer
+from graphxai.utils.constants import EXP_TYPES
 
 
 class RandomExplainer(_BaseExplainer):
@@ -26,8 +27,9 @@ class RandomExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -37,9 +39,9 @@ class RandomExplainer(_BaseExplainer):
         num_hops = self.L if num_hops is None else num_hops
         khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
 
-        exp = {'feature': None, 'edge': None}
-        exp['feature'] = torch.randn(x[0, :].shape)
-        exp['edge'] = torch.randn(edge_index[0, :].shape)
+        exp = {k: None for k in EXP_TYPES}
+        exp['feature_imp'] = torch.randn(x[0, :].shape)
+        exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
         return exp, khop_info
 
@@ -55,16 +57,17 @@ class RandomExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         n = maybe_num_nodes(edge_index, None) if num_nodes is None else num_nodes
         rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1))
-        exp['feature'] = rand_mask * torch.randn_like(x)
+        exp['feature_imp'] = rand_mask * torch.randn_like(x)
 
-        exp['edge'] = torch.randn(edge_index[0, :].shape)
+        exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
         return exp
 

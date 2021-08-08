@@ -3,7 +3,8 @@ import torch
 from typing import Optional
 from torch_geometric.utils import k_hop_subgraph
 
-from ._base import _BaseExplainer
+from graphxai.explainers._base import _BaseExplainer
+from graphxai.utils.constants import EXP_TYPES
 
 
 class GradExplainer(_BaseExplainer):
@@ -38,8 +39,9 @@ class GradExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -49,7 +51,7 @@ class GradExplainer(_BaseExplainer):
         label = self._predict(x, edge_index) if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
@@ -62,7 +64,7 @@ class GradExplainer(_BaseExplainer):
         loss = self.criterion(output[mapping], label[mapping])
         loss.backward()
 
-        exp['feature'] = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
+        exp['feature_imp'] = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
 
         return exp, khop_info
 
@@ -81,10 +83,11 @@ class GradExplainer(_BaseExplainer):
 
         Returns:
             exp (dict):
-                exp['feature'] (torch.Tensor, [n x d]): feature mask explanation
-                exp['edge'] (torch.Tensor, [m]): k-hop edge mask explanation
+                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {'feature': None, 'edge': None}
+        exp = {k: None for k in EXP_TYPES}
 
         self.model.eval()
         x.requires_grad = True
@@ -95,7 +98,7 @@ class GradExplainer(_BaseExplainer):
         loss = self.criterion(output, label)
         loss.backward()
 
-        exp['feature'] = x.grad
+        exp['feature_imp'] = x.grad
 
         return exp
 
