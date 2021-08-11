@@ -44,7 +44,10 @@ def GnnNets_GC2value_func(gnnNets, target_class, forward_kwargs = {}):
         with torch.no_grad():
             #logits = gnnNets(data=batch)
             logits = gnnNets(batch.x, batch.edge_index, **forward_kwargs)
+            print(forward_kwargs)
+            print(batch.batch)
             probs = F.softmax(logits, dim=-1)
+            print(probs, probs.shape)
             score = probs[:, target_class]
         return score
     return value_func
@@ -58,6 +61,7 @@ def GnnNets_NC2value_func(gnnNets_NC, node_idx: Union[int, torch.Tensor], target
             probs = F.softmax(logits, dim=-1)
             # select the corresponding node prob through the node idx on all the sampling graphs
             batch_size = data.batch.max() + 1
+            print(batch_size)
             probs = probs.reshape(batch_size, -1, probs.shape[-1])
             score = probs[:, node_idx, target_class]
             return score

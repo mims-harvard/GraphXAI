@@ -69,8 +69,8 @@ class GraphLIME(_BaseExplainer):
         return G
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
-                             x: torch.Tensor, label: torch.Tensor,
-                             num_hops: int = None, *_):
+                             x: torch.Tensor, num_hops: int = None,
+                             forward_kwargs: dict = {}):
         """
         Explain a node prediction.
 
@@ -94,7 +94,8 @@ class GraphLIME(_BaseExplainer):
         """
         num_hops = num_hops if num_hops is not None else self.L
 
-        y = self._predict(x, edge_index, return_type='logit')
+        y = self._predict(x, edge_index, return_type='prob',
+                          forward_kwargs=forward_kwargs)
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
@@ -123,7 +124,7 @@ class GraphLIME(_BaseExplainer):
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_kwargs: dict = {}, *_):
+                              forward_kwargs: dict = {}):
         """
         Explain a whole-graph prediction.
 
