@@ -34,7 +34,8 @@ class GNNExplainer(_BaseExplainer):
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, label: Optional[torch.Tensor] = None,
                              num_hops: Optional[int] = None,
-                             explain_feature: bool = False):
+                             get_feature_mask: bool = False,
+                             forward_kwargs: dict = {}):
         """
         Explain a node prediction.
 
@@ -46,7 +47,9 @@ class GNNExplainer(_BaseExplainer):
                 If not provided, we use the output of the model.
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
-            explain_feature (bool): whether to explain the feature or not
+            get_feature_mask (bool): whether to compute the feature mask or not
+            forward_kwargs (dict, optional): additional arguments to model.forward
+                beyond x and edge_index
 
         Returns:
             exp (dict):
@@ -59,7 +62,8 @@ class GNNExplainer(_BaseExplainer):
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved
         """
-        label = self._predict(x, edge_index) if label is None else label
+        label = self._predict(x, edge_index,
+                              forward_kwargs=forward_kwargs) if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
         exp = {k: None for k in EXP_TYPES}
@@ -69,25 +73,25 @@ class GNNExplainer(_BaseExplainer):
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
 
-        self._set_masks(sub_x, sub_edge_index, explain_feature)
+        self._set_masks(sub_x, sub_edge_index, get_feature_mask=get_feature_mask)
 
         self.model.eval()
         num_epochs = 200
 
         # Loss function for GNNExplainer's objective
-        def loss_fn(logit, mask, mask_type):
-            # Select the logit and the label of node_idx
-            node_logit = logit[torch.where(subset==node_idx)].squeeze()
+        def loss_fn(log_prob, mask, mask_type):
+            # Select the log prob and the label of node_idx
+            node_log_prob = log_prob[torch.where(subset==node_idx)].squeeze()
             node_label = label[mapping]
-            # Maximize the probability of predicting the label
-            loss = -node_logit[node_label].item()
+            # Maximize the probability of predicting the label (cross entropy)
+            loss = -node_log_prob[node_label].item()
             a = mask.sigmoid()
             # Size regularization
-            loss = loss + self.coeff[mask_type]['size'] * torch.sum(a)
+            loss += self.coeff[mask_type]['size'] * torch.sum(a)
             # Element-wise entropy regularization
             # Low entropy implies the mask is close to binary
             entropy = -a * torch.log(a + 1e-15) - (1-a) * torch.log(1-a + 1e-15)
-            loss = loss + self.coeff[mask_type]['entropy'] * entropy.mean()
+            loss += self.coeff[mask_type]['entropy'] * entropy.mean()
             return loss
 
         def train(mask, mask_type):
@@ -98,8 +102,8 @@ class GNNExplainer(_BaseExplainer):
                     h = sub_x * mask.view(1, -1).sigmoid()
                 else:
                     h = sub_x
-                logit = self._predict(h, sub_edge_index, return_type='log_logit')
-                loss = loss_fn(logit, mask, mask_type)
+                log_prob = self._predict(h, sub_edge_index, return_type='log_prob')
+                loss = loss_fn(log_prob, mask, mask_type)
                 loss.backward()
                 optimizer.step()
 

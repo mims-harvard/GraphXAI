@@ -6,10 +6,9 @@ from torch_geometric.utils import k_hop_subgraph
 
 import numpy as np
 
-from .utils.base_explainer import WalkBase
-from .decomp_base import BaseDecomposition
+from ._decomp_base import _BaseDecomposition
 
-class CAM(BaseDecomposition):
+class CAM(_BaseDecomposition):
     '''
     Class-Activation Mapping for GNNs
     '''
@@ -165,7 +164,7 @@ class CAM(BaseDecomposition):
         return L_cam_n.item()
 
 
-class Grad_CAM(BaseDecomposition):
+class Grad_CAM(_BaseDecomposition):
     '''
     Gradient Class-Activation Mapping for GNNs
     '''
