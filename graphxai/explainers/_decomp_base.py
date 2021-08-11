@@ -15,7 +15,7 @@ class GNNPool(nn.Module):
     def __init__(self):
         super().__init__()
 
-class BaseDecomposition(_BaseExplainer):
+class _BaseDecomposition(_BaseExplainer):
     '''
     Code adapted from Dive into Graphs (DIG)
     Code: https://github.com/divelab/DIG
@@ -124,7 +124,6 @@ class BaseDecomposition(_BaseExplainer):
             else: # Append anything to FC that is not MessagePassing at its origin
                 # Still supports sequential layers
                 fc_steps.append(step)
-
 
         for walk_step in walk_steps:
             if hasattr(walk_step['module'][0], 'nn') and walk_step['module'][0].nn is not None:

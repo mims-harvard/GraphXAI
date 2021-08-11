@@ -6,7 +6,7 @@ from typing import Callable, Tuple
 from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
 from .utils.base_explainer import WalkBase
-from .decomp_base import BaseDecomposition
+from ._decomp_base import _BaseDecomposition
 
 EPS = 1e-15
 
@@ -28,7 +28,7 @@ class GraphSequential(nn.Sequential):
         return input
 
 #class GNN_LRP(WalkBase):
-class GNN_LRP(BaseDecomposition):
+class GNN_LRP(_BaseDecomposition):
     r"""
     Code adapted from Dive into Graphs (DIG)
     Code: https://github.com/divelab/DIG

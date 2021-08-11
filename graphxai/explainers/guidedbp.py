@@ -5,7 +5,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 from .utils.base_explainer import WalkBase
-from .decomp_base import BaseDecomposition
+from ._decomp_base import _BaseDecomposition
 
 def clip_hook(grad):
     # Apply ReLU activation to gradient
@@ -21,7 +21,7 @@ def matching_explanations(nodes, exp):
 
     return new_exp.tolist()
 
-class GuidedBP(BaseDecomposition):
+class GuidedBP(_BaseDecomposition):
 
     def __init__(self, model, criterion = F.cross_entropy):
         '''
