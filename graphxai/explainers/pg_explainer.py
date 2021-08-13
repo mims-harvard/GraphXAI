@@ -20,10 +20,10 @@ class PGExplainer(_BaseExplainer):
     Code adapted from DIG
     """
     def __init__(self, model: nn.Module, emb_layer_name: str = None,
-                 explain_graph: bool = False,
+                 explain_graph: bool = False, num_hops: int = 3,
                  coeff_size: float = 0.01, coeff_ent: float = 5e-4,
                  t0: float = 5.0, t1: float = 1.0,
-                 lr: float = 0.005, epochs: int = 20):
+                 lr: float = 0.005, num_epochs: int = 20):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -32,23 +32,25 @@ class PGExplainer(_BaseExplainer):
             emb_layer_name (str, optional): name of the embedding layer
                 If not specified, use the last but one layer by default.
             explain_graph (bool): whether the explanation is graph-level or node-level
+            num_hops (int, optional): number of hops to consider
             coeff_size (float): size regularization to constrain the explanation size
             coeff_ent (float): entropy regularization to constrain the connectivity of explanation
             t0 (float): the temperature at the first epoch
             t1(float): the temperature at the final epoch
             lr (float): learning rate to train the explanation network
-            epochs (int): number of epochs to train the explanation network
+            num_epochs (int): number of epochs to train the explanation network
         """
         super().__init__(model, emb_layer_name)
 
         # Parameters for PGExplainer
         self.explain_graph = explain_graph
+        self.num_hops = num_hops
         self.coeff_size = coeff_size
         self.coeff_ent = coeff_ent
         self.t0 = t0
         self.t1 = t1
         self.lr = lr
-        self.epochs = epochs
+        self.num_epochs = num_epochs
 
         # Explanation model in PGExplainer
         if self.explain_graph:
@@ -96,28 +98,31 @@ class PGExplainer(_BaseExplainer):
         if not self.explain_graph and node_idx is None:
             raise ValueError('node_idx should be provided.')
 
-        # Concat relevant node embeddings
-        U, V = edge_index  # edge (u, v), U = (u), V = (v)
-        h1 = emb[U]
-        h2 = emb[V]
-        if self.explain_graph:
-            h = torch.cat([h1, h2], dim=1)
-        else:
-            h3 = emb[node_idx].repeat(h1.shape[0], 1)
-            h = torch.cat([h1, h2, h3], dim=1)
+        with torch.set_grad_enabled(training):
+            # Concat relevant node embeddings
+            U, V = edge_index  # edge (u, v), U = (u), V = (v)
+            h1 = emb[U]
+            h2 = emb[V]
+            if self.explain_graph:
+                h = torch.cat([h1, h2], dim=1)
+            else:
+                h3 = emb[node_idx].repeat(h1.shape[0], 1)
+                h = torch.cat([h1, h2, h3], dim=1)
 
-        # Calculate the edge weights and set the edge mask
-        for elayer in self.elayers:
-            h = elayer(h)
-        h = h.squeeze()
-        edge_weights = self.__concrete_sample(h, tmp, training)
-        n = emb.shape[0]  # number of nodes
-        mask_sparse = torch.sparse_coo_tensor(
-            edge_index, edge_weights, (n, n))
-        self.mask_sigmoid = mask_sparse.to_dense()  # Only applicable to small graphs
-        sym_mask = (self.mask_sigmoid + self.mask_sigmoid.transpose(0, 1)) / 2  # Undirected only
-        edge_mask = sym_mask[edge_index[0], edge_index[1]]
-        self._set_masks(x, edge_index, edge_mask)
+            # Calculate the edge weights and set the edge mask
+            for elayer in self.elayers:
+                h = elayer(h)
+            h = h.squeeze()
+            edge_weights = self.__concrete_sample(h, tmp, training)
+            n = emb.shape[0]  # number of nodes
+            mask_sparse = torch.sparse_coo_tensor(
+                edge_index, edge_weights, (n, n))
+            # Not scalable
+            self.mask_sigmoid = mask_sparse.to_dense()
+            # Undirected graph
+            sym_mask = (self.mask_sigmoid + self.mask_sigmoid.transpose(0, 1)) / 2
+            edge_mask = sym_mask[edge_index[0], edge_index[1]]
+            self._set_masks(x, edge_index, edge_mask)
 
         # Compute the model prediction with edge mask
         prob_with_mask = self._predict(x, edge_index,
@@ -161,15 +166,15 @@ class PGExplainer(_BaseExplainer):
                                           forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
-                    emb_dict[gid] = emb.detach()
-                    ori_pred_dict[gid] = label.detach()
+                    emb_dict[gid] = emb
+                    ori_pred_dict[gid] = label
 
             # Train the mask generator
             duration = 0.0
-            for epoch in range(self.epochs):
+            for epoch in range(self.num_epochs):
                 loss = 0.0
                 pred_list = []
-                tmp = float(self.t0 * np.power(self.t1 / self.t0, epoch / self.epochs))
+                tmp = float(self.t0 * np.power(self.t1/self.t0, epoch/self.num_epochs))
                 self.elayers.train()
                 optimizer.zero_grad()
                 tic = time.perf_counter()
@@ -190,7 +195,7 @@ class PGExplainer(_BaseExplainer):
                 print(f'Epoch: {epoch} | Loss: {loss}')
 
         else:  # Explain node-level predictions of a graph
-            data = dataset[0]
+            data = dataset
             # Get the predicted labels for training nodes
             with torch.no_grad():
                 self.model.eval()
@@ -203,21 +208,26 @@ class PGExplainer(_BaseExplainer):
 
             # Train the mask generator
             duration = 0.0
-            for epoch in range(self.epochs):
+            for epoch in range(self.num_epochs):
                 loss = 0.0
                 optimizer.zero_grad()
-                tmp = float(self.t0 * np.power(self.t1 / self.t0, epoch / self.epochs))
+                tmp = float(self.t0 * np.power(self.t1/self.t0, epoch/self.num_epochs))
                 self.elayers.train()
                 tic = time.perf_counter()
                 for iter_idx, node_idx in tqdm.tqdm(enumerate(explain_node_index_list)):
-                    with torch.no_grad():
-                        x, edge_index, y, subset, _ = self.get_subgraph(
-                            node_idx=node_idx, x=data.x,
-                            edge_index=data.edge_index, y=data.y)
-                        emb = self.model.get_emb(data.x, data.edge_index)
-                        new_node_index = int(torch.where(subset == node_idx)[0])
-                    pred, edge_mask = self.explain(x, edge_index, emb, tmp, training=True, node_idx=new_node_index)
-                    loss_tmp = self.__loss__(pred[new_node_index], pred_dict[node_idx])
+                    subset, sub_edge_index, _, _ = \
+                        k_hop_subgraph(node_idx, self.num_hops, data.edge_index,
+                                        relabel_nodes=True, num_nodes=data.x.shape[0])
+
+                    emb = self._get_embedding(data.x, data.edge_index,
+                                                forward_kwargs=forward_kwargs)
+                    new_node_index = int(torch.where(subset == node_idx)[0])
+                    prob_with_mask, _ = self.__emb_to_edge_mask(
+                        emb, data.x, data.edge_index, node_idx,
+                        forward_kwargs=forward_kwargs,
+                        tmp=tmp, training=True)
+                    loss_tmp = loss_fn(prob_with_mask[new_node_index],
+                                       pred_dict[node_idx])
                     loss_tmp.backward()
                     loss += loss_tmp.item()
 
@@ -229,8 +239,8 @@ class PGExplainer(_BaseExplainer):
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
                              edge_index: torch.Tensor,
-                             label: Optional[torch.Tensor] = None,
-                             num_hops: Optional[int] = None):
+                             label: torch.Tensor = None,
+                             forward_kwargs: dict = {}):
         """
         Explain a node prediction.
 
@@ -240,8 +250,6 @@ class PGExplainer(_BaseExplainer):
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
             label (torch.Tensor, optional, [n x ...]): labels to explain
                 If not provided, we use the output of the model.
-            num_hops (int, optional): number of hops to consider
-                If not provided, we use the number of graph layers of the GNN.
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
 
@@ -260,22 +268,18 @@ class PGExplainer(_BaseExplainer):
             raise Exception('For graph-level explanations use `get_explanation_graph`.')
 
         label = self._predict(x, edge_index) if label is None else label
-        num_hops = self.L if num_hops is None else num_hops
 
         exp = {k: None for k in EXP_TYPES}
 
-        khop_info = subset, sub_edge_index, mapping, _ = \
-            k_hop_subgraph(node_idx, num_hops, edge_index,
-                           relabel_nodes=True, num_nodes=x.shape[0])
-        sub_x = x[subset]
+        khop_info = k_hop_subgraph(node_idx, self.num_hops, edge_index,
+                                   relabel_nodes=True, num_nodes=x.shape[0])
 
-        self.model.eval()
-        sub_x.requires_grad = True
-        output = self.model(sub_x, sub_edge_index)
-        loss = self.criterion(output[mapping], label[mapping])
-        loss.backward()
-
-        exp['feature_imp'] = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
+        emb = self._get_embedding(x, edge_index,
+                                  forward_kwargs=forward_kwargs)
+        _, edge_mask = self.__emb_to_edge_mask(emb, x, edge_index, node_idx,
+                                               forward_kwargs=forward_kwargs,
+                                               tmp=1.0, training=False)
+        exp['edge_imp'] = edge_mask
 
         return exp, khop_info
 
@@ -316,7 +320,7 @@ class PGExplainer(_BaseExplainer):
                                                forward_kwargs=forward_kwargs,
                                                tmp=1.0, training=False)
 
-        exp['edge_imp'] = edge_mask.detach()
+        exp['edge_imp'] = edge_mask
 
         return exp
 

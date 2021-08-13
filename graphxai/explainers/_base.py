@@ -156,15 +156,26 @@ class _BaseExplainer:
             return hook
 
         layer.register_forward_hook(get_activation())
-        _ = self.model(x, edge_index, **forward_kwargs)
+
+        with torch.no_grad():
+            _ = self.model(x, edge_index, **forward_kwargs)
 
         return activation['layer']
 
-    def _subgraph(self):
+    def _get_k_hop_subgraph(self, node_idx: int, x: torch.Tensor,
+                            edge_index: torch.Tensor, num_hops: int = None, **kwargs):
         """
-        # TODO: Design this function
-        # 1) Add option to return numpy version
+        Extract the subgraph of target node
+
+        Args:
+            node_idx (int): the node index
+            x (torch.Tensor, [n x d]): node feature matrix with shape
+            edge_index (torch.Tensor, [2 x m]): edge index
+            kwargs (dict): additional parameters of the graph
+
+        Returns:
         """
+        # TODO: use NamedTuple
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
