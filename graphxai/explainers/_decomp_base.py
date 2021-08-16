@@ -32,22 +32,22 @@ class _BaseDecomposition(_BaseExplainer):
         else:
             return self.L
 
-    def __flow__(self):
-        for module in self.model.modules():
-            if isinstance(module, MessagePassing):
-                return module.flow
-        return 'source_to_target'
+    # def __flow__(self):
+    #     for module in self.model.modules():
+    #         if isinstance(module, MessagePassing):
+    #             return module.flow
+    #     return 'source_to_target'
 
-    def set_graph_attr(self,
-                x: Tensor,
-                edge_index: Tensor,
-                explain_graph: bool = False,
-                **kwargs
-                ):
-        self.num_edges = edge_index.shape[1]
-        self.num_nodes = x.shape[0]
-        self.device = x.device
-        self.explain_graph = explain_graph
+    # def set_graph_attr(self,
+    #             x: Tensor,
+    #             edge_index: Tensor,
+    #             explain_graph: bool = False,
+    #             **kwargs
+    #             ):
+    #     self.num_edges = edge_index.shape[1]
+    #     self.num_nodes = x.shape[0]
+    #     self.device = x.device
+    #     self.explain_graph = explain_graph
 
     def extract_step(self, x: Tensor, edge_index: Tensor, detach: bool = True, split_fc: bool = False, forward_kwargs: dict = None):
         '''Gets information about every layer in the graph

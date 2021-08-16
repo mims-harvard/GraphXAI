@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Optional, Iterable
+from torch import Tensor
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
@@ -25,6 +26,23 @@ class _BaseExplainer:
         self.L = len([module for module in self.model.modules()
                       if isinstance(module, MessagePassing)])
         self.__set_embedding_layer(emb_layer_name)
+
+    def flow(self):
+        for module in self.model.modules():
+            if isinstance(module, MessagePassing):
+                return module.flow
+        return 'source_to_target'
+    
+    def set_graph_attr(self,
+                x: Tensor,
+                edge_index: Tensor,
+                explain_graph: bool = False,
+                **kwargs
+                ):
+        self.num_edges = edge_index.shape[1]
+        self.num_nodes = x.shape[0]
+        self.device = x.device
+        self.explain_graph = explain_graph
 
     def __set_embedding_layer(self, emb_layer_name: str = None):
         """
