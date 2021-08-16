@@ -1,14 +1,16 @@
 import torch
 from torch import Tensor
+from functools import partial
 import torch.nn.functional as F
 from typing import Callable, Optional, Tuple
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.nn import MessagePassing
 
-from .subgraphx_utils.shapley import GnnNets_GC2value_func, GnnNets_NC2value_func
+#from .subgraphx_utils.shapley import GnnNets_GC2value_func, GnnNets_NC2value_func
 from .subgraphx_utils.subgraphx_fns import find_closest_node_result, reward_func, MCTS
+from ._base import _BaseExplainer
 
-class SubgraphX(object):
+class SubgraphX(_BaseExplainer):
     r"""
     Code adapted from Dive into Graphs (DIG)
     Code: https://github.com/divelab/DIG
@@ -45,9 +47,8 @@ class SubgraphX(object):
                  high2low=False, local_radius=4, sample_num=100, reward_method='mc_l_shapley',
                  subgraph_building_method='zero_filling'):
 
-        self.model = model
+        super().__init__(model=model)
         self.model.eval()
-        #self.model.to(self.device)
         self.num_hops = self.update_num_hops(num_hops)
 
         # mcts hyper-parameters
@@ -100,7 +101,7 @@ class SubgraphX(object):
                     expand_atoms=self.expand_atoms,
                     high2low=self.high2low)
 
-    def get_node_explanation(self, 
+    def get_explanation_node(self, 
             x: Tensor, 
             edge_index: Tensor, 
             node_idx: int, 
@@ -158,10 +159,18 @@ class SubgraphX(object):
         self.mcts_state_map = self.get_mcts_class(x, edge_index, node_idx=node_idx)
         self.node_idx = self.mcts_state_map.node_idx
         # mcts will extract the subgraph and relabel the nodes
-        value_func = GnnNets_NC2value_func(self.model,
-                                            node_idx=self.mcts_state_map.node_idx,
-                                            target_class=label)
-        payoff_func = self.get_reward_func(value_func, node_idx=self.mcts_state_map.node_idx, explain_graph = False)
+        # value_func = GnnNets_NC2value_func(self.model,
+        #                                     node_idx=self.mcts_state_map.node_idx,
+        #                                     target_class=label)
+        value_func = self._prob_score_func_node(
+            node_idx = self.mcts_state_map.node_idx,
+            target_class = label
+        )
+        #value_func = partial(value_func, forward_kwargs=forward_kwargs)
+        def wrap_value_func(data):
+            return value_func(x=data.x, edge_index=data.edge_index, forward_kwargs=forward_kwargs)
+
+        payoff_func = self.get_reward_func(wrap_value_func, node_idx=self.mcts_state_map.node_idx, explain_graph = False)
         self.mcts_state_map.set_score_func(payoff_func)
         results = self.mcts_state_map.mcts(verbose=False)
 
@@ -173,7 +182,7 @@ class SubgraphX(object):
 
         return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
 
-    def get_graph_explanation(self, 
+    def get_explanation_graph(self, 
             x: Tensor, 
             edge_index: Tensor, 
             label: int = None, 
@@ -218,8 +227,12 @@ class SubgraphX(object):
         probs = probs.squeeze()
 
         prediction = probs.argmax(-1)
-        value_func = GnnNets_GC2value_func(self.model, target_class=label, forward_kwargs=forward_kwargs)
-        payoff_func = self.get_reward_func(value_func, explain_graph = True)
+        
+        value_func = self._prob_score_func_graph(target_class = label)
+        def wrap_value_func(data):
+            return value_func(x=data.x, edge_index=data.edge_index, forward_kwargs=forward_kwargs)
+
+        payoff_func = self.get_reward_func(wrap_value_func, explain_graph = True)
         self.mcts_state_map = self.get_mcts_class(x, edge_index, score_func=payoff_func, explain_graph = True)
         results = self.mcts_state_map.mcts(verbose=False)
 

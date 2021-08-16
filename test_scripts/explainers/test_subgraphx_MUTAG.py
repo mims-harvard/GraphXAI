@@ -50,7 +50,7 @@ from graphxai.explainers.subgraphx import SubgraphX
 
 explainer = SubgraphX(model, reward_method = 'gnn_score')
 
-exp = explainer.get_graph_explanation(
+exp = explainer.get_explanation_graph(
     mol.x, 
     edge_index = mol.edge_index,  
     max_nodes = 10,
