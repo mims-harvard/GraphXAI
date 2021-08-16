@@ -131,8 +131,8 @@ class GNN_LRP(_BaseDecomposition):
 
         # Get subgraph of nodes in computational graph:
         khop_info  = k_hop_subgraph(
-            node_idx, self.__num_hops__, edge_index_with_loop, relabel_nodes=True,
-            num_nodes=None, flow=self.__flow__())
+            node_idx, self.L, edge_index_with_loop, relabel_nodes=True,
+            num_nodes=None, flow=self.flow())
 
         self.hard_edge_mask = khop_info[-1]
 
