@@ -162,12 +162,12 @@ class PGExplainer(_BaseExplainer):
                 ori_pred_dict = {}
                 for gid in tqdm.tqdm(dataset_indices):
                     data = dataset[gid]
-                    label = self._predict(data.x, data.edge_index,
-                                          forward_kwargs=forward_kwargs)
+                    pred_label = self._predict(data.x, data.edge_index,
+                                               forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
                     emb_dict[gid] = emb
-                    ori_pred_dict[gid] = label
+                    ori_pred_dict[gid] = pred_label
 
             # Train the mask generator
             duration = 0.0

@@ -86,6 +86,9 @@ class _BaseExplainer:
             return_type (str): one of ['label', 'prob', 'log_prob']
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
+
+        Returns:
+            pred (torch.Tensor, [n x ...]): model prediction
         """
         # Compute unnormalized class score
         with torch.no_grad():
@@ -138,7 +141,6 @@ class _BaseExplainer:
                            forward_kwargs: dict = {}):
             prob = self._predict(x, edge_index, return_type='prob',
                                  forward_kwargs=forward_kwargs)
-            # FIX: batch meaning
             score = prob[:, node_idx, target_class]
             return score
 
