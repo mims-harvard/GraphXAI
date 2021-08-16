@@ -64,7 +64,7 @@ pred_class = pred.argmax(dim=0).item()
 
 explainer = SubgraphX(model, reward_method = 'gnn_score')
 
-exp = explainer.get_node_explanation(data.x, label = int(pred_class), edge_index = data.edge_index, node_idx = node_idx, max_nodes = 10)
+exp = explainer.get_explanation_node(data.x, label = int(pred_class), edge_index = data.edge_index, node_idx = node_idx, max_nodes = 10)
 
 L_hop = k_hop_subgraph(node_idx, num_hops = L, edge_index = data.edge_index)
 
