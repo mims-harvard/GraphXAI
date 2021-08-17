@@ -8,7 +8,7 @@ from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
 n = 300
 m = 2
-num_houses = 10
+num_houses = 30
 
 bah = BA_Houses(n, m)
 data, inhouse = bah.get_data(num_houses, multiple_features=True)
@@ -32,8 +32,8 @@ print('pred shape', pred.shape)
 print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
-explainer = PGMExplainer(model)
+explainer = PGMExplainer(model, num_samples=100, p_threshold=0.05, pred)
 
 # Without true label
 node_idx = int(node_idx)
-pgmexp = explainer.get_explanation_node(node_idx, data.x, data.edge_index)
+pgmexp = explainer.get_explanation_node(node_idx, data.x, data.edge_index, top_k_nodes=5)
