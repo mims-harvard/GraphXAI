@@ -157,7 +157,7 @@ class _BaseExplainer:
             prob = self._predict(x, edge_index, return_type='prob',
                                  forward_kwargs=forward_kwargs)
             # FIX: batch meaning
-            score = prob[:, node_idx, target_class]
+            score = prob[node_idx, target_class]
             return score
 
         return get_prob_score
