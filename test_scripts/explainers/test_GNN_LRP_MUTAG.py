@@ -10,7 +10,6 @@ from graphxai.gnn_models.graph_classification import GCN, load_data, train, test
 
 import matplotlib.pyplot as plt
 
-
 dataset = TUDataset(root='data/TUDataset', name='MUTAG')
 assert len(sys.argv) == 2, "Must provide index (0 - {}) for molucule in dataset.".format(len(dataset))
 mol_num = int(sys.argv[1])
@@ -44,19 +43,13 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=1).item()))
 from graphxai.explainers.gnn_lrp import GNN_LRP
 
 gnn_lrp = GNN_LRP(model)
-exp, new_edge_index = gnn_lrp.get_explanation_graph(
+exp = gnn_lrp.get_explanation_graph(
     mol.x, edge_index = mol.edge_index, label = pred_class, 
     forward_kwargs = {'batch':torch.tensor([1], dtype = torch.long)}
 )
 
-# Want to explain our predicted class:
-edge_exp_label = exp['edge_imp']
-
 # For purposes of visualization, remove self-loops from edge index and explanations:
-mol.edge_index, edge_exp_label = remove_self_loops(edge_index=new_edge_index, edge_attr=torch.tensor(edge_exp_label))
-
-# Load explanations into edge attributes of molecule
-mol.edge_attr = edge_exp_label
+mol.edge_index, edge_exp_label = remove_self_loops(edge_index=exp.graph.edge_index, edge_attr = exp.edge_imp)
 
 fig, ax = plt.subplots()
 
