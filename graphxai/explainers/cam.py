@@ -7,6 +7,7 @@ from torch_geometric.utils import k_hop_subgraph
 import numpy as np
 
 from ._decomp_base import _BaseDecomposition
+from ._explanation import Explanation
 
 class CAM(_BaseDecomposition):
     '''
@@ -76,8 +77,6 @@ class CAM(_BaseDecomposition):
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
 
-        #L = len(walk_steps)
-
         # Get subgraph:
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
@@ -91,7 +90,14 @@ class CAM(_BaseDecomposition):
             n = subgraph_nodes[i]
             cam[i] += self.__exp_node(n, walk_steps, label)
 
-        return {'feature_imp': None, 'node_imp': cam, 'edge_imp': None}, khop_info
+        # Set Explanation class:
+        exp = Explanation()
+        exp.node_imp = cam
+        exp.set_enclosing_subgraph(khop_info)
+        exp.set_whole_graph(x, edge_index)
+        exp.node_idx = node_idx
+
+        return exp
 
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Class-Activation Mapping')
@@ -139,7 +145,12 @@ class CAM(_BaseDecomposition):
         for n in range(N):
             node_explanations.append(self.__exp_node(n, walk_steps, label))
 
-        return {'feature_imp': None, 'node_imp': torch.tensor(node_explanations), 'edge_imp': None}
+        # Set Explanation class:
+        exp = Explanation()
+        exp.node_imp = torch.tensor(node_explanations)
+        exp.set_whole_graph(x, edge_index)
+
+        return exp
 
     def __forward_pass(self, x, edge_index, forward_kwargs = {}):
         # Forward pass:
@@ -235,17 +246,19 @@ class Grad_CAM(_BaseDecomposition):
 
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
 
-        #L = len(walk_steps)
-
         khop_info = k_hop_subgraph(node_idx, self.L, edge_index)
         subgraph_nodes = khop_info[0]
 
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
 
+        exp = Explanation()
+        exp.set_enclosing_subgraph(khop_info)
+        exp.set_whole_graph(x, edge_index)
+        exp.node_idx = node_idx
+
         if average_variant:
-            # Size of all nodes in graph; Sets all values to zero if not in subgraph
-            #avg_gcam = torch.zeros(N)
+            # Size of all nodes in the subgraph:
             avg_gcam = torch.zeros(subgraph_N)
 
             for l in range(self.L):
@@ -254,11 +267,11 @@ class Grad_CAM(_BaseDecomposition):
 
                 for i in range(subgraph_N): # Over all subgraph nodes
                     n = subgraph_nodes[i]
-                    avg_gcam[i] += self.__get_gCAM_layer(walk_steps, l, n, gradients)#[0]
+                    avg_gcam[i] += self.__get_gCAM_layer(walk_steps, l, n, gradients)
 
             avg_gcam /= self.L # Apply average
 
-            return {'feature_imp': None, 'node_imp': avg_gcam, 'edge_imp': None}, khop_info
+            exp.node_imp = avg_gcam
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
@@ -269,7 +282,9 @@ class Grad_CAM(_BaseDecomposition):
                 n = subgraph_nodes[i]
                 gcam[i] += self.__get_gCAM_layer(walk_steps, layer, n, gradients)#[0]
 
-            return {'feature_imp': None, 'node_imp': gcam, 'edge_imp': None}, khop_info
+            exp.node_imp = gcam
+
+        return exp
                 
     def get_explanation_link(self, x, node_idx):
         raise NotImplementedError('Explanations for links is not implemented for Gradient Class-Activation Mapping')
@@ -322,6 +337,9 @@ class Grad_CAM(_BaseDecomposition):
 
         # Calculate predicted class and steps through model:
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
+
+        exp = Explanation()
+        exp.set_whole_graph(x, edge_index)
         
         # Generate explanation for every node in graph
         if average_variant:
@@ -332,14 +350,14 @@ class Grad_CAM(_BaseDecomposition):
 
             # Element-wise average over all nodes:
             avg_gcam /= self.L
-            return {'feature_imp': None, 'node_imp': avg_gcam, 'edge_imp': None}
+            exp.node_imp = avg_gcam
 
         else:
             assert layer < len(walk_steps), "Layer must be an index of convolutional layers"
 
-            return {'feature_imp': None, 
-                'node_imp': torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer)), 
-                'edge_imp': None}
+            exp.node_imp = torch.tensor(self.__get_gCAM_layer(walk_steps, layer=layer))
+
+        return exp
 
     def __forward_pass(self, x, label, edge_index, forward_kwargs):
         x.requires_grad = True # Enforce that x needs gradient
