@@ -37,37 +37,28 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
 act = lambda x: torch.argmax(x, dim=1)
 cam = CAM(model, activation = act)
-
-exp, khop_info = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_class, edge_index = data.edge_index)
-subgraph_eidx = khop_info[1]
-
-y_subgraph = data.y[khop_info[0]]
-#trim_exp = exp['feature'][khop_info[0]]
+exp = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_class, edge_index = data.edge_index)
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 # Ground truth plot:
-visualize_subgraph_explanation(subgraph_eidx, y_subgraph, node_idx = int(node_idx), ax = ax1, show = False)
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, data.y[exp.enc_subgraph.nodes], node_idx = int(node_idx), ax = ax1, show = False)
 ax1.set_title('Ground Truth')
 
 # CAM plot:
-#visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax2, show = False)
-visualize_subgraph_explanation(subgraph_eidx, exp['node_imp'], node_idx = int(node_idx), ax = ax2, show = False)
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, exp.node_imp, node_idx = int(node_idx), ax = ax2, show = False)
 ax2.set_title('CAM')
 
 gcam = Grad_CAM(model, criterion = criterion)
-exp, khop_info = gcam.get_explanation_node(
+exp = gcam.get_explanation_node(
                     data.x, 
                     y = data.y, 
                     node_idx = int(node_idx), 
                     edge_index = data.edge_index, 
                     average_variant=True)
 
-#trim_exp = exp['feature'][khop_info[0]]
-
 #Grad-CAM plot:
-#visualize_subgraph_explanation(subgraph_eidx, trim_exp, node_idx = int(node_idx), ax = ax3, show = False)
-visualize_subgraph_explanation(subgraph_eidx, exp['node_imp'], node_idx = int(node_idx), ax = ax3, show = False)
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, exp.node_imp, node_idx = int(node_idx), ax = ax3, show = False)
 ax3.set_title('Grad-CAM')
 
 ymin, ymax = ax1.get_ylim()
