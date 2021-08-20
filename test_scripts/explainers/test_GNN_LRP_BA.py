@@ -34,8 +34,7 @@ pred_class = pred.argmax(dim=0).item()
 
 gnn_lrp = GNN_LRP(model)
 
-
-exp, khop_info = gnn_lrp.get_explanation_node(
+exp = gnn_lrp.get_explanation_node(
     x = data.x,
     label = int(pred_class),
     node_idx = int(node_idx),
@@ -47,8 +46,10 @@ exp, khop_info = gnn_lrp.get_explanation_node(
 # visualize_subgraph_explanation_w_edge(khop_info[0], khop_info[1], edge_weights = exp['edge'][pred_class],
 #     node_idx=node_idx, show = False)
 
-visualize_subgraph_explanation(khop_info[1], edge_weights = exp['edge_imp'], node_idx = int(node_idx),
-show = False)
+# visualize_subgraph_explanation(khop_info[1], edge_weights = exp['edge_imp'], node_idx = int(node_idx),
+# show = False)
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, edge_weights = exp.edge_imp, node_idx = int(node_idx),
+    show = False)
 
 plt.title('GNN-LRP Explanation for Node {}'.format(node_idx))
 plt.show()
