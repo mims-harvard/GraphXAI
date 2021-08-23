@@ -3,12 +3,15 @@ from torch import Tensor
 from functools import partial
 import torch.nn.functional as F
 from typing import Callable, Optional, Tuple
+from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.nn import MessagePassing
 
 #from .subgraphx_utils.shapley import GnnNets_GC2value_func, GnnNets_NC2value_func
 from .subgraphx_utils.subgraphx_fns import find_closest_node_result, reward_func, MCTS
+
 from ._base import _BaseExplainer
+from ._explanation import Explanation
 
 class SubgraphX(_BaseExplainer):
     r"""
@@ -180,7 +183,16 @@ class SubgraphX(_BaseExplainer):
         # Need to parse results:
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
-        return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
+        # Set explanation
+        exp = Explanation()
+        exp.node_imp = node_mask # Importance variables will hold masks
+        exp.edge_imp = edge_mask
+        exp.node_idx = node_idx
+        sg = k_hop_subgraph(node_idx, self.L, edge_index, flow = self.flow())
+        exp.set_enclosing_subgraph(sg)
+
+        #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
+        return exp
 
     def get_explanation_graph(self, 
             x: Tensor, 
@@ -240,7 +252,13 @@ class SubgraphX(_BaseExplainer):
 
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
-        return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
+        exp = Explanation()
+        exp.node_imp = node_mask
+        exp.edge_imp = edge_mask
+        exp.set_whole_graph(x, edge_index)
+
+        #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
+        return exp
 
     def __parse_results(self, best_subgraph, edge_index):
         # Function strongly based on torch_geometric.utils.subgraph function
