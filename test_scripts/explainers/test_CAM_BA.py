@@ -42,6 +42,8 @@ exp = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_cl
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 # Ground truth plot:
+print(data.y[exp.enc_subgraph.nodes].shape)
+print('node_idx', node_idx)
 visualize_subgraph_explanation(exp.enc_subgraph.edge_index, data.y[exp.enc_subgraph.nodes], node_idx = int(node_idx), ax = ax1, show = False)
 ax1.set_title('Ground Truth')
 

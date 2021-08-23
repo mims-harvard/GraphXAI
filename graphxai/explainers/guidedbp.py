@@ -4,7 +4,7 @@ from typing import Tuple
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
-from .utils.base_explainer import WalkBase
+from ._explanation import Explanation
 from ._decomp_base import _BaseDecomposition
 
 def clip_hook(grad):
@@ -93,13 +93,13 @@ class GuidedBP(_BaseDecomposition):
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
 
-        # Set explanations to zero, fill in appropriate amounts:
-        filtered_exp = torch.zeros(graph_exp.shape)
-        for i in range(filtered_exp.shape[0]):
-            if i in subgraph_nodes:
-                filtered_exp[i,:] = graph_exp[i,:]
-
-        return {'feature': filtered_exp, 'edge': None}, khop_info
+        exp = Explanation()
+        # Get only those explanations for nodes in the subgraph:
+        exp.node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes])
+        exp.node_idx = node_idx
+        exp.set_whole_graph(x, edge_index)
+        exp.set_enclosing_subgraph(khop_info)
+        return exp
 
     def get_explanation_graph(self, 
                 x: torch.Tensor, 
@@ -144,7 +144,12 @@ class GuidedBP(_BaseDecomposition):
 
         xhook.remove() # Remove hook from x
 
-        return {'feature': x.grad, 'edge': None}
+        exp = Explanation()
+        exp.node_imp = x.grad
+        exp.set_whole_graph(x, edge_index)
+
+        #return {'feature': x.grad, 'edge': None}
+        return exp
 
     def __apply_hooks(self):
         self.registered_hooks = []

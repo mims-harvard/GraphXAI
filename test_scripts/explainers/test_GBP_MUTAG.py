@@ -48,13 +48,14 @@ exp = gbp.get_explanation_graph(
             edge_index = mol.edge_index,
             forward_kwargs = {'batch': torch.zeros(1).type(torch.int64)})
 
-exp_list = [torch.sum(exp['feature'][i,:]).item() for i in range(exp['feature'].shape[0])]
+# Sum across all features:
+exp_list = [torch.sum(exp.node_imp[i,:]).item() for i in range(exp.node_imp.shape[0])]
 
 fig, ax = plt.subplots()
 
 visualize_mol_explanation(mol, exp_list, atoms = atoms, ax = ax, show = False)
 
-ax.set_title('Guided Backprop (Summed across node gradients)')
+ax.set_title('Guided Backprop (Summed across feature gradients)')
 
 ymin, ymax = ax.get_ylim()
 xmin, xmax = ax.get_xlim()
