@@ -27,24 +27,21 @@ for epoch in range(1, 201):
 node_idx = random.choice(inhouse)
 
 gbp = GuidedBP(model, criterion)
-exp, khop_info = gbp.get_explanation_node(data.x, data.y, edge_index = data.edge_index, node_idx = int(node_idx))
-exp_list = [exp['feature'][i,0].item() for i in khop_info[0]] # Index degree with [i,0]
-print(exp_list)
-subgraph_eidx = khop_info[1]
+exp = gbp.get_explanation_node(data.x, data.y, edge_index = data.edge_index, node_idx = int(node_idx))
+
+# Mask y according to subgraph:
+y_subgraph = data.y[exp.enc_subgraph.nodes].tolist()
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-y_subgraph = data.y[khop_info[0]].tolist()
-print(y_subgraph)
-
-# visualize_subgraph_explanation(subgraph_eidx, node_weights = data.y.tolist(), node_idx = int(node_idx), 
-#     ax = ax1, show = False)
-visualize_subgraph_explanation(subgraph_eidx, node_weights = y_subgraph, node_idx = int(node_idx), 
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, node_weights = y_subgraph, node_idx = int(node_idx), 
     ax = ax1, show = False)
 ax1.set_title('Ground Truth')
 
-visualize_subgraph_explanation(subgraph_eidx, exp_list, node_idx = int(node_idx), 
-    ax = ax2, show = False)
+# Use first dimension of explanation matrix as the displayed explanation value:
+visualize_subgraph_explanation(exp.enc_subgraph.edge_index, 
+    [exp.node_imp[i,0].item() for i in range(exp.node_imp.shape[0])], 
+    node_idx = int(node_idx), ax = ax2, show = False)
 ax2.set_title('Guided Backprop (Explanation wrt Degree)')
 
 model.eval()
