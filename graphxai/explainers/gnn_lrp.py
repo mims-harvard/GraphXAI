@@ -289,6 +289,7 @@ class GNN_LRP(_BaseDecomposition):
         exp.edge_imp = edge_scores
         exp.node_idx = node_idx
         exp.set_enclosing_subgraph(khop_info)
+        exp.set_whole_graph(x, edge_index_with_loop)
 
         # Method-specific attributes:
         exp._walk_ids = walks['ids']
