@@ -162,12 +162,12 @@ class PGExplainer(_BaseExplainer):
                 ori_pred_dict = {}
                 for gid in tqdm.tqdm(dataset_indices):
                     data = dataset[gid]
-                    label = self._predict(data.x, data.edge_index,
-                                          forward_kwargs=forward_kwargs)
+                    pred_label = self._predict(data.x, data.edge_index,
+                                               forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
                     emb_dict[gid] = emb
-                    ori_pred_dict[gid] = label
+                    ori_pred_dict[gid] = pred_label
 
             # Train the mask generator
             duration = 0.0
@@ -257,7 +257,7 @@ class PGExplainer(_BaseExplainer):
             exp (dict):
                 exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
                 exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+                exp['node_imp'] (torch.Tensor, [n]): k-hop node importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`

@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import Optional, Iterable
-from torch import Tensor
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
@@ -25,24 +23,8 @@ class _BaseExplainer:
         self.model = model
         self.L = len([module for module in self.model.modules()
                       if isinstance(module, MessagePassing)])
+        self.explain_graph = False  # Assume node-level explanation by default
         self.__set_embedding_layer(emb_layer_name)
-
-    def flow(self):
-        for module in self.model.modules():
-            if isinstance(module, MessagePassing):
-                return module.flow
-        return 'source_to_target'
-    
-    def set_graph_attr(self,
-                x: Tensor,
-                edge_index: Tensor,
-                explain_graph: bool = False,
-                **kwargs
-                ):
-        self.num_edges = edge_index.shape[1]
-        self.num_nodes = x.shape[0]
-        self.device = x.device
-        self.explain_graph = explain_graph
 
     def __set_embedding_layer(self, emb_layer_name: str = None):
         """
@@ -104,18 +86,26 @@ class _BaseExplainer:
             return_type (str): one of ['label', 'prob', 'log_prob']
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
+
+        Returns:
+            pred (torch.Tensor, [n x ...]): model prediction
         """
         # Compute unnormalized class score
         with torch.no_grad():
-            output = self.model(x, edge_index, **forward_kwargs)
+            out = self.model(x, edge_index, **forward_kwargs)
             if return_type == 'label':
-                return output.argmax(dim=1)
+                out = out.argmax(dim=-1)
             elif return_type == 'prob':
-                return F.softmax(output, dim=1)
+                out = F.softmax(out, dim=-1)
             elif return_type == 'log_prob':
-                return F.log_softmax(output, dim=1)
+                out = F.log_softmax(out, dim=-1)
             else:
                 raise ValueError("return_type must be 'label', 'prob', or 'log_prob'")
+
+            if self.explain_graph:
+                out = out.squeeze()
+
+            return out
 
     def _prob_score_func_graph(self, target_class: torch.Tensor):
         """
@@ -156,8 +146,7 @@ class _BaseExplainer:
                            forward_kwargs: dict = {}):
             prob = self._predict(x, edge_index, return_type='prob',
                                  forward_kwargs=forward_kwargs)
-            # FIX: batch meaning
-            score = prob[node_idx, target_class]
+            score = prob[:, node_idx, target_class]
             return score
 
         return get_prob_score
@@ -202,8 +191,8 @@ class _BaseExplainer:
     def get_explanation_node(self, node_idx: int,
                              x: torch.Tensor,
                              edge_index: torch.Tensor,
-                             label: Optional[torch.Tensor] = None,
-                             num_hops: Optional[int] = None,
+                             label: torch.Tensor = None,
+                             num_hops: int = None,
                              forward_kwargs: dict = {}):
         """
         Explain a node prediction.
@@ -252,7 +241,7 @@ class _BaseExplainer:
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_kwargs: Optional[dict] = None):
+                              forward_kwargs: dict = {}):
         """
         Explain a whole-graph prediction.
 
@@ -273,8 +262,6 @@ class _BaseExplainer:
 
         # Compute exp
         raise NotImplementedError()
-
-        return exp
 
     def get_explanation_link(self):
         """
