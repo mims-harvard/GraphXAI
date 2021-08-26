@@ -1,3 +1,7 @@
+# PGMExplainer
+scipy==1.5.2 or maybe < 1.6
+pgmpy==0.1.11
+
 dgl==?
 graphlime==1.2.0
 ipdb==0.13.9
