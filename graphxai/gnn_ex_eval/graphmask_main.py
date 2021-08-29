@@ -1,17 +1,11 @@
-# %%
-import dgl
-import ipdb
-import time
 import math
 import tqdm
 import copy
 
-import argparse
 import numpy as np
 
 import torch
 import torch.nn.functional as F
-import torch.optim as optim
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -19,27 +13,20 @@ warnings.filterwarnings('ignore')
 from utils import *
 from models import *
 from explainers import *
-import networkx as nx
 from metrics_edge import EdgeMetrics
-from metrics_feat import FeatMetrics
 from torch_geometric.data import Data
 from load_model_opt import ModelDataLoader
-from torch_geometric.utils import dropout_adj
 from torch_geometric.utils import k_hop_subgraph
 from networkx.algorithms.swap import double_edge_swap as swap
-from torch_geometric.nn import GCNConv, SAGEConv, GINConv, MessagePassing
-from sklearn.metrics import f1_score, roc_auc_score
-from torch_geometric.utils import dropout_adj, convert
+from torch_geometric.nn import MessagePassing
+from torch_geometric.utils import convert
 from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
 
 from GraphMask.utils.moving_average import MovingAverage
 from GraphMask.utils.lagrangian_optimization import LagrangianOptimization
-from GraphMask.utils.abstract_torch_module import AbstractTorchModule
 from GraphMask.utils.hard_concrete import HardConcrete
 from GraphMask.utils.multiple_inputs_layernorm_linear import MultipleInputsLayernormLinear
 from GraphMask.utils.squeezer import Squeezer
-import torch_geometric.nn as gnn
-from torch_geometric.utils import add_self_loops, degree
 from torch_sparse import SparseTensor, matmul
 from typing import Union, Tuple
 from torch import Tensor
