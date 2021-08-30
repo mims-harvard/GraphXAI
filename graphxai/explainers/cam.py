@@ -7,7 +7,7 @@ from torch_geometric.utils import k_hop_subgraph
 import numpy as np
 
 from ._decomp_base import _BaseDecomposition
-from ._explanation import Explanation
+from graphxai.utils import Explanation
 
 class CAM(_BaseDecomposition):
     '''

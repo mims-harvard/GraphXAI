@@ -4,7 +4,7 @@ from typing import Tuple
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
-from ._explanation import Explanation
+from graphxai.utils import Explanation
 from ._decomp_base import _BaseDecomposition
 
 def clip_hook(grad):
