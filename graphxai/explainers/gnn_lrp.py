@@ -7,7 +7,7 @@ from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
 
 from ._decomp_base import _BaseDecomposition
-from ._explanation import Explanation
+from graphxai.utils import Explanation
 
 
 EPS = 1e-15
