@@ -11,7 +11,7 @@ from torch_geometric.nn import MessagePassing
 from .subgraphx_utils.subgraphx_fns import find_closest_node_result, reward_func, MCTS
 
 from ._base import _BaseExplainer
-from ._explanation import Explanation
+from graphxai.utils import Explanation
 
 class SubgraphX(_BaseExplainer):
     r"""

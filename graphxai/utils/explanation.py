@@ -1,6 +1,6 @@
 import torch
 
-class Enclosing_Subgraph:
+class EnclosingSubgraph:
     def __init__(self, nodes, edge_index, inv, edge_mask, directed = False):
         self.nodes = nodes
         self.edge_index = edge_index
@@ -8,10 +8,15 @@ class Enclosing_Subgraph:
         self.edge_mask = edge_mask
         self.directed = directed
 
-class whole_graph:
-    def __init__(self, x, edge_index, directed = False):
+class WholeGraph:
+    def __init__(self, x = None, edge_index = None, y = None, directed = False):
+        self.setup(x, edge_index, y, directed)
+
+    def setup(self, x, edge_index, y = None, directed = False):
+        # post-init function to set up class variables
         self.x = x
         self.edge_index = edge_index
+        self.y = y
         self.directed = directed
 
 class Explanation:
@@ -44,7 +49,7 @@ class Explanation:
         Args:
             k_hop_tuple (tuple): Return value from torch_geometric.utils.k_hop_subgraph
         '''
-        self.enc_subgraph = Enclosing_Subgraph(*k_hop_tuple)
+        self.enc_subgraph = EnclosingSubgraph(*k_hop_tuple)
 
     def apply_subgraph_mask(self, mask_node = False, mask_edge = False):
         '''
