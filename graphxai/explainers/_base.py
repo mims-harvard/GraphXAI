@@ -46,7 +46,7 @@ class _BaseExplainer:
         return self._get_activation(self.emb_layer, x, edge_index, forward_kwargs)
 
     def _set_masks(self, x: torch.Tensor, edge_index: torch.Tensor,
-                   edge_mask: torch.Tensor = None, get_feature_mask: bool = False):
+                   edge_mask: torch.Tensor = None, explain_feature: bool = False):
         """
         Initialize the edge (and feature) masks.
         """
@@ -58,7 +58,7 @@ class _BaseExplainer:
             self.edge_mask = torch.nn.Parameter(torch.randn(m) * std)
         else:
             self.edge_mask = edge_mask
-        if get_feature_mask:
+        if explain_feature:
             self.feature_mask = torch.nn.Parameter(torch.randn(d) * 0.1)
 
         # Tell pytorch geometric to apply edge masks

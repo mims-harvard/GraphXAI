@@ -34,7 +34,7 @@ class GNNExplainer(_BaseExplainer):
                              edge_index: torch.Tensor,
                              label: torch.Tensor = None,
                              num_hops: int = None,
-                             get_feature_mask: bool = False,
+                             explain_feature: bool = False,
                              forward_kwargs: dict = {}):
         """
         Explain a node prediction.
@@ -47,7 +47,7 @@ class GNNExplainer(_BaseExplainer):
                 If not provided, we use the output of the model.
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
-            get_feature_mask (bool): whether to compute the feature mask or not
+            explain_feature (bool): whether to compute the feature mask or not
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
 
@@ -73,7 +73,7 @@ class GNNExplainer(_BaseExplainer):
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
 
-        self._set_masks(sub_x, sub_edge_index, get_feature_mask=get_feature_mask)
+        self._set_masks(sub_x, sub_edge_index, explain_feature=explain_feature)
 
         self.model.eval()
         num_epochs = 200
