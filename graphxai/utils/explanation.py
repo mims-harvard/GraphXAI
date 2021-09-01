@@ -44,12 +44,15 @@ class Explanation:
         self.node_idx = None # Set this for node-level prediction explanations
         self.graph = None
 
-    def set_enclosing_subgraph(self, k_hop_tuple):
+    def set_enclosing_subgraph(self, subgraph):
         '''
         Args:
-            k_hop_tuple (tuple): Return value from torch_geometric.utils.k_hop_subgraph
+            k_hop_tuple (tuple or EnclosingSubgraph): Return value from torch_geometric.utils.k_hop_subgraph
         '''
-        self.enc_subgraph = EnclosingSubgraph(*k_hop_tuple)
+        if isinstance(subgraph, EnclosingSubgraph):
+            self.enc_subgraph = subgraph
+        else: # Assumed to be a tuple:
+            self.enc_subgraph = EnclosingSubgraph(*subgraph)
 
     def apply_subgraph_mask(self, mask_node = False, mask_edge = False):
         '''
@@ -68,4 +71,4 @@ class Explanation:
             self.node_imp = self.node_imp[self.subgraph]
 
     def set_whole_graph(self, x, edge_index):
-        self.graph = whole_graph(x, edge_index)
+        self.graph = WholeGraph(x, edge_index)
