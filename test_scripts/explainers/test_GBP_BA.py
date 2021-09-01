@@ -5,13 +5,19 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import GuidedBP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
+from graphxai.datasets import BAHouses
 
 n = 300
 m = 2
 num_houses = 20
 
-bah = BA_Houses(n, m)
-data, inhouse = bah.get_data(num_houses, multiple_features=True)
+#bah = BA_Houses(n, m)
+bah = BAHouses(num_hops=2, n=n, m=m, num_houses=num_houses, seed = 1234)
+#data, inhouse = bah.get_data(num_houses, multiple_features=True)
+data = bah.get_graph()
+
+# Get nodes in the house:
+inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
 model = GCN(64, input_feat = 3, classes = 2)
 print(model)
@@ -30,12 +36,16 @@ gbp = GuidedBP(model, criterion)
 exp = gbp.get_explanation_node(data.x, data.y, edge_index = data.edge_index, node_idx = int(node_idx))
 
 # Mask y according to subgraph:
-y_subgraph = data.y[exp.enc_subgraph.nodes].tolist()
 
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-visualize_subgraph_explanation(exp.enc_subgraph.edge_index, node_weights = y_subgraph, node_idx = int(node_idx), 
-    ax = ax1, show = False)
+ground_truth = bah.explanations[node_idx] # Get Explanation object
+
+visualize_subgraph_explanation(ground_truth.enc_subgraph.edge_index, 
+    node_weights = ground_truth.node_imp.tolist(), 
+    node_idx = ground_truth.node_idx, 
+    ax = ax1, 
+    show = False)
 ax1.set_title('Ground Truth')
 
 # Use first dimension of explanation matrix as the displayed explanation value:
