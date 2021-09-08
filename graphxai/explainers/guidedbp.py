@@ -11,16 +11,6 @@ def clip_hook(grad):
     # Apply ReLU activation to gradient
     return torch.clamp(grad, min=0)#F.relu(grad)
 
-def matching_explanations(nodes, exp):
-    # Get explanation matching to subgraph nodes
-    new_exp = torch.zeros(len(exp))
-    list_nodes = nodes.tolist()
-    for i in range(len(exp)):
-        if i in nodes:
-            new_exp[i] = exp[i]
-
-    return new_exp.tolist()
-
 class GuidedBP(_BaseDecomposition):
 
     def __init__(self, model, criterion = F.cross_entropy):
@@ -93,10 +83,13 @@ class GuidedBP(_BaseDecomposition):
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
 
-        exp = Explanation()
+        exp = Explanation(
+            node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes]),
+            node_idx = node_idx
+        )
         # Get only those explanations for nodes in the subgraph:
-        exp.node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes])
-        exp.node_idx = node_idx
+        # exp.node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes])
+        # exp.node_idx = node_idx
         exp.set_whole_graph(x, edge_index)
         exp.set_enclosing_subgraph(khop_info)
         return exp
@@ -144,8 +137,10 @@ class GuidedBP(_BaseDecomposition):
 
         xhook.remove() # Remove hook from x
 
-        exp = Explanation()
-        exp.node_imp = x.grad
+        exp = Explanation(
+            node_imp = x.grad
+        )
+        #exp.node_imp = x.grad
         exp.set_whole_graph(x, edge_index)
 
         #return {'feature': x.grad, 'edge': None}

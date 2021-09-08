@@ -285,9 +285,12 @@ class GNN_LRP(_BaseDecomposition):
         khop_info[1] = edge_index_with_loop[:,mask_inds] # Ensure reordering occurs
         edge_scores = self.__parse_edges(walks, mask_inds, label, agg = edge_aggregator)
 
-        exp = Explanation()
-        exp.edge_imp = edge_scores
-        exp.node_idx = node_idx
+        exp = Explanation(
+            edge_imp = edge_scores,
+            node_idx = node_idx
+        )
+        # exp.edge_imp = edge_scores
+        # exp.node_idx = node_idx
         exp.set_enclosing_subgraph(khop_info)
         exp.set_whole_graph(x, edge_index_with_loop)
 
@@ -495,8 +498,10 @@ class GNN_LRP(_BaseDecomposition):
         edge_ind_range = torch.arange(start = 0, end=edge_index_with_loop.shape[1])
         edge_scores = self.__parse_edges(walks, edge_ind_range, label, agg = edge_aggregator)
 
-        exp = Explanation()
-        exp.edge_imp = edge_scores
+        exp = Explanation(
+            edge_imp = edge_scores
+        )
+        #exp.edge_imp = edge_scores
         exp.set_whole_graph(x, edge_index_with_loop) # Make graph with self-loops
         exp._walk_ids = walks['ids']
         exp._walk_scores = walks['score']

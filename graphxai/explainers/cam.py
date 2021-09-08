@@ -91,11 +91,12 @@ class CAM(_BaseDecomposition):
             cam[i] += self.__exp_node(n, walk_steps, label)
 
         # Set Explanation class:
-        exp = Explanation()
-        exp.node_imp = cam
+        exp = Explanation(
+            node_imp = cam,
+            node_idx = node_idx
+        )
         exp.set_enclosing_subgraph(khop_info)
         exp.set_whole_graph(x, edge_index)
-        exp.node_idx = node_idx
 
         return exp
 
@@ -146,8 +147,9 @@ class CAM(_BaseDecomposition):
             node_explanations.append(self.__exp_node(n, walk_steps, label))
 
         # Set Explanation class:
-        exp = Explanation()
-        exp.node_imp = torch.tensor(node_explanations)
+        exp = Explanation(
+            node_imp = torch.tensor(node_explanations)
+        )
         exp.set_whole_graph(x, edge_index)
 
         return exp
@@ -252,10 +254,12 @@ class Grad_CAM(_BaseDecomposition):
         N = maybe_num_nodes(edge_index, None)
         subgraph_N = len(subgraph_nodes.tolist())
 
-        exp = Explanation()
+        exp = Explanation(
+            node_idx = node_idx
+        )
         exp.set_enclosing_subgraph(khop_info)
         exp.set_whole_graph(x, edge_index)
-        exp.node_idx = node_idx
+        #exp.node_idx = node_idx
 
         if average_variant:
             # Size of all nodes in the subgraph:
