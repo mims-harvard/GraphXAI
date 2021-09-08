@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
@@ -11,7 +12,11 @@ class _BaseExplainer:
     """
     Base Class for Explainers
     """
-    def __init__(self, model: nn.Module, emb_layer_name: str = None):
+    def __init__(self, 
+            model: nn.Module, 
+            emb_layer_name: Optional[str] = None, 
+            is_subgraphx: Optional[bool] = False
+        ):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -24,6 +29,7 @@ class _BaseExplainer:
         self.L = len([module for module in self.model.modules()
                       if isinstance(module, MessagePassing)])
         self.explain_graph = False  # Assume node-level explanation by default
+        self.subgraphx_flag = is_subgraphx
         self.__set_embedding_layer(emb_layer_name)
 
     def __set_embedding_layer(self, emb_layer_name: str = None):
@@ -141,13 +147,22 @@ class _BaseExplainer:
         Returns:
             get_prob_score (callable): the probability score function
         """
-        def get_prob_score(x: torch.Tensor,
-                           edge_index: torch.Tensor,
-                           forward_kwargs: dict = {}):
-            prob = self._predict(x, edge_index, return_type='prob',
-                                 forward_kwargs=forward_kwargs)
-            score = prob[:, node_idx, target_class]
-            return score
+        if self.subgraphx_flag:
+            def get_prob_score(x: torch.Tensor,
+                            edge_index: torch.Tensor,
+                            forward_kwargs: dict = {}):
+                prob = self._predict(x, edge_index, return_type='prob',
+                                    forward_kwargs=forward_kwargs)
+                score = prob[node_idx, target_class]
+                return score
+        else:
+            def get_prob_score(x: torch.Tensor,
+                            edge_index: torch.Tensor,
+                            forward_kwargs: dict = {}):
+                prob = self._predict(x, edge_index, return_type='prob',
+                                    forward_kwargs=forward_kwargs)
+                score = prob[:, node_idx, target_class]
+                return score
 
         return get_prob_score
 
