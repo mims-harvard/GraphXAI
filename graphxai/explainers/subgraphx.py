@@ -50,7 +50,7 @@ class SubgraphX(_BaseExplainer):
                  high2low=False, local_radius=4, sample_num=100, reward_method='mc_l_shapley',
                  subgraph_building_method='zero_filling'):
 
-        super().__init__(model=model)
+        super().__init__(model=model, is_subgraphx=True)
         self.model.eval()
         self.num_hops = self.update_num_hops(num_hops)
 
@@ -127,7 +127,7 @@ class SubgraphX(_BaseExplainer):
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
 
-        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+        :rtype: :class:`Explanation`
         Returns:
             exp (dict):
                 exp['feature_imp'] is `None` because no feature explanations are generated.
@@ -184,11 +184,15 @@ class SubgraphX(_BaseExplainer):
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
         # Set explanation
-        exp = Explanation()
-        exp.node_imp = node_mask # Importance variables will hold masks
-        exp.edge_imp = edge_mask
-        exp.node_idx = node_idx
-        sg = k_hop_subgraph(node_idx, self.L, edge_index, flow = self.flow())
+        exp = Explanation(
+            node_imp = node_mask,
+            edge_imp = edge_mask,
+            node_idx = node_idx
+        )
+        # exp.node_imp = node_mask # Importance variables will hold masks
+        # exp.edge_imp = edge_mask
+        # exp.node_idx = node_idx
+        sg = k_hop_subgraph(node_idx, self.L, edge_index)
         exp.set_enclosing_subgraph(sg)
 
         #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
@@ -215,7 +219,7 @@ class SubgraphX(_BaseExplainer):
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
 
-        :rtype: :class:`dict`
+        :rtype: :class:`Explanation`
         Returns:
             exp (dict):
                 exp['feature_imp'] is `None` because no feature explanations are generated.
@@ -252,9 +256,12 @@ class SubgraphX(_BaseExplainer):
 
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
-        exp = Explanation()
-        exp.node_imp = node_mask
-        exp.edge_imp = edge_mask
+        exp = Explanation(
+            node_imp = node_mask,
+            edge_imp = edge_mask
+        )
+        # exp.node_imp = node_mask
+        # exp.edge_imp = edge_mask
         exp.set_whole_graph(x, edge_index)
 
         #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
