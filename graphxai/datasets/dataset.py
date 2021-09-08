@@ -38,7 +38,7 @@ class NodeDataset:
         self.explanations = []
 
     def get_graph(self, 
-        use_static_split = True, 
+        use_fixed_split = True, 
         split_sizes = (0.7, 0.2, 0.1),
         seed = None):
         '''
@@ -48,11 +48,11 @@ class NodeDataset:
             use_static_split (bool, optional): (:default: True)
         '''
 
-        if use_static_split:
+        if use_fixed_split:
             # Set train, test, val static masks:
-            self.graph.train_mask = self.static_train_mask
-            self.graph.valid_mask = self.static_valid_mask
-            self.graph.test_mask  = self.static_test_mask
+            self.graph.train_mask = self.fixed_train_mask
+            self.graph.valid_mask = self.fixed_valid_mask
+            self.graph.test_mask  = self.fixed_test_mask
 
         else:
             assert sum(split_sizes) == 1, "split_sizes must sum to 1"
