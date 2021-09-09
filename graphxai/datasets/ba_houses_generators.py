@@ -46,10 +46,7 @@ def plant_one_house(G, pivot, in_house, house_code):
     return G, in_house
 
 def generate_explanations_BAHouses(data, node_idx, num_hops):
-    #edges = list(nx.bfs_edges(G, node_idx, depth_limit = num_hops))
-    #nodes_in_khop = set(np.unique(edges)) - set([node_idx])
-    # print(node_idx)
-    # print(num_hops)
+
     khop_info = k_hop_subgraph(
         node_idx = int(node_idx), 
         num_hops = num_hops, 
@@ -59,11 +56,9 @@ def generate_explanations_BAHouses(data, node_idx, num_hops):
     sub_edge_idx = khop_info[1]
 
     # Get class of node:
-    #house_code = G.nodes[node_idx]['house']
     house_code = data.house[node_idx]
 
     # All other nodes in neighborhood with this class:
-    #node_imp = torch.tensor([1 if G.nodes[i]['house'] == house_code else 0 for i in subgraph_nodes], dtype=torch.long)
     node_imp = torch.tensor([1 if data.house[i] == house_code else 0 for i in subgraph_nodes], dtype=torch.long)
 
     # Find all edges where both ends are in the appropriate house:
@@ -74,7 +69,6 @@ def generate_explanations_BAHouses(data, node_idx, num_hops):
         #Check both ends:
         e1, e2 = sub_edge_idx[0,i], sub_edge_idx[1,i]
         
-        # edge_mask[i] = torch.tensor((G.nodes[e1]['house'] == house_code) and ((G.nodes[e2]['house'] == house_code)), dtype=torch.long)
         edge_mask[i] = ((house[e1] == house_code) and (house[e2] == house_code)).type(torch.long)
 
     exp = Explanation(
@@ -154,8 +148,16 @@ def plant_house_global(G, in_house, house_code):
     G, in_house = plant_one_house(G, pivot, in_house, house_code)
     return G, in_house
 
-def generate_BAHouses_graph_local(n, m, k, num_hops, 
-    seed = None, get_data = True, in_hood_numbering = False):
+def generate_BAHouses_graph_local(
+        n, 
+        m, 
+        k, 
+        num_hops, 
+        seed = None, 
+        get_data = True, 
+        in_hood_numbering = False,
+        threshold = None
+    ):
     '''
     Args:
         n (int): starting number of nodes
@@ -196,6 +198,9 @@ def generate_BAHouses_graph_local(n, m, k, num_hops,
             nodes_in_house = nodes_in_khop.intersection(in_house)
             num_unique_houses = len(np.unique([G.nodes[ni]['house'] for ni in nodes_in_house]))
             y.append(num_unique_houses)
+
+        if threshold is not None:
+            y = [1 if y[i] > threshold else 0 for i in range(len(y))]
             
     else:
         y = [1 if i in in_house else 0 for i in range(len(G.nodes))]

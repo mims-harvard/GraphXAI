@@ -28,7 +28,7 @@ class BAHouses(NodeDataset):
         num_houses (int, optional): Number of houses to add in entire graph.
             Only active for global planting method, i.e. `plant_method == 'global'`.
             (:default: :obj:`None`)
-        k (int, optional): Number of houses per neighborhood.
+        k (int, optional): Lower-bound on number of houses per neighborhood.
             Only active for local planting method, i.e. `plant_method == 'local'`.
             (:default: :obj:`None`)
         seed (int, optional): Seed for random generation of graph. (:default: `None`)
@@ -36,7 +36,10 @@ class BAHouses(NodeDataset):
             to global and local planting methods, respectfully. (:default: `'global'`)
         kwargs:
             - in_hood_numbering (bool, optional): y labels become number of houses in 
-                k-hop neighborhood.
+                L-hop neighborhood.
+            - threshold (int, optional): Threshold for 0 or 1 assignment of house labels.
+                For all nodes, if `node.num_houses <= threshold`, y value assigned to 0.
+                Else, the y value is assigned to 1. 
     '''
 
     def __init__(self, 
@@ -63,7 +66,8 @@ class BAHouses(NodeDataset):
                 num_hops = num_hops, 
                 seed = seed,
                 get_data = True,
-                **kwargs)
+                **kwargs
+            )
 
         elif plant_method == 'local':
             self.generate_data = partial(
