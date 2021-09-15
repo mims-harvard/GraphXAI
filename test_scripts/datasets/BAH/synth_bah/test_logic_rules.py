@@ -140,6 +140,8 @@ def labeling_rule_CC(self):
     avg_ccs = np.mean([self.G.nodes[i]['x'][1] for i in self.G.nodes])
     
     def get_label(node_idx):
+        '''
+        '''
         # Count number of houses in k-hop neighborhood
         khop_edges = nx.bfs_edges(self.G, node_idx, depth_limit = self.num_hops)
         nodes_in_khop = set(np.unique(list(khop_edges))) - set([node_idx])
@@ -151,6 +153,9 @@ def labeling_rule_CC(self):
     return get_label
 
 def labeling_only_graph(self):
+    '''
+    Labeling based on only the graph (number of houses in hop being equal to 1)
+    '''
     def get_label(node_idx):
         khop_edges = nx.bfs_edges(self.G, node_idx, depth_limit = self.num_hops)
         nodes_in_khop = set(np.unique(list(khop_edges))) - set([node_idx])
@@ -161,6 +166,9 @@ def labeling_only_graph(self):
     return get_label
 
 def labeling_only_features(self):
+    '''
+    Labeling based on only the features (degree)
+    '''
     def get_label(node_idx):
         return int(self.G.nodes[node_idx]['x'][0] > 1)
     return get_label
@@ -169,25 +177,16 @@ def labeling_only_features(self):
 if __name__ == '__main__':
     bah = BAHouses(
     num_hops=2,
-    n=30,
+    n=1000,
     m=1,
     num_houses=1,
     plant_method='local',
+    # Change the label rule:
     label_rule = labeling_only_features)
-
-
-    ylist = bah.graph.y.tolist()
-    node_colors = [ylist[i] for i in bah.G.nodes]
-    pos = nx.kamada_kawai_layout(bah.G)
-    fig, ax = plt.subplots()
-    nx.draw(bah.G, pos, node_color = node_colors, ax=ax)
-    ax.set_title('Condition: if degree > 1 (Only Features)')
-    plt.tight_layout()
-    plt.show()
-    exit()
 
     data = bah.get_graph(use_fixed_split=False, split_sizes = [0.7, 0.3, 0]) # Get torch_geometric data
 
+    # Change the model architecture there:
     model = GCN_3layer(64, input_feat=3, classes=2)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
