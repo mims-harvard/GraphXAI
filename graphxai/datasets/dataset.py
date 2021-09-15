@@ -40,6 +40,7 @@ class NodeDataset:
     def get_graph(self, 
         use_fixed_split = True, 
         split_sizes = (0.7, 0.2, 0.1),
+        stratify = True, 
         seed = None):
         '''
         Gets graph object for training/validation/testing purposes
@@ -55,19 +56,20 @@ class NodeDataset:
             self.graph.test_mask  = self.fixed_test_mask
 
         else:
-            assert sum(split_sizes) == 1, "split_sizes must sum to 1"
+            #assert sum(split_sizes) == 1, "split_sizes must sum to 1"
             assert len(split_sizes) == 3, "split_sizes must contain (train_size, test_size, valid_size)"
             # Create a split for user (based on seed, etc.)
-            train_mask, rem_mask = train_test_split(list(range(self.n)), 
-                                test_size = split_sizes[1], 
-                                random_state = seed)
+            train_mask, test_mask = train_test_split(list(range(self.graph.num_nodes)), 
+                                test_size = split_sizes[1] + split_sizes[2], 
+                                random_state = seed, stratify = self.graph.y.tolist() if stratify else None)
 
-            valid_mask, test_mask = train_test_split(rem_mask, 
-                                test_size = split_sizes[2],
-                                random_state = seed)
+            if split_sizes[2] > 0:
+                valid_mask, test_mask = train_test_split(test_mask, 
+                                    test_size = split_sizes[2] / split_sizes[1],
+                                    random_state = seed, stratify = self.graph.y[test_mask].tolist() if stratify else None)
+                self.graph.valid_mask = torch.tensor([i in valid_mask for i in range(self.graph.num_nodes)], dtype = torch.bool)
 
             self.graph.train_mask = torch.tensor([i in train_mask for i in range(self.graph.num_nodes)], dtype = torch.bool)
-            self.graph.valid_mask = torch.tensor([i in valid_mask for i in range(self.graph.num_nodes)], dtype = torch.bool)
             self.graph.test_mask  = torch.tensor([i in test_mask  for i in range(self.graph.num_nodes)], dtype = torch.bool)
 
         return self.graph
