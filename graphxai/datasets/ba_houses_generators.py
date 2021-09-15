@@ -41,7 +41,7 @@ def plant_one_house(G, pivot, in_house, house_code):
     house = new_nodes + [pivot]
     for n in house:
         in_house.add(n) # Add to house tracker
-        G.nodes
+        #G.nodes
 
     return G, in_house
 
@@ -87,7 +87,8 @@ def generate_BAHouses_graph_global(
         num_houses: int, 
         num_hops: int, 
         seed: int= None, 
-        get_data: Optional[bool] = True
+        get_data: Optional[bool] = True,
+        label_strategy: Optional[bool] = 0
     ):
     '''
     Generates a BAHouses graph with global planting method
@@ -156,7 +157,8 @@ def generate_BAHouses_graph_local(
         seed = None, 
         get_data = True, 
         in_hood_numbering = False,
-        threshold = None
+        threshold = None,
+        label_strategy: Optional[bool] = 0
     ):
     '''
     Args:
@@ -190,20 +192,35 @@ def generate_BAHouses_graph_local(
     edge_index = torch.tensor(list(G.edges), dtype=torch.long)
 
     # Set node labels after planting:
-    if in_hood_numbering:
+    if label_strategy == 0:
+        if in_hood_numbering:
+            y = []
+            for n in range(len(G.nodes)):
+                khop_edges = nx.bfs_edges(G, n, depth_limit = num_hops)
+                nodes_in_khop = set(np.unique(list(khop_edges))) - set([n])
+                nodes_in_house = nodes_in_khop.intersection(in_house)
+                num_unique_houses = len(np.unique([G.nodes[ni]['house'] for ni in nodes_in_house]))
+                y.append(num_unique_houses)
+
+            if threshold is not None:
+                y = [1 if y[i] > threshold else 0 for i in range(len(y))]
+            
+        else:
+            y = [1 if i in in_house else 0 for i in range(len(G.nodes))]
+
+    elif label_strategy == 1:
         y = []
         for n in range(len(G.nodes)):
             khop_edges = nx.bfs_edges(G, n, depth_limit = num_hops)
             nodes_in_khop = set(np.unique(list(khop_edges))) - set([n])
             nodes_in_house = nodes_in_khop.intersection(in_house)
             num_unique_houses = len(np.unique([G.nodes[ni]['house'] for ni in nodes_in_house]))
-            y.append(num_unique_houses)
-
-        if threshold is not None:
-            y = [1 if y[i] > threshold else 0 for i in range(len(y))]
             
-    else:
-        y = [1 if i in in_house else 0 for i in range(len(G.nodes))]
+            # Apply logic rule:
+            if num_unique_houses == 1 and x[n,0] > 1:
+                y.append(1)
+            else:
+                y.append(0)
 
     if get_data:
         data = Data(
