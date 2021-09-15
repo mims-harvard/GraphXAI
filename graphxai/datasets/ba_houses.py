@@ -34,6 +34,8 @@ class BAHouses(NodeDataset):
         seed (int, optional): Seed for random generation of graph. (:default: `None`)
         plant_method (str, optional): Options are `'local'` and `'global'`, corresponding
             to global and local planting methods, respectfully. (:default: `'global'`)
+        label_strategy (int, optional): Strategy for generating labels of nodes.
+            (:default: :obj:`0`)
         kwargs:
             - in_hood_numbering (bool, optional): y labels become number of houses in 
                 L-hop neighborhood.
@@ -50,6 +52,7 @@ class BAHouses(NodeDataset):
         k: int = None,
         seed: Optional[int] = None,
         plant_method: Optional[str] = 'global',
+        label_strategy: Optional[int] = 0,
         **kwargs):
 
         super().__init__(name='BAHouses', num_hops=num_hops)
@@ -66,6 +69,7 @@ class BAHouses(NodeDataset):
                 num_hops = num_hops, 
                 seed = seed,
                 get_data = True,
+                label_strategy = label_strategy,
                 **kwargs
             )
 
@@ -78,6 +82,7 @@ class BAHouses(NodeDataset):
                 num_hops = num_hops,
                 seed = seed,
                 get_data = True,
+                label_strategy = label_strategy,
                 **kwargs
             )
 
