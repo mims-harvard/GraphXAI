@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import networkx as nx
 
 def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False,
