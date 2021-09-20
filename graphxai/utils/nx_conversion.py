@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import networkx as nx
 
 def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False,
@@ -100,3 +101,24 @@ def whole_graph_mask_to_subgraph(node_mask, edge_mask = None, subgraph_nodes = N
     # subgraph_edge_mask = torch.tensor()
     
     return subgraph_node_mask, None
+
+def khop_subgraph_nx(
+        node_idx: int,
+        num_hops: int, 
+        G: nx.Graph
+    ):
+    '''
+    Finds k-hop neighborhood in a networkx graph
+
+    ..note:: Includes node_idx within subgraph
+
+    Args:
+        node_idx (int): Node for which we are to find a subgraph around.
+        num_hops (int): Number of hops for which to search.
+        G (nx.Graph): Graph on which to find k-hop subgraph
+
+    :rtype: list
+        nodes (list): Nodes in the k-hop subgraph
+    '''
+    edges = list(nx.bfs_edges(G, node_idx, depth_limit = num_hops))
+    return list(np.unique(edges))
