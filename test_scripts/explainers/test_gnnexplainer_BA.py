@@ -2,7 +2,6 @@ import random
 import torch
 
 from graphxai.explainers import GNNExplainer
-from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 
 
@@ -34,8 +33,5 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
 explainer = GNNExplainer(model)
 # With true label
-exp, khop_info = explainer.get_explanation_node(int(node_idx), data.edge_index,
-                                                data.x, data.y, explain_feature=True)
-# Without true label
-exp_no_label, khop_info = explainer.get_explanation_node(int(node_idx), data.edge_index,
-                                                         data.x)
+exp, khop_info = explainer.get_explanation_node(int(node_idx), data.x, data.edge_index,
+                                                label=data.y, explain_feature=True)

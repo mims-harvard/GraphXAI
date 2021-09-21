@@ -1,6 +1,8 @@
 import torch
 import networkx as nx
 
+from torch_geometric.utils import from_networkx
+
 from typing import Optional
 
 class EnclosingSubgraph:
@@ -155,10 +157,21 @@ class Explanation:
     def set_enclosing_subgraph(self, subgraph):
         '''
         Args:
-            k_hop_tuple (tuple or EnclosingSubgraph): Return value from torch_geometric.utils.k_hop_subgraph
+            k_hop_tuple (tuple, EnclosingSubgraph, or nx.Graph): Return value from torch_geometric.utils.k_hop_subgraph
         '''
         if isinstance(subgraph, EnclosingSubgraph):
             self.enc_subgraph = subgraph
+        elif isinstance(subgraph, nx.Graph):
+            # Convert from nx.Graph
+            data = from_networkx(subgraph)
+            nodes = torch.unique(data.edge_index)
+            # TODO: Support inv and edge_mask through networkx
+            self.enc_subgraph = EnclosingSubgraph(
+                nodes = nodes,
+                edge_index = data.edge_index,
+                inv = None,
+                edge_mask = None
+            )
         else: # Assumed to be a tuple:
             self.enc_subgraph = EnclosingSubgraph(*subgraph)
 
