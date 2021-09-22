@@ -10,7 +10,7 @@ from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from IPython.display import SVG
 from sknetwork.visualization import svg_graph
 
-from graphxai.datasets.sbm_with_singletons import sbm_with_singletons
+from graphxai.datasets import sbm_with_singletons
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.utils.representation import extract_step
 from graphxai.explainers import GNNExplainer
@@ -51,6 +51,7 @@ model = GCN(32, input_feat=1, classes=2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 
+acc = 0
 for epoch in range(1, 201):
     loss = train(model, optimizer, criterion, data)
     acc = test(model, data)
@@ -67,9 +68,9 @@ def rewire(num_nodes_to_rewire):
     new_edge_index = torch.cat([kept_edge_index, added_edge_index], dim=1)
     new_data = Data(x=x, edge_index=new_edge_index, y=label,
                     train_mask=train_mask, test_mask=test_mask)
-    return new_data, new_edge_index
+    return new_data
 
-new_data, new_edge_index = rewire(num_nodes_to_rewire=1)
+new_data = rewire(num_nodes_to_rewire=1)
 new_acc = test(model, new_data)
 print(acc)
 print(new_acc)
@@ -84,8 +85,8 @@ SVG(img)
 SVG(new_img)
 
 # Get walk steps
-walk_steps, _ = extract_step(model, x, edge_index)
-new_walk_steps, _ = extract_step(model, x, new_edge_index)
+walk_steps, _ = extract_step(model, data.x, data.edge_index)
+new_walk_steps, _ = extract_step(model, new_data.x, new_data.edge_index)
 
 # Compute normalized L2 distance of representation
 layers = [e['output'] for e in walk_steps]
@@ -99,7 +100,6 @@ print(diffs[1].mean().item())
 
 # Test the explanation change
 explainer = GNNExplainer(model)
-node_idx = random.randrange(0, num_community_nodes)
 
 def get_exp(data):
     exp, _ = explainer.get_explanation_node(node_idx, data.x, data.edge_index,

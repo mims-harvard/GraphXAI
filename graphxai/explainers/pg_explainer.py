@@ -1,3 +1,4 @@
+import ipdb
 import numpy as np
 import torch
 import torch.nn as nn
@@ -70,16 +71,18 @@ class PGExplainer(_BaseExplainer):
         Sample from the instantiation of concrete distribution when training.
 
         Returns:
-            training == True: sigmoid(log_alpha + noise)
+            training == True: sigmoid((log_alpha + noise) / beta)
             training == False: sigmoid(log_alpha)
         """
         if training:
             random_noise = torch.rand(log_alpha.shape)
             random_noise = torch.log(random_noise) - torch.log(1.0 - random_noise)
+            ipdb.set_trace()
             h = (random_noise + log_alpha) / beta
             output = h.sigmoid()
         else:
-            output = log_alpha.sigmoid()
+            h = log_alpha
+            output = h.sigmoid()
 
         return output
 
@@ -274,11 +277,12 @@ class PGExplainer(_BaseExplainer):
         khop_info = k_hop_subgraph(node_idx, self.num_hops, edge_index,
                                    relabel_nodes=True, num_nodes=x.shape[0])
 
-        emb = self._get_embedding(x, edge_index,
-                                  forward_kwargs=forward_kwargs)
-        _, edge_mask = self.__emb_to_edge_mask(emb, x, edge_index, node_idx,
-                                               forward_kwargs=forward_kwargs,
-                                               tmp=1.0, training=False)
+        emb = self._get_embedding(x, edge_index, forward_kwargs=forward_kwargs)
+
+        _, edge_mask = self.__emb_to_edge_mask(
+            emb, x, edge_index, node_idx, forward_kwargs=forward_kwargs,
+            tmp=1, training=False)
+
         exp['edge_imp'] = edge_mask
 
         return exp, khop_info
@@ -314,11 +318,12 @@ class PGExplainer(_BaseExplainer):
 
         exp = {k: None for k in EXP_TYPES}
 
-        emb = self._get_embedding(x, edge_index,
-                                  forward_kwargs=forward_kwargs)
-        _, edge_mask = self.__emb_to_edge_mask(emb, x, edge_index,
-                                               forward_kwargs=forward_kwargs,
-                                               tmp=1.0, training=False)
+        with torch.no_grad():
+            emb = self._get_embedding(x, edge_index,
+                                      forward_kwargs=forward_kwargs)
+            _, edge_mask = self.__emb_to_edge_mask(
+                emb, x, edge_index, forward_kwargs=forward_kwargs,
+                tmp=1.0, training=False)
 
         exp['edge_imp'] = edge_mask
 
