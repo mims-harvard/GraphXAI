@@ -10,7 +10,7 @@ class GNNExplainer(_BaseExplainer):
     """
     GNNExplainer: node only
     """
-    def __init__(self, model: torch.nn.Module, coeff: dict = None):
+    def __init__(self, model: torch.nn.Module, coeff: dict = None, seed: int = None):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -28,6 +28,8 @@ class GNNExplainer(_BaseExplainer):
         else:
             self.coeff = {'edge': {'entropy': 1.0, 'size': 0.005},
                           'feature': {'entropy': 0.1, 'size': 1.0}}
+        if seed is not None:
+            torch.manual_seed(seed)
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
                              edge_index: torch.Tensor,

@@ -6,6 +6,7 @@ import tqdm
 import time
 
 from typing import Optional
+from torch_geometric.nn import GCNConv
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
 
@@ -74,6 +75,7 @@ class PGExplainer(_BaseExplainer):
             training == True: sigmoid((log_alpha + noise) / beta)
             training == False: sigmoid(log_alpha)
         """
+        # FIX the noise >> log_alpha, need scaling
         if training:
             random_noise = torch.rand(log_alpha.shape)
             random_noise = torch.log(random_noise) - torch.log(1.0 - random_noise)

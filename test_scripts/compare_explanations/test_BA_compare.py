@@ -18,8 +18,12 @@ from graphxai.utils.perturb import rewire_edges
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 from graphxai.explainers import GNNExplainer, PGExplainer
 # from graphxai.utils.representation import extract_step
-from graphxai.visualization import visualize_explanation
+from graphxai.visualization import visualize_edge_explanation
 
+# Set random seeds
+seed = 1
+torch.manual_seed(seed)
+random.seed(seed)
 
 def rewire_data(data: Data, node_idx: int, num_hops: int = 3, rewire_prob: float = 0.01):
     new_edge_index = rewire_edges(data.edge_index, num_nodes=data.num_nodes,
@@ -50,9 +54,9 @@ for epoch in range(1, 201):
     acc = test(model, data)
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
-# Rewire edges of node_idx's enclosing subgraph
-new_data = rewire_data(data, node_idx, num_hops=3, rewire_prob=0.01)
-new_acc = test(model, new_data)
+# # Rewire edges of node_idx's enclosing subgraph
+# new_data = rewire_data(data, node_idx, num_hops=3, rewire_prob=0.01)
+# new_acc = test(model, new_data)
 
 # # This part compares the internal representation
 # # Get walk steps
@@ -72,63 +76,46 @@ new_acc = test(model, new_data)
 # Test edge explainers
 
 def get_exp(explainer, node_idx, data):
-    exp, khop_info = explainer.get_explanation_node(node_idx, data.x, data.edge_index,
-                                                    label=data.y)
+    exp, khop_info = explainer.get_explanation_node(
+        node_idx, data.x, data.edge_index, label=data.y, num_hops=2)
     return exp['edge_imp'], khop_info[0], khop_info[1]
 
 # GNNExplainer
-gnnexpr = GNNExplainer(model)
+# correctnesses = []
+# for i in range(10):
+#     node_idx = int(inhouse[i])
+gnnexpr = GNNExplainer(model, seed=seed)
 edge_imp, subset, sub_edge_index = get_exp(gnnexpr, node_idx, data)
-new_edge_imp, new_subset, new_sub_edge_index = get_exp(gnnexpr, node_idx, new_data)
-visualize_explanation(sub_edge_index, num_nodes=subset.shape[0], edge_imp=edge_imp)
-visualize_explanation(new_sub_edge_index, num_nodes=new_subset.shape[0], edge_imp=new_edge_imp)
+# new_edge_imp, new_subset, new_sub_edge_index = get_exp(gnnexpr, node_idx, new_data)
+sub_node_idx = -1
+for sub_idx, idx in enumerate(subset.tolist()):
+    if idx == node_idx:
+        sub_node_idx = sub_idx
+visualize_edge_explanation(sub_edge_index, num_nodes=len(subset),
+                           node_idx=sub_node_idx, edge_imp=edge_imp)
+# visualize_edge_explanation(new_sub_edge_index, num_nodes=new_subset.shape[0], edge_imp=new_edge_imp)
 
 # Compare with ground truth unique explanation
 # Locate which house
 true_nodes, true_edges = [(nodes, edges) for nodes, edges in bah.houses if node_idx in nodes][0]
-TP = 0
-FP = 0
-FN = 0
+TPs = []
+FPs = []
+FNs = []
 for i, edge in enumerate(sub_edge_index.T):
     # Restore original node numbering
     edge_ori = tuple(subset[edge].tolist())
     positive = edge_imp[i].item() > 0.8
     if positive:
         if edge_ori in true_edges:
-            TP += 1
+            TPs.append(edge_ori)
         else:
-            FP += 1
+            FPs.append(edge_ori)
     else:
         if edge_ori in true_edges:
-            FN += 1
+            FNs.append(edge_ori)
+TP = len(TPs)
+FP = len(FPs)
+FN = len(FNs)
 correctness = TP / (TP + FP + FN)
+# correctnesses.append(correctness)
 print(f'Correctness score of gnn explainer is {correctness}')
-
-# PGExplainer
-# pgexpr = PGExplainer(model, explain_graph=False)
-# pgexpr.train_explanation_model(data)
-# edge_imp, subset, sub_edge_index = get_exp(pgexpr, node_idx, data)
-# new_edge_imp, new_subset, new_sub_edge_index = get_exp(pgexpr, node_idx, new_data)
-# visualize_explanation(sub_edge_index, num_nodes=subset.shape[0], edge_imp=edge_imp)
-# visualize_explanation(new_sub_edge_index, num_nodes=new_subset.shape[0], edge_imp=new_edge_imp)
-
-# # Compare with ground truth unique explanation
-# # Locate which house
-# true_nodes, true_edges = [(nodes, edges) for nodes, edges in bah.houses if node_idx in nodes][0]
-# TP = 0
-# FP = 0
-# FN = 0
-# for i, edge in enumerate(sub_edge_index.T):
-#     # Restore original node numbering
-#     edge_ori = tuple(subset[edge].tolist())
-#     positive = edge_imp[i].item() > 1e-6
-#     if positive:
-#         if edge_ori in true_edges:
-#             TP += 1
-#         else:
-#             FP += 1
-#     else:
-#         if edge_ori in true_edges:
-#             FN += 1
-# correctness = TP / (TP + FP + FN)
-# print(f'Correctness score of PG explainer is {correctness}')
