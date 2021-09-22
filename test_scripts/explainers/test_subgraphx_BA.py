@@ -1,16 +1,11 @@
 import random
-import numpy as np
-import networkx as nx
+import torch
 import matplotlib.pyplot as plt
 
 from graphxai.gnn_models.node_classification import BA_Houses as BAH
 from graphxai.gnn_models.node_classification import GCN
 from graphxai.explainers.utils.visualizations import *
-from graphxai.explainers.utils import whole_graph_mask_to_subgraph, mask_graph
-
-import torch
-from torch_geometric.utils import k_hop_subgraph
-
+from graphxai.explainers.utils import whole_graph_mask_to_subgraph
 from graphxai.explainers.subgraphx import SubgraphX
 
 def get_data(n, m, num_houses):

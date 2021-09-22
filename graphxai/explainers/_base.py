@@ -12,9 +12,9 @@ class _BaseExplainer:
     """
     Base Class for Explainers
     """
-    def __init__(self, 
-            model: nn.Module, 
-            emb_layer_name: Optional[str] = None, 
+    def __init__(self,
+            model: nn.Module,
+            emb_layer_name: Optional[str] = None,
             is_subgraphx: Optional[bool] = False
         ):
         """

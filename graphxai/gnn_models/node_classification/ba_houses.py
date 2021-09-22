@@ -23,7 +23,7 @@ class BA_Houses:
         random.seed()
         return data, list(inhouse)
 
-    def make_house(self, G, encode_num = 1):
+    def make_house(self, G, encode_num=1):
         pivot = random.choice(list(set(G.nodes) - self.in_house))
         mx = np.max(G.nodes)
         new_nodes = [mx + i for i in range(1, 5)]
@@ -31,32 +31,24 @@ class BA_Houses:
         G.add_nodes_from(new_nodes)
 
         if house_option == 0:
-            connections = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
-            connections += [(new_nodes[-1], new_nodes[1])]
-            G.add_edges_from(connections)
-            G.add_edge(pivot, new_nodes[0])
-            G.add_edge(pivot, new_nodes[-1])
-
+            edges = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
+            edges += [(new_nodes[-1], new_nodes[1]), (pivot, new_nodes[0]), (pivot, new_nodes[-1])]
+            G.add_edges_from(edges)
         elif house_option == 1:
-            connections = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
-            connections += [(new_nodes[0], new_nodes[-1])]
-            G.add_edges_from(connections)
-            G.add_edge(pivot, new_nodes[0])
-            G.add_edge(pivot, new_nodes[-1])
+            edges = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
+            edges += [(new_nodes[0], new_nodes[-1]), (pivot, new_nodes[0]), (pivot, new_nodes[-1])]
+            G.add_edges_from(edges)
+        else:
+            edges = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
+            edges += [(pivot, new_nodes[0]), (pivot, new_nodes[2]), (pivot, new_nodes[-1])]
+            G.add_edges_from(edges)
 
-        elif house_option == 2:
-            connections = [(new_nodes[i], new_nodes[i+1]) for i in range(3)]
-            G.add_edges_from(connections)
-            G.add_edge(pivot, new_nodes[0])
-            G.add_edge(pivot, new_nodes[2])
-            G.add_edge(pivot, new_nodes[-1])
+        nodes = new_nodes + [pivot]
+        for node in nodes:
+            self.node_attr[node] = encode_num  # Encoding number for final node attributes
+            self.in_house.add(node)  # Add to house tracker
 
-        house = new_nodes + [pivot]
-        for n in house:
-            self.node_attr[n] = encode_num # Encoding number for final node attributes
-            self.in_house.add(n) # Add to house tracker
-
-        return G
+        return G, set(nodes), set(edges)
 
     def make_data(self, G, test_size = 0.25, multiple_features = False):
         # One hot lookup:
@@ -85,7 +77,7 @@ class BA_Houses:
             else:
                 train_mask[i] = True
 
-        #y = [0 if self.node_attr[i].item() == 0 else 1 for i in range(self.node_attr.shape[0])]
+        # y = [0 if self.node_attr[i].item() == 0 else 1 for i in range(self.node_attr.shape[0])]
         y = [1 if i in self.in_house else 0 for i in range(self.n)]
 
         data = Data(x=x, y = torch.tensor(y, dtype = torch.long), edge_index=edge_index.t().contiguous(),
@@ -93,16 +85,20 @@ class BA_Houses:
 
         return data
 
-    def make_BA_shapes(self, num_houses = 1, make_pyg = False):
+    def make_BA_shapes(self, num_houses = 1):
         start_n = self.n - (4 * num_houses)
         G = nx.barabasi_albert_graph(start_n, self.m, seed = self.seed)
         self.node_attr = torch.zeros(self.n, dtype = torch.long)
 
-        # Set num_houses:
+        # Set num_houses
         self.num_houses = num_houses
 
+        # Store all house nodes / edges
+        self.houses = []
+
         for ec in range(1, num_houses + 1):
-            G = self.make_house(G, ec)
+            G, house_nodes, house_edges = self.make_house(G, ec)
+            self.houses.append((house_nodes, house_edges))
 
         G = G.to_directed()
 
