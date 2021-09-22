@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from torch_geometric.utils import k_hop_subgraph
@@ -54,8 +53,7 @@ class GNNExplainer(_BaseExplainer):
         Returns:
             exp (dict):
                 exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+                exp['edge_imp'] (torch.Tensor): k-hop edge importance
             khop_info (4-tuple of torch.Tensor):
                 0. the nodes involved in the subgraph
                 1. the filtered `edge_index`
@@ -112,7 +110,7 @@ class GNNExplainer(_BaseExplainer):
             exp['feature_imp'] = self.feature_mask.data
 
         train(self.edge_mask, 'edge')
-        exp['edge_imp'] = self.edge_mask.data
+        exp['edge_imp'] = self.edge_mask.data.sigmoid()
 
         self._clear_masks()
 

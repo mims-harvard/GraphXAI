@@ -1,6 +1,40 @@
 import torch
 
 from typing import List
+from torch_geometric.data import Data
+from torch_geometric.utils import convert
+from torch_geometric.utils.subgraph import k_hop_subgraph
+from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
+
+from .nx_modified import swap
+
+
+def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
+                 node_idx: int = None, num_hops: int = 3,
+                 rewire_prob: float = 0.01, seed: int = 0):
+    """
+    Rewire edges in the graph.
+
+    If subset is None, rewire the whole graph.
+    Otherwise, rewire the edges within the induced subgraph of subset of nodes.
+    """
+    # Get the k-hop subgraph of node_idx if specified, and compute nswap
+    if node_idx is None:
+        subset = None
+        m = edge_index.shape[1]
+        nswap = round(m*rewire_prob)
+    else:
+        subset, sub_edge_index, _, _ = k_hop_subgraph(node_idx, num_hops, edge_index)
+        m = sub_edge_index.shape[1]
+        nswap = round(m*rewire_prob)
+
+    # Convert to networkx graph for rewiring edges
+    data = Data(edge_index=edge_index, num_nodes=num_nodes)
+    G = convert.to_networkx(data, to_undirected=True)
+    rewired_G = swap(G, subset, nswap=nswap, max_tries=100*nswap, seed=seed)
+    rewired_adj_mat = adj_mat(rewired_G)
+    rewired_edge_index = convert.from_scipy_sparse_matrix(rewired_adj_mat)[0]
+    return rewired_edge_index
 
 
 def perturb_node_features(x: torch.Tensor, perturb_prob: float = 0.5,
