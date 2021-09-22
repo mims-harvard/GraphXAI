@@ -1,3 +1,7 @@
+"""
+This code is modified from networkx.
+"""
+
 import random
 import networkx as nx
 
@@ -59,6 +63,9 @@ def swap(G, subset: list = None, nswap: int = 1,
         for i in range(0, len(distribution)):
             cdf.append(cdf[i] + distribution[i] / psum)
         return cdf
+
+    # Initialize seed for random
+    random.seed(seed)
 
     if G.is_directed():
         raise nx.NetworkXError("double_edge_swap() not defined for directed graphs.")

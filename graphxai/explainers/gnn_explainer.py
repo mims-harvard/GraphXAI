@@ -110,7 +110,7 @@ class GNNExplainer(_BaseExplainer):
             exp['feature_imp'] = self.feature_mask.data
 
         train(self.edge_mask, 'edge')
-        exp['edge_imp'] = self.edge_mask.data
+        exp['edge_imp'] = self.edge_mask.data.sigmoid()
 
         self._clear_masks()
 
