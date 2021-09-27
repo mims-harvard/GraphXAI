@@ -39,19 +39,21 @@ m = 2
 num_houses = 20
 
 bah = BA_Houses(n, m)
-data, inhouse = bah.get_data(num_houses, multiple_features=True)
+data, inhouse = bah.get_data(num_houses, null_feature=True)
 
-model = GCN(64, input_feat=3, classes=2)
+model = GCN(8, input_feat=2, classes=2)
 print(model)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
 node_idx = int(random.choice(inhouse))
 
+losses = []
+test_accs = []
 for epoch in range(1, 201):
-    loss = train(model, optimizer, criterion, data)
-    acc = test(model, data)
+    loss = train(model, optimizer, criterion, data, losses)
+    acc = test(model, data, test_accs)
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
 # # Rewire edges of node_idx's enclosing subgraph
