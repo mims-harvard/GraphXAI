@@ -109,7 +109,7 @@ class GNNExplainer(_BaseExplainer):
 
         if explain_feature:
             train(self.feature_mask, 'feature')
-            exp['feature_imp'] = self.feature_mask.data
+            exp['feature_imp'] = self.feature_mask.data.sigmoid()
 
         train(self.edge_mask, 'edge')
         exp['edge_imp'] = self.edge_mask.data.sigmoid()
