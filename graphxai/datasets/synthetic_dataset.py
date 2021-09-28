@@ -70,6 +70,7 @@ class ShapeGraph(NodeDataset):
         self.init_graph()
         self.generate_shape_graph()
         self.explanations = []
+        self.num_nodes = len(list(self.G.nodes)) # Number of nodes in graph
         
     def init_graph(self):
         '''
@@ -253,7 +254,7 @@ class ShapeGraph(NodeDataset):
         '''
 
         if self.plant_method == 'local':
-            nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
+            nodes_in_khop = set(khop_subgraph_nx(node_idx, self.num_hops, self.G))
             #khop_in_shape = nodes_in_khop.intersection(in_shape)
             # Choose pivot node from all those not already in a shape:
             not_in_khop = list(nodes_in_khop - in_shape)
@@ -300,12 +301,11 @@ class ShapeGraph(NodeDataset):
 
     def feature_generator(self):
         '''
-        Takes a networkx graph as argument, returns a function to generate features
-            given a node index.
-        Args:
-            G (nx.Graph): 
+        Uses self.G to 
 
         :rtype: Callable[[int], torch.Tensor]
+            Function returned from this method must take one integer as argument (node index) 
+            and return a feature for that node
         '''
         raise NotImplementedError()
 
@@ -314,7 +314,6 @@ class ShapeGraph(NodeDataset):
         Args:
         
         :rtype: Callable[[int], int]
-
         '''
         raise NotImplementedError()
 
