@@ -1,3 +1,3 @@
 from .dataset import get_dataset, GraphDataset, NodeDataset
-from .ba_houses import BAHouses
-||||||| edb7588
+from .BA_shapes.ba_houses import BAHouses
+from .BA_shapes.ba_shapes import BAShapes
