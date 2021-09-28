@@ -197,22 +197,30 @@ class BAShapes(ShapeGraph):
             return None
         return gen
 
+    def visualize(self):
+        ylist = self.graph.y.tolist()
+        y = [ylist[i] for i in self.G.nodes]
+
+        pos = nx.kamada_kawai_layout(self.G)
+        _, ax = plt.subplots()
+        nx.draw(self.G, pos, node_color = y, ax=ax)
+        ax.set_title('BA Houses')
+        plt.tight_layout()
+        plt.show()
+
 if __name__ == '__main__':
-    bah = BAHouses(
-        num_hops=2,
-        n=30,
-        m=1,
-        num_houses=1,
-        plant_method='local')
+    class Hyperparameters:
+        num_hops = 1
+        n = 5000
+        m = 1
+        num_shapes = None
+        plant_method = 'neighborhood upper bound'
+        shape_upper_bound = 1
+        labeling_method = 'edge'
 
-    print(bah.shapes_in_graph)
-    print(bah.graph.y)
-    ylist = bah.graph.y.tolist()
-    node_colors = [ylist[i] for i in bah.G.nodes]
+    hyp = Hyperparameters
+    bah = BAShapes(**args, feature_method = 'gaussian')
+    
+    args = {key:value for key, value in hyp.__dict__.items() if not key.startswith('__') and not callable(value)}
 
-    pos = nx.kamada_kawai_layout(bah.G)
-    fig, ax = plt.subplots()
-    nx.draw(bah.G, pos, node_color = node_colors, ax=ax)
-    ax.set_title('Condition: if nhouses_in_2hop > 1 and CC < Avg(CC)')
-    plt.tight_layout()
-    plt.show()
+    bah.visualize()
