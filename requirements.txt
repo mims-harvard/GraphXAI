@@ -1,3 +1,5 @@
+# Structured feature
+scikit-learn>=1.0
 # PGMExplainer
 scipy==1.5.2 or maybe < 1.6
 pgmpy==0.1.11

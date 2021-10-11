@@ -9,18 +9,17 @@ from torch_geometric.data import Data
 
 class BA_Houses:
 
-    def __init__(self, n, m, seed = None):
+    def __init__(self, n, m, seed=None):
         self.n = n
         self.m = m
         self.in_house = set()
         self.seed = seed
 
-    def get_data(self, num_houses, test_size=0.25, null_feature=True):
+    def get_data(self, num_houses, test_size=0.25):
         random.seed(self.seed)
         BAG = self.make_BA_shapes(num_houses)
-        data = self.make_data(BAG, null_feature, test_size)
+        data = self.make_data(BAG, test_size)
         inhouse = self.in_house
-        random.seed()
         return data, list(inhouse)
 
     def make_house(self, G, encode_num=1):
@@ -50,7 +49,7 @@ class BA_Houses:
 
         return G, set(nodes), set(edges)
 
-    def make_data(self, G, null_feature=True, test_size=0.25):
+    def make_data(self, G, test_size=0.25):
         # One hot lookup:
         onehot = {}
         for i in range(self.num_houses + 1):
@@ -64,7 +63,6 @@ class BA_Houses:
         test_mask = torch.full((self.n,), False)
 
         test_set = set(random.sample(list(range(self.n)), int(test_size * self.n)))
-        train_set = set(range(self.n)) - test_set
         for i in range(self.n):
             if i in test_set:
                 test_mask[i] = True
@@ -74,21 +72,7 @@ class BA_Houses:
         y = torch.tensor([1 if i in self.in_house else 0 for i in range(self.n)],
                          dtype=torch.long)
 
-        if null_feature:
-            # Use prior of label distributuion as feature
-            x = 0.5 * torch.ones(self.n, 2)
-            for i in train_set:
-                if i in self.in_house:
-                    x[i, 0] = 0
-                    x[i, 1] = 1
-                else:
-                    x[i, 0] = 1
-                    x[i, 1] = 0
-        else:
-            # Encode with degree as feature
-            x = torch.stack([torch.tensor([G.degree[i]]) for i in range(len(list(G.nodes)))]).float()
-
-        data = Data(x=x, y=y, edge_index=edge_index.t().contiguous(),
+        data = Data(y=y, edge_index=edge_index.t().contiguous(),
                     train_mask = train_mask, test_mask = test_mask)
 
         return data
