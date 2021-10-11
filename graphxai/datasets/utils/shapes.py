@@ -1,4 +1,3 @@
-import torch
 import networkx as nx
 
 def get_house():
