@@ -5,10 +5,11 @@ from graphxai.datasets.ba_houses_with_synth import BAHouses
 
 bah = BAHouses(
     num_hops=2,
-    n=30,
+    n=100,
     m=1,
     num_houses=1,
-    plant_method='local')
+    shape_insert_strategy='local',
+    shape = 'random')
 
 print(bah.shapes_in_graph)
 print(bah.graph.y)

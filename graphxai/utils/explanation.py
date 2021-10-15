@@ -1,3 +1,4 @@
+from networkx.classes import graph
 import torch
 import networkx as nx
 

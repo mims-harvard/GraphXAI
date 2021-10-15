@@ -17,10 +17,10 @@ assert len(sys.argv) == 4, \
 
 class Hyperparameters:
     num_hops = 1
-    n = 5000
+    n = 50
     m = 1
     num_shapes = None
-    plant_method = 'neighborhood upper bound'
+    shape_insert_strategy = 'neighborhood upper bound'
     shape_upper_bound = 1
     labeling_method = 'edge'
 
@@ -39,7 +39,7 @@ bah = BAShapes(**args, feature_method = sys.argv[1])
 #     n=5000,
 #     m=1,
 #     num_houses=None, # Get max number possible
-#     plant_method='neighborhood upper bound',
+#     shape_insert_strategy='neighborhood upper bound',
 #     shape_upper_bound = 1)
 
 # elif sys.argv[1] == 'OneHot':
@@ -48,7 +48,7 @@ bah = BAShapes(**args, feature_method = sys.argv[1])
 #     # n=5000,
 #     # m=1,
 #     # num_houses=None,
-#     # plant_method='neighborhood upper bound',
+#     # shape_insert_strategy='neighborhood upper bound',
 #     # shape_upper_bound = 1)
 
 

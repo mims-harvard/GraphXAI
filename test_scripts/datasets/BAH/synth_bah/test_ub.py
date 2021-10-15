@@ -13,7 +13,7 @@ bah = BAHouses(
     n=100,
     m=1,
     num_houses=10,
-    plant_method='neighborhood upper bound',
+    shape_insert_strategy='neighborhood upper bound',
     shape_upper_bound = 1,
     labeling_rule=label_rule)
 
