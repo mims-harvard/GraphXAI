@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import GuidedBP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
-from graphxai.datasets import BAHouses
+from graphxai.datasets import BAHouses, BAShapes
 
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 
@@ -15,7 +15,14 @@ num_houses = 20
 
 #bah = BA_Houses(n, m)
 #bah = BAHouses(num_hops=2, n=n, m=m, num_houses=num_houses, seed = 1234)
-bah = BAHouses(num_hops=2, n=n, m=m, k=1, seed = None, plant_method = 'local')
+#bah = BAHouses(num_hops=2, num_houses = 1, n=n, m=m, k=1, seed = None, shape_insert_strategy = 'local')
+bah = BAShapes(
+    num_hops = 2,
+    n = 2000,
+    m = 1,
+    num_shapes = None,
+    shape_insert_strategy = 'neighborhood upper bound'
+)
 #data, inhouse = bah.get_data(num_houses, multiple_features=True)
 data = bah.get_graph()
 

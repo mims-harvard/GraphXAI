@@ -111,7 +111,7 @@ class NodeDataset:
         return self.graph, self.explanation
 
 
-class GraphDataset(Dataset):
+class GraphDataset:
     def __init__(self, 
         name,
         download: Optional[bool] = False,

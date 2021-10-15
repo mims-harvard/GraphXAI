@@ -77,7 +77,7 @@ if __name__ == '__main__':
     n=1000,
     m=1,
     num_houses=1,
-    plant_method='local',
+    shape_insert_strategy='local',
     # Change the label rule:
     label_rule = labeling_only_features)
 

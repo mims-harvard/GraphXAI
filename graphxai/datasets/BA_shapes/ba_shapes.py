@@ -5,12 +5,13 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from types import MethodType
 from typing import Optional, Callable
+from functools import partial
 from torch_geometric.utils import k_hop_subgraph
 
 from ..synthetic_dataset import ShapeGraph
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
-from ..utils.shapes import house
+from ..utils.shapes import *
 
 class BAShapes(ShapeGraph):
     '''
@@ -32,12 +33,14 @@ class BAShapes(ShapeGraph):
             the graph. If planting strategy is local, number of shapes
             per num_hops - hop neighborhood of each node.
         shape (str, optional): Type of shape to be inserted into graph.
-            Options are `'house'`, `'flag'`, and `'circle'`. 
+            Options are `'house'`, `'flag'`, `'circle'`, and `'multiple'`. 
+            If `'multiple'`, random shapes are generated to insert into 
+            the graph.
             (:default: :obj:`'house'`)
-        insert_method (str, optional): Type of insertion strategy for 
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
             each motif. Options are `'plant'` or `'staple'`.
             (:default: :obj:`'plant'`)
-        plant_method (str, optional): How to decide where shapes are 
+        shape_insert_strategy (str, optional): How to decide where shapes are 
             planted. 'global' method chooses random nodes from entire 
             graph. 'local' method enforces a lower bound on number of 
             shapes in the (num_hops)-hop neighborhood of each node. 
@@ -68,8 +71,8 @@ class BAShapes(ShapeGraph):
         num_shapes: int, 
         shape: Optional[str] = 'house',
         seed: Optional[int] = None,
-        insert_method: Optional[str] = 'plant',
-        plant_method: Optional[str] = 'global',
+        graph_construct_strategy: Optional[str] = 'plant',
+        shape_insert_strategy: Optional[str] = 'global',
         feature_method: Optional[str] = 'network stats',
         labeling_method: Optional[str] = 'edge and feature',
         **kwargs):
@@ -83,22 +86,27 @@ class BAShapes(ShapeGraph):
         if self.labeling_method == 'feature and edge':
             self.labeling_method = 'edge and feature'
 
-        if plant_method == 'neighborhood upper bound' and num_shapes is None:
+        if shape_insert_strategy == 'neighborhood upper bound' and num_shapes is None:
             num_shapes = n # Set to maximum if num_houses left at None
 
-        if shape.lower() == 'house':
+        insert_shape = None
+        self.shape_name = shape.lower()
+        if self.shape_name == 'house':
             insert_shape = house
-        elif shape.lower() == 'flag':
+        elif self.shape_name == 'flag':
             pass
-        elif shape.lower() == 'circle':
-            pass
+        elif self.shape_name == 'circle':
+            insert_shape = pentagon # 5-member ring
+        elif self.shape_name == 'random':
+            self.get_shape = partial(random_shape, n=3) 
+            # Currenlty only support for 3-member shape bank (n=3)
 
         super().__init__(
             name='BAHouses', 
             num_hops=num_hops,
             num_shapes = num_shapes,
-            insert_method = insert_method,
-            plant_method = plant_method,
+            graph_construct_strategy = graph_construct_strategy,
+            shape_insert_strategy = shape_insert_strategy,
             insertion_shape = insert_shape,
             **kwargs
         )
@@ -158,11 +166,18 @@ class BAShapes(ShapeGraph):
         if self.labeling_method == 'edge':
             # Label based soley on edge structure
             # Based on number of houses in neighborhood
-            def get_label(node_idx):
-                nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
-                    for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-                return torch.tensor(int(num_unique_houses == 1), dtype=torch.long)
+            if self.shape_name == 'random':
+                def get_label(node_idx):
+                    nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
+                    # For now, sum motif id's in k-hop (min is 0 for no motifs)
+                    motif_in_khop = sum(np.unique([self.G.nodes[ni]['motif_id'] for ni in nodes_in_khop]))
+                    return torch.tensor(motif_in_khop, dtype=torch.long)
+            else:
+                def get_label(node_idx):
+                    nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
+                    num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
+                        for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
+                    return torch.tensor(int(num_unique_houses == 1), dtype=torch.long)
 
         elif self.labeling_method == 'feature':
             # Label based solely on node features
@@ -172,7 +187,7 @@ class BAShapes(ShapeGraph):
             x1 = [node_attr[i][1] for i in range(max_node)]
             med1 = np.median(x1)
             def get_label(node_idx):
-                return torch(int(x1[node_idx] > med1), dtype=torch.long)
+                return torch.tensor(int(x1[node_idx] > med1), dtype=torch.long)
 
         elif self.labeling_method == 'edge and feature':
             # Calculate median (as for feature):
@@ -197,9 +212,18 @@ class BAShapes(ShapeGraph):
             return None
         return gen
 
-    def visualize(self):
-        ylist = self.graph.y.tolist()
-        y = [ylist[i] for i in self.G.nodes]
+    def visualize(self, shape_label = False):
+        '''
+        Args:
+            shape_label (bool, optional): If `True`, labels each node according to whether
+            it is a member of an inserted motif or not. If `False`, labels each node 
+            according to its y-value. (:default: :obj:`True`)
+        '''
+        if shape_label:
+            y = [int(self.G.nodes[i]['shape'] > 0) for i in range(self.num_nodes)]
+        else:
+            ylist = self.graph.y.tolist()
+            y = [ylist[i] for i in self.G.nodes]
 
         pos = nx.kamada_kawai_layout(self.G)
         _, ax = plt.subplots()
@@ -214,7 +238,7 @@ if __name__ == '__main__':
         n = 5000
         m = 1
         num_shapes = None
-        plant_method = 'neighborhood upper bound'
+        shape_insert_strategy = 'neighborhood upper bound'
         shape_upper_bound = 1
         labeling_method = 'edge'
 

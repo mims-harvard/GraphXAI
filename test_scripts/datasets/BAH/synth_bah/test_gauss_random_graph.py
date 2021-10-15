@@ -13,7 +13,7 @@ bah = BAHousesRandomGaussFeatures(
     n=50,
     m=1,
     num_houses=None,
-    plant_method='neighborhood upper bound',
+    shape_insert_strategy='neighborhood upper bound',
     shape_upper_bound = 1)
 
 print(bah.shapes_in_graph)
