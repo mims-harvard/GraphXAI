@@ -2,6 +2,7 @@ import torch
 import random
 import numpy as np
 import networkx as nx
+from typing import Optional
 
 from torch_geometric.utils import to_networkx, from_networkx
 from torch_geometric.data import Data
@@ -25,16 +26,19 @@ class ShapeGraph(NodeDataset):
             If planting strategy is global, total number of shapes in
             the graph. If planting strategy is local, number of shapes
             per num_hops - hop neighborhood of each node.
-        insert_method (str, optional): Type of insertion strategy for 
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
             each motif. Options are `'plant'` or `'staple'`.
             (:default: :obj:`'plant'`)
-        plant_method (str, optional): How to decide where shapes are 
-            planted. 'global' method chooses random nodes from entire 
+        shape_insert_strategy (str, optional): How to decide where shapes are 
+            inserted. 'global' method chooses random nodes from entire 
             graph. 'local' method enforces a lower bound on number of 
             shapes in the (num_hops)-hop neighborhood of each node. 
             'neighborhood upper bound' enforces an upper-bound on the 
             number of shapes per num_hops-hop neighborhood.
             (:default: :obj:`'global'`)
+        insert_shape (nx.Graph, optional): Shape to insert into graph. If `None`,
+            `self.get_shape` function must be defined, will be called upon shape
+            insertion. (:default: :obj:`None`)
         kwargs: Additional arguments
             shape_upper_bound (int, Optional): Number of maximum shapes
                 to add per num_hops-hop neighborhood in the 'neighborhood
@@ -49,8 +53,9 @@ class ShapeGraph(NodeDataset):
             name: str, 
             num_hops: int,
             num_shapes: int,
-            insert_method: str = 'plant',
-            plant_method: str = 'global',
+            graph_construct_strategy: Optional[str] = 'plant',
+            shape_insert_strategy: Optional[str] = 'global',
+            insert_shape: Optional[nx.Graph] = None,
             **kwargs
         ):
         super().__init__(name = name, num_hops = num_hops)
@@ -58,12 +63,13 @@ class ShapeGraph(NodeDataset):
         self.in_shape = []
         self.graph = None
         self.num_shapes = num_shapes
-        self.plant_method = plant_method
-        self.insert_method = insert_method
+        self.shape_insert_strategy = shape_insert_strategy
+        self.graph_construct_strategy = graph_construct_strategy
 
-        self.insertion_shape = kwargs['insertion_shape'] if 'insertion_shape' in kwargs else None
+        #self.insertion_shape = kwargs['insertion_shape'] if 'insertion_shape' in kwargs else None
+        self.insertion_shape = insert_shape
 
-        if self.plant_method == 'neighborhood upper bound':
+        if self.shape_insert_strategy == 'neighborhood upper bound':
             assert 'shape_upper_bound' in kwargs
             self.upper_bound = kwargs['shape_upper_bound']
 
@@ -90,23 +96,33 @@ class ShapeGraph(NodeDataset):
         '''
 
         nx.set_node_attributes(self.G, 0, 'shape')
+        nx.set_node_attributes(self.G, 0, 'motif_id')
 
-        shape_insertion = self.staple if self.insert_method == 'staple' else self.plant
+        shape_insertion = self.staple if self.graph_construct_strategy == 'staple' else self.plant
 
         in_shape = set()
+        shape_keys = {}
 
-        if self.plant_method == 'local':
+        if self.shape_insert_strategy == 'local':
             beginning_nodes = list(self.G.nodes)
             running_shape_code = 1
             for n in beginning_nodes:
                 # Get shape from generator or static insert
-                for _ in range(self.num_shapes):
-                    shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
+                for i in range(self.num_shapes):
+                    if self.insertion_shape is None:
+                        shape, motif_id = self.get_shape()
+                        #shape_keys[i] = shape_key # Add shape key to dict
+                    else:
+                        shape = self.insertion_shape.copy()
+                        motif_id = 0 # Only have one shape
+
+                    #shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
                     in_shape_new = shape_insertion( 
                             in_shape = in_shape.copy(), 
                             shape = shape, 
                             shape_code = running_shape_code,
-                            node_idx = n
+                            node_idx = n,
+                            motif_id = motif_id
                         )
 
                     if len(in_shape_new) == len(in_shape):
@@ -116,24 +132,39 @@ class ShapeGraph(NodeDataset):
                     running_shape_code += 1
                     in_shape = in_shape_new
 
-        elif self.plant_method == 'global':
+        elif self.shape_insert_strategy == 'global':
             for i in range(self.num_shapes):
-                shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
+                if self.insertion_shape is None:
+                    shape, motif_id = self.get_shape()
+                    #shape_keys[i] = shape_key # Add shape key to dict
+                else:
+                    shape = self.insertion_shape.copy()
+                    motif_id = 0 # Only have one shape
+
+                #shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
                 in_shape = shape_insertion( 
                         in_shape = in_shape, 
                         shape = shape, 
-                        shape_code = i + 1
+                        shape_code = i + 1,
+                        motif_id = motif_id
                     )
                 running_shape_code = i + 1
 
-        elif self.plant_method == 'neighborhood upper bound':
+        elif self.shape_insert_strategy == 'neighborhood upper bound':
             nx.set_node_attributes(self.G, 0, 'shapes_nearby')
             for i in range(self.num_shapes):
-                shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
+                if self.insertion_shape is None:
+                    shape, motif_id = self.get_shape()
+                    #shape_keys[i] = shape_key # Add shape key to dict
+                else:
+                    shape = self.insertion_shape.copy()
+                    motif_id = 0 # Only have one shape
+                #shape = self.insertion_shape.copy() if self.insertion_shape is not None else self.get_shape()
                 in_shape = shape_insertion( 
                         in_shape = in_shape, 
                         shape = shape, 
-                        shape_code = i + 1
+                        shape_code = i + 1,
+                        motif_id = motif_id
                     )
                 if in_shape is None: # Returned after we've inserted all the shapes needed
                     break
@@ -168,7 +199,8 @@ class ShapeGraph(NodeDataset):
             in_shape: set,
             shape: nx.Graph, 
             shape_code: int,
-            node_idx: int = None
+            node_idx: int = None,
+            motif_id: int = None
         ):
         '''
         Plants a shape given that shape's nodes and edges
@@ -178,14 +210,16 @@ class ShapeGraph(NodeDataset):
             shape (nx.Graph): Shape to plant in graph
             shape_code (int): Code by which to associate the shape
             node_idx (int): Node index for which to plant the shape around
+            motif_id (int, optional): Unique identifier for type of shape. Will
+                be added as a node attribute to the graph.
         '''
 
-        if self.plant_method == 'local' and node_idx is None:
-            raise AttributeError("node_idx argument must be an int if plant_method == 'local'")
+        if self.shape_insert_strategy == 'local' and node_idx is None:
+            raise AttributeError("node_idx argument must be an int if shape_insert_strategy == 'local'")
 
         shape = shape.copy() # Ensure no corruption across function calls
 
-        if self.plant_method == 'neighborhood upper bound':
+        if self.shape_insert_strategy == 'neighborhood upper bound':
             pivot_set = set(self.G.nodes) - in_shape
             number_nodes = len(pivot_set)
             for _ in range(number_nodes):
@@ -229,6 +263,7 @@ class ShapeGraph(NodeDataset):
 
         for n in new_shape.nodes:
             self.G.nodes[n]['shape'] = shape_code # Assign code for shape
+            self.G.nodes[n]['motif_id'] = motif_id
 
         return in_shape
         
@@ -253,7 +288,7 @@ class ShapeGraph(NodeDataset):
                 'neighborhood upper bound' planting method.
         '''
 
-        if self.plant_method == 'local':
+        if self.shape_insert_strategy == 'local':
             nodes_in_khop = set(khop_subgraph_nx(node_idx, self.num_hops, self.G))
             #khop_in_shape = nodes_in_khop.intersection(in_shape)
             # Choose pivot node from all those not already in a shape:
@@ -261,12 +296,12 @@ class ShapeGraph(NodeDataset):
             pivot = random.choice(not_in_khop) \
                 if len(nodes_in_khop.intersection(in_shape)) <= self.num_shapes else None
 
-        elif self.plant_method == 'global':
+        elif self.shape_insert_strategy == 'global':
             pivot = random.choice(list(self.G.nodes))
             while pivot in in_shape:
                 pivot = random.choice(list(self.G.nodes))
 
-        elif self.plant_method == 'neighborhood upper bound':
+        elif self.shape_insert_strategy == 'neighborhood upper bound':
             pivot = random.choice(list(sample_nodes))
 
         return pivot

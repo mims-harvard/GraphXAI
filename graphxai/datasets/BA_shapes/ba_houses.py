@@ -24,10 +24,10 @@ class BAHouses(ShapeGraph):
             If planting strategy is global, total number of shapes in
             the graph. If planting strategy is local, number of shapes
             per num_hops - hop neighborhood of each node.
-        insert_method (str, optional): Type of insertion strategy for 
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
             each motif. Options are `'plant'` or `'staple'`.
             (:default: :obj:`'plant'`)
-        plant_method (str, optional): How to decide where shapes are 
+        shape_insert_strategy (str, optional): How to decide where shapes are 
             planted. 'global' method chooses random nodes from entire 
             graph. 'local' method enforces a lower bound on number of 
             shapes in the (num_hops)-hop neighborhood of each node. 
@@ -46,8 +46,8 @@ class BAHouses(ShapeGraph):
         m: int, 
         num_houses: int, 
         seed: Optional[int] = None,
-        insert_method: Optional[str] = 'plant',
-        plant_method: Optional[str] = 'global',
+        graph_construct_strategy: Optional[str] = 'plant',
+        shape_insert_strategy: Optional[str] = 'global',
         labeling_rule: Optional[Callable[[object], Callable[[int], torch.Tensor]]] = None,
         **kwargs):
 
@@ -58,15 +58,15 @@ class BAHouses(ShapeGraph):
         self.labeling_rule = MethodType(labeling_rule, self) \
             if labeling_rule is not None else self.labeling_rule
 
-        if plant_method == 'neighborhood upper bound' and num_houses is None:
+        if shape_insert_strategy == 'neighborhood upper bound' and num_houses is None:
             num_houses = n # Set to maximum if num_houses left at None
 
         super().__init__(
             name='BAHouses', 
             num_hops=num_hops,
             num_shapes = num_houses,
-            insert_method = insert_method,
-            plant_method = plant_method,
+            graph_construct_strategy = graph_construct_strategy,
+            shape_insert_strategy = shape_insert_strategy,
             insertion_shape = house,
             **kwargs
         )
@@ -120,14 +120,14 @@ class BAHousesRandomGaussFeatures(BAHouses):
             nodes in graph. If using local planting method, corresponds to the 
             starting number of nodes in graph.
         m (int): Number of edges per node in graph.
-        num_houses (int): If plant_method is 'global' or 'neighborhood upper bound',
-            this is the number of houses to add in entire graph. If plant_method is
+        num_houses (int): If shape_insert_strategy is 'global' or 'neighborhood upper bound',
+            this is the number of houses to add in entire graph. If shape_insert_strategy is
             'local', then this is the number of houses to add per neighborhood.
         seed (int, optional): Seed for random generation of graph. (:default: `None`)
-        insert_method (str, optional): Type of insertion strategy for 
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
             each house. Options are `'plant'` or `'staple'`.
             (:default: :obj:`'plant'`)
-        plant_method (str, optional): How to decide where houses are 
+        shape_insert_strategy (str, optional): How to decide where houses are 
             planted. 'global' method chooses random nodes from entire 
             graph. 'local' method enforces a lower bound on number of 
             houses in the (num_hops)-hop neighborhood of each node. 
@@ -145,8 +145,8 @@ class BAHousesRandomGaussFeatures(BAHouses):
         m: int, 
         num_houses: int, 
         seed: Optional[int] = None,
-        insert_method: Optional[str] = 'plant',
-        plant_method: Optional[str] = 'global',
+        graph_construct_strategy: Optional[str] = 'plant',
+        shape_insert_strategy: Optional[str] = 'global',
         **kwargs):
 
         super().__init__(
@@ -155,8 +155,8 @@ class BAHousesRandomGaussFeatures(BAHouses):
             m = m,
             num_houses = num_houses,
             seed = seed,
-            insert_method = insert_method,
-            plant_method = plant_method,
+            graph_construct_strategy = graph_construct_strategy,
+            shape_insert_strategy = shape_insert_strategy,
             **kwargs
         )
 
@@ -221,14 +221,14 @@ class BAHousesRandomOneHotFeatures(BAHouses):
             nodes in graph. If using local planting method, corresponds to the 
             starting number of nodes in graph.
         m (int): Number of edges per node in graph.
-        num_houses (int): If plant_method is 'global' or 'neighborhood upper bound',
-            this is the number of houses to add in entire graph. If plant_method is
+        num_houses (int): If shape_insert_strategy is 'global' or 'neighborhood upper bound',
+            this is the number of houses to add in entire graph. If shape_insert_strategy is
             'local', then this is the number of houses to add per neighborhood.
         seed (int, optional): Seed for random generation of graph. (:default: `None`)
-        insert_method (str, optional): Type of insertion strategy for 
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
             each house. Options are `'plant'` or `'staple'`.
             (:default: :obj:`'plant'`)
-        plant_method (str, optional): How to decide where houses are 
+        shape_insert_strategy (str, optional): How to decide where houses are 
             planted. 'global' method chooses random nodes from entire 
             graph. 'local' method enforces a lower bound on number of 
             houses in the (num_hops)-hop neighborhood of each node. 
@@ -245,8 +245,8 @@ class BAHousesRandomOneHotFeatures(BAHouses):
         m: int, 
         num_houses: int, 
         seed: Optional[int] = None,
-        insert_method: Optional[str] = 'plant',
-        plant_method: Optional[str] = 'global',
+        graph_construct_strategy: Optional[str] = 'plant',
+        shape_insert_strategy: Optional[str] = 'global',
         **kwargs):
 
         super().__init__(
@@ -255,8 +255,8 @@ class BAHousesRandomOneHotFeatures(BAHouses):
             m = m,
             num_houses = num_houses,
             seed = seed,
-            insert_method = insert_method,
-            plant_method = plant_method,
+            graph_construct_strategy = graph_construct_strategy,
+            shape_insert_strategy = shape_insert_strategy,
             **kwargs
         )
 
@@ -319,7 +319,7 @@ if __name__ == '__main__':
         n=30,
         m=1,
         num_houses=1,
-        plant_method='local')
+        shape_insert_strategy='local')
 
     print(bah.shapes_in_graph)
     print(bah.graph.y)
