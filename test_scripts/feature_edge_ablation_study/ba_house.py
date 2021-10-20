@@ -29,7 +29,7 @@ print(model)
 
 node_idx = int(random.choice(inhouse))
 
-def experiment(data):
+def experiment(data, plot_train=False):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     criterion = torch.nn.CrossEntropyLoss()
@@ -39,11 +39,11 @@ def experiment(data):
     for epoch in range(1, 201):
         loss = train(model, optimizer, criterion, data, losses)
         acc = test(model, data, test_accs)
-    plt.plot(losses, label='training loss')
-    plt.plot(test_accs, label='test acc')
-    plt.legend()
-    plt.show()
-
+    if plot_train:
+        plt.plot(losses, label='training loss')
+        plt.plot(test_accs, label='test acc')
+        plt.legend()
+        plt.show()
 
     def get_exp(explainer, node_idx, data):
         exp, khop_info = explainer.get_explanation_node(
@@ -51,8 +51,7 @@ def experiment(data):
             num_hops=2, explain_feature=True)
         return exp['feature_imp'], exp['edge_imp'], khop_info[0], khop_info[1]
 
-
-    gnnexpr = GNNExplainer(model, seed=seed)
+    gnnexpr = GNNExplainer(model)
     feature_imp, edge_imp, subset, sub_edge_index = get_exp(gnnexpr, node_idx, data)
 
     print(f'Feature mask learned: {feature_imp}')
@@ -66,7 +65,7 @@ def experiment(data):
         if idx == node_idx:
             sub_node_idx = sub_idx
     visualize_edge_explanation(sub_edge_index, num_nodes=len(subset),
-                            node_idx=sub_node_idx, edge_imp=edge_imp)
+                               node_idx=sub_node_idx, edge_imp=edge_imp)
 
     # Compare with ground truth unique explanation
     # Locate which house
