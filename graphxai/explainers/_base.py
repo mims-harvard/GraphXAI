@@ -49,7 +49,8 @@ class _BaseExplainer:
         """
         Get the embedding.
         """
-        return self._get_activation(self.emb_layer, x, edge_index, forward_kwargs)
+        emb = self._get_activation(self.emb_layer, x, edge_index, forward_kwargs)
+        return emb
 
     def _set_masks(self, x: torch.Tensor, edge_index: torch.Tensor,
                    edge_mask: torch.Tensor = None, explain_feature: bool = False):

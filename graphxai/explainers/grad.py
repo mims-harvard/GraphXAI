@@ -26,7 +26,7 @@ class GradExplainer(_BaseExplainer):
                              edge_index: torch.Tensor,
                              label: Optional[torch.Tensor] = None,
                              num_hops: Optional[int] = None,
-                             forward_kwargs: dict = {}):
+                             forward_kwargs: dict = {}, **_):
         """
         Explain a node prediction.
 
