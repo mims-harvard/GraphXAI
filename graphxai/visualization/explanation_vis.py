@@ -54,10 +54,14 @@ def visualize_node_explanation(
 
     subgraph_nodes = exp.enc_subgraph.nodes
 
-    G, node_map = exp.enc_subgraph_to_networkx(to_undirected=True, remove_self_loops=True, get_map=True)
+    #G, node_map = exp.enc_subgraph_to_networkx(to_undirected=True, remove_self_loops=True, get_map=True)
+    G, node_map = exp.enc_subgraph_to_networkx(get_map=True)
     rev_map = {v:k for k, v in node_map.items()}
 
     node_idx = node_map[exp.node_idx]
+    print('In visualization', node_idx)
+
+    print(G.nodes)
 
     if connected: # Enforces that subgraph is connected
         Gcc = max(nx.connected_components(G), key=len)

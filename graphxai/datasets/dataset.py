@@ -35,7 +35,7 @@ class NodeDataset:
         self.num_hops = num_hops
 
         #self.graph = WholeGraph() # Set up whole_graph with all None
-        self.explanations = []
+        #self.explanations = []
 
     def get_graph(self, 
         use_fixed_split = True, 

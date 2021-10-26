@@ -103,12 +103,16 @@ def train(model, optimizer,
     optimizer.step()  # Update parameters based on gradients.
     return loss
     
-def test(model, data):
+def test(model, data, num_classes = 2):
     model.eval()
     out = model(data.x, data.edge_index)
     pred = out.argmax(dim=1)  # Use the class with highest probability.
-    test_score = f1_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+
     acc = accuracy_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
-    precision = precision_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
-    recall = recall_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
-    return test_score, acc, precision, recall
+    if num_classes == 2:
+        test_score = f1_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+        precision = precision_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+        recall = recall_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+        return test_score, acc, precision, recall
+    
+    return acc

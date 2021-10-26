@@ -1,8 +1,12 @@
 from networkx.classes import graph
 import torch
 import networkx as nx
+import matplotlib.pyplot as plt
 
-from torch_geometric.utils import from_networkx
+from torch_geometric.utils import from_networkx, k_hop_subgraph
+from torch_geometric.data import Data
+
+import graphxai.utils as gxai_utils
 
 from typing import Optional
 
@@ -31,44 +35,11 @@ class EnclosingSubgraph:
         self.edge_mask = edge_mask
         self.directed = directed
 
-    def to_networkx_conv(self, 
-        to_undirected=False, 
-        remove_self_loops: Optional[bool]=False,
-        get_map: Optional[bool] = False):
-
-        if to_undirected:
-            G = nx.Graph()
-        else:
-            G = nx.DiGraph()
-
-        node_list = sorted(torch.unique(self.edge_index).tolist())
-        map_norm =  {node_list[i]:i for i in range(len(node_list))}
-
-        G.add_nodes_from([map_norm[n] for n in node_list])
-
-        # Assign values to each node:
-        # Skipping for now
-
-        for i, (u, v) in enumerate(self.edge_index.t().tolist()):
-            u = map_norm[u]
-            v = map_norm[v]
-
-            if to_undirected and v > u:
-                continue
-
-            if remove_self_loops and u == v:
-                continue
-
-            G.add_edge(u, v)
-
-            # No edge_attr additions added now
-            # for key in edge_attrs if edge_attrs is not None else []:
-            #     G[u][v][key] = values[key][i]
-
-        if get_map:
-            return G, map_norm
-
-        return G
+    def draw(self, show = False):
+        G = gxai_utils.to_networkx_conv(Data(edge_index=self.edge_index), to_undirected=True)
+        nx.draw(G)
+        if show:
+            plt.show()
 
 class WholeGraph:
 
@@ -84,6 +55,9 @@ class WholeGraph:
         self.edge_index = edge_index
         self.y = y
         self.directed = directed
+
+    def get_Data(self):
+        return Data(x=self.x, edge_index=self.edge_index, y=self.y)
 
     def to_networkx_conv(self, 
         to_undirected=False, 
@@ -135,6 +109,11 @@ class Explanation:
         edge_imp (torch.Tensor): Edge importance scores
             - Size: (e,) with e = number of edges in subgraph or graph
         node_idx (int): Index for node explained by this instance
+        node_reference (tensor of ints): Tensor matching length of `node_reference` 
+            which maps each index onto original node in the graph
+        edge_reference (tensor of ints): Tensor maching lenght of `edge_reference`
+            which maps each index onto original edge in the graph's edge
+            index
         graph (torch_geometric.data.Data): Original graph on which explanation
             was computed
             - Optional member, can be left None if graph is too large
@@ -143,19 +122,27 @@ class Explanation:
             - Corresponds to nodes and edges comprising computational graph around node
     '''
     def __init__(self,
-        feature_imp = None,
-        node_imp = None,
-        edge_imp = None,
-        node_idx = None):
+        feature_imp: Optional[torch.tensor] = None,
+        node_imp: Optional[torch.tensor] = None,
+        edge_imp: Optional[torch.tensor] = None,
+        node_idx: Optional[torch.tensor] = None,
+        node_reference: Optional[torch.tensor] = None,
+        edge_reference: Optional[torch.tensor] = None,
+        graph = None):
         # Establish basic properties
         self.feature_imp = feature_imp
         self.node_imp = node_imp
         self.edge_imp = edge_imp
 
-        self.node_idx = node_idx # Set this for node-level prediction explanations
-        self.graph = None
+        # Only established if passed explicitly in init, not overwritten by enclosing subgraph 
+        #   unless explicitly specified
+        self.node_reference = node_reference
+        self.edge_reference = edge_reference
 
-    def set_enclosing_subgraph(self, subgraph):
+        self.node_idx = node_idx # Set this for node-level prediction explanations
+        self.graph = graph
+
+    def set_enclosing_subgraph(self, subgraph, set_references = False):
         '''
         Args:
             k_hop_tuple (tuple, EnclosingSubgraph, or nx.Graph): Return value from torch_geometric.utils.k_hop_subgraph
@@ -175,6 +162,10 @@ class Explanation:
             )
         else: # Assumed to be a tuple:
             self.enc_subgraph = EnclosingSubgraph(*subgraph)
+
+        if set_references:
+            self.node_reference = self.enc_subgraph.nodes
+            self.edge_reference = self.enc_subgraph.edge_index
 
     def apply_subgraph_mask(self, 
         mask_node: Optional[bool] = False, 
@@ -322,3 +313,37 @@ class Explanation:
             return G, map_norm
 
         return G
+
+    def context_draw(self, 
+            num_hops,
+            additional_hops = 1, 
+            heat_by_prescence = True, 
+            heat_by_exp = False, 
+            show=False
+        ):
+        '''
+        Shows the explanation in context of a few more hops out than its k-hop neighborhood
+        Args:
+        '''
+
+        wholeG = gxai_utils.to_networkx_conv(self.graph.get_Data(), to_undirected=True)
+        kadd_hop_neighborhood = gxai_utils.khop_subgraph_nx(
+                G = wholeG, 
+                num_hops= num_hops + additional_hops, 
+                node_idx=self.node_idx
+            )
+
+        subG = wholeG.subgraph(kadd_hop_neighborhood)
+
+        # Identify highlighting nodes:
+        exp_nodes = self.enc_subgraph.nodes
+
+        if heat_by_prescence:
+            node_c = [int(i in exp_nodes) for i in subG.nodes]
+        elif heat_by_exp:
+            raise NotImplementedError()
+
+        pos = nx.kamada_kawai_layout(subG)
+        nx.draw(subG, node_color = node_c)
+        if show:
+            plt.show()

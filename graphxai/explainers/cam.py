@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 from typing import Tuple
 from torch_geometric.utils.num_nodes import maybe_num_nodes
-from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.utils import k_hop_subgraph, to_undirected
+from torch_geometric.nn import GCNConv, GINConv
 
 import numpy as np
 
@@ -41,7 +42,8 @@ class CAM(_BaseDecomposition):
                 node_idx: int, 
                 edge_index: torch.Tensor, 
                 label: int = None,  
-                forward_kwargs: dict = {}
+                forward_kwargs: dict = {},
+                directed = False
             ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         '''
         Explain one node prediction by the model
@@ -72,6 +74,9 @@ class CAM(_BaseDecomposition):
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved 
         '''
+        if not directed:
+            edge_index = to_undirected(edge_index)
+
         label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item()) if label is None else label
 
         # Perform walk:
@@ -168,9 +173,17 @@ class CAM(_BaseDecomposition):
         TODO: Fix activation function assumption
         '''
         last_conv_layer = walk_steps[-1]
+        print(last_conv_layer)
 
-        weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
-        F_l_n = F.relu(last_conv_layer['output'][node_idx,:]).detach()
+        if isinstance(last_conv_layer['module'][0], GCNConv):
+            print(type(last_conv_layer['module'][0]))
+            #print(dir(last_conv_layer['module'][0]))
+            print(last_conv_layer['module'][0].lin.weight)
+            weight_vec = last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
+        elif isinstance(last_conv_layer['module'][0], torch.nn.Linear):
+            weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
+
+        F_l_n = F.relu(last_conv_layer['input'][node_idx,:]).detach()
 
         L_cam_n = F.relu(torch.matmul(weight_vec, F_l_n))
 
@@ -202,7 +215,7 @@ class Grad_CAM(_BaseDecomposition):
             forward_kwargs: dict = {}, 
             average_variant: bool = True, 
             layer: int = 0
-        ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        ) -> Explanation:
         '''
         Explain a node in the given graph
         Args:
