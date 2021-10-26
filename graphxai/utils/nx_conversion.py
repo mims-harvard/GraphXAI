@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import networkx as nx
 
+import torch_geometric.utils as pyg_utils
+
 def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False,
                 remove_self_loops=False, get_map = False):
     r"""Converts a :class:`torch_geometric.data.Data` instance to a
@@ -26,12 +28,13 @@ def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False
     """
     if to_undirected:
         G = nx.Graph()
+        data.edge_index = pyg_utils.to_undirected(data.edge_index)
     else:
         G = nx.DiGraph()
 
     node_list = sorted(torch.unique(data.edge_index).tolist())
     map_norm = {node_list[i]:i for i in range(len(node_list))}
-    #rev_map_norm = {v:k for k, v in map_norm.items()}
+    rev_map_norm = {v:k for k, v in map_norm.items()}
     G.add_nodes_from([map_norm[n] for n in node_list])
 
     values = {}
@@ -64,6 +67,7 @@ def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False
     if get_map:
         return G, map_norm
     else:
+        G = nx.relabel_nodes(G, mapping=rev_map_norm)
         return G
 
 def mask_graph(edge_index, node_mask = None, edge_mask = None):

@@ -12,7 +12,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph, add_self_loops
 from math import sqrt
 
-from . import to_networkx_conv
+from graphxai.utils import to_networkx_conv
 
 def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None, 
             edge_weights: list = None,
@@ -99,7 +99,8 @@ def visualize_mol_explanation(data: torch.Tensor, node_weights: list = None,
 def get_node_weights_subgraph(node_weights, subgraph_nodes):
     if isinstance(node_weights, torch.Tensor):
         #node_weights_new = [node_weights[n.item()] for n in subgraph_nodes]
-        node_weights_new = [node_weights[n] for n in subgraph_nodes]
+        #node_weights_new = [node_weights[n] for n in subgraph_nodes]
+        node_weights_new = [node_weights[i] for i in range(len(subgraph_nodes))]
     else:
         node_weights_new = [node_weights[n] for n in subgraph_nodes]
 
@@ -158,11 +159,13 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
     subgraph_nodes = torch.unique(edge_index)
 
     data = Data(x=subgraph_nodes.reshape(-1, 1), edge_index=edge_index)
-    #G = to_networkx(data, to_undirected=True, remove_self_loops=True)
-    G, node_map = to_networkx_conv(data, to_undirected=True, remove_self_loops=True, get_map = True)
-    rev_map = {v:k for k, v in node_map.items()}
+    G1 = to_networkx(data, to_undirected=True, remove_self_loops=True)
+    # G, node_map = to_networkx_conv(data, to_undirected=True, remove_self_loops=True, get_map = True)
+    G = to_networkx_conv(data, to_undirected=True, remove_self_loops=True, get_map = False)
+    print('G.nodes', G.nodes)
+    # rev_map = {v:k for k, v in node_map.items()}
 
-    node_idx = node_map[node_idx] if node_idx is not None else None
+    # node_idx = node_map[node_idx] if node_idx is not None else None
 
     if connected:
         Gcc = max(nx.connected_components(G), key=len)
@@ -197,7 +200,7 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
                 node_size = 400, cmap = cmap,
                 edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False)#, with_labels = True)
-            nx.draw_networkx_labels(G, pos, labels = {n:rev_map[n] for n in G.nodes})
+            nx.draw_networkx_labels(G, pos) #labels = {n:rev_map[n] for n in G.nodes})
 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 
@@ -222,7 +225,7 @@ def visualize_subgraph_explanation(edge_index: torch.Tensor, node_weights: list 
                 node_size = 400, cmap = cmap,
                 edge_color = edge_weights_subgraph, edge_cmap = edge_cmap,
                 arrows = False, ax = ax)#, with_labels = True)
-            nx.draw_networkx_labels(G, pos, labels = {n:rev_map[n] for n in G.nodes}, ax = ax)
+            nx.draw_networkx_labels(G, pos) #labels = {n:rev_map[n] for n in G.nodes}, ax = ax)
 
         if node_idx is not None:
             nx.draw(G.subgraph(node_idx), pos, node_color = 'yellow', 

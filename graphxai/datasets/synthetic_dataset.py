@@ -56,6 +56,7 @@ class ShapeGraph(NodeDataset):
             graph_construct_strategy: Optional[str] = 'plant',
             shape_insert_strategy: Optional[str] = 'global',
             insert_shape: Optional[nx.Graph] = None,
+            y_before_x: Optional[bool] = False,
             **kwargs
         ):
         super().__init__(name = name, num_hops = num_hops)
@@ -65,6 +66,7 @@ class ShapeGraph(NodeDataset):
         self.num_shapes = num_shapes
         self.shape_insert_strategy = shape_insert_strategy
         self.graph_construct_strategy = graph_construct_strategy
+        self.y_before_x = y_before_x
 
         #self.insertion_shape = kwargs['insertion_shape'] if 'insertion_shape' in kwargs else None
         self.insertion_shape = insert_shape
@@ -75,8 +77,17 @@ class ShapeGraph(NodeDataset):
 
         self.init_graph()
         self.generate_shape_graph()
-        self.explanations = []
         self.num_nodes = len(list(self.G.nodes)) # Number of nodes in graph
+
+        # Set random splits for size n graph:
+        range_set = list(range(self.num_nodes))
+        train_nodes = random.sample(range_set, int(self.num_nodes * 0.7))
+        test_nodes  = random.sample(range_set, int(self.num_nodes * 0.25))
+        valid_nodes = random.sample(range_set, int(self.num_nodes * 0.05))
+
+        self.fixed_train_mask = torch.tensor([s in train_nodes for s in range_set], dtype=torch.bool)
+        self.fixed_test_mask = torch.tensor([s in test_nodes for s in range_set], dtype=torch.bool)
+        self.fixed_valid_mask = torch.tensor([s in valid_nodes for s in range_set], dtype=torch.bool)
         
     def init_graph(self):
         '''
@@ -95,8 +106,9 @@ class ShapeGraph(NodeDataset):
             data (torch_geometric.Data): Entire generated graph.
         '''
 
-        nx.set_node_attributes(self.G, 0, 'shape')
-        nx.set_node_attributes(self.G, 0, 'motif_id')
+        if self.shape_insert_strategy != 'bound_12':
+            nx.set_node_attributes(self.G, 0, 'shape')
+            nx.set_node_attributes(self.G, 0, 'motif_id')
 
         shape_insertion = self.staple if self.graph_construct_strategy == 'staple' else self.plant
 
@@ -155,7 +167,6 @@ class ShapeGraph(NodeDataset):
             for i in range(self.num_shapes):
                 if self.insertion_shape is None:
                     shape, motif_id = self.get_shape()
-                    #shape_keys[i] = shape_key # Add shape key to dict
                 else:
                     shape = self.insertion_shape.copy()
                     motif_id = 0 # Only have one shape
@@ -170,7 +181,15 @@ class ShapeGraph(NodeDataset):
                     break
                 running_shape_code = i + 1
 
-        self.shapes_in_graph = running_shape_code #Can later get number of shapes in the whole graph
+        # If using bound_12, skip building graph - it's already built by upstream class
+
+        if self.shape_insert_strategy != 'bound_12':
+            self.shapes_in_graph = running_shape_code #Can later get number of shapes in the whole graph
+
+        if self.y_before_x:
+            gen_labels = self.labeling_rule()
+            y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
+            self.yvals = y
 
         gen_features = self.feature_generator()
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
@@ -178,8 +197,9 @@ class ShapeGraph(NodeDataset):
         for i in self.G.nodes:
             self.G.nodes[i]['x'] = gen_features(i)
 
-        gen_labels = self.labeling_rule()
-        y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
+        if not self.y_before_x:
+            gen_labels = self.labeling_rule()
+            y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
 
         edge_index = torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous()
 
@@ -193,7 +213,9 @@ class ShapeGraph(NodeDataset):
         # Generate explanations
         exp_gen = self.explanation_generator()
 
+        print('num nodes (in class):', len(self.G.nodes))
         self.explanations = [exp_gen(n) for n in self.G.nodes]
+        print('Inner-class', len(self.explanations))
 
     def plant(self, 
             in_shape: set,
@@ -331,7 +353,7 @@ class ShapeGraph(NodeDataset):
             self.G.nodes[n]['shapes_nearby'] += 1
 
     def get_shape(self):
-        # p we drop edges
+        '''Method for getting a shape (potentially random)'''
         raise NotImplementedError()
 
     def feature_generator(self):
