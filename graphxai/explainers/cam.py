@@ -173,12 +173,8 @@ class CAM(_BaseDecomposition):
         TODO: Fix activation function assumption
         '''
         last_conv_layer = walk_steps[-1]
-        print(last_conv_layer)
 
         if isinstance(last_conv_layer['module'][0], GCNConv):
-            print(type(last_conv_layer['module'][0]))
-            #print(dir(last_conv_layer['module'][0]))
-            print(last_conv_layer['module'][0].lin.weight)
             weight_vec = last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
         elif isinstance(last_conv_layer['module'][0], torch.nn.Linear):
             weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
@@ -390,7 +386,13 @@ class Grad_CAM(_BaseDecomposition):
 
     def __grad_by_layer(self, layer):
         # Index 0 of parameters to avoid calculating gradients for biases
-        return list(list(self.model.children())[layer].parameters())[0].grad.mean(dim=0)
+        module_at_layer = list(self.model.children())[layer]
+        if isinstance(module_at_layer, GCNConv):
+            grad = module_at_layer.lin.weight.grad
+        elif isinstance(module_at_layer, GINConv):
+            grad = module_at_layer.weight.grad
+
+        return grad.mean(dim=1)
 
     def __get_gCAM_layer(self, walk_steps, layer, node_idx = None, gradients = None):
         # Gets Grad CAM for one layer
