@@ -163,9 +163,9 @@ class Explanation:
         else: # Assumed to be a tuple:
             self.enc_subgraph = EnclosingSubgraph(*subgraph)
 
-        #if set_references or self.node_reference is None:
-        self.node_reference = {self.enc_subgraph.nodes[i].item():i for i in range(self.enc_subgraph.nodes.shape[0])}
-        print(self.node_reference)
+        #if set_references or 
+        if self.node_reference is None:
+            self.node_reference = gxai_utils.make_node_ref(self.enc_subgraph.nodes)
             #self.edge_reference = self.enc_subgraph.edge_index
 
     def apply_subgraph_mask(self, 

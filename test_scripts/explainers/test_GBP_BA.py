@@ -13,23 +13,32 @@ n = 300
 m = 2
 num_houses = 20
 
-#bah = BA_Houses(n, m)
-#bah = BAHouses(num_hops=2, n=n, m=m, num_houses=num_houses, seed = 1234)
-#bah = BAHouses(num_hops=2, num_houses = 1, n=n, m=m, k=1, seed = None, shape_insert_strategy = 'local')
-bah = BAShapes(
-    num_hops = 2,
-    n = 2000,
-    m = 1,
-    num_shapes = None,
-    shape_insert_strategy = 'neighborhood upper bound'
-)
+hyp = {
+    'num_hops': 1,
+    'n': n,
+    'm': m,
+    'num_shapes': num_houses,
+    'shape_insert_strategy': 'bound_12',
+    'labeling_method': 'edge',
+    'shape_upper_bound': 1,
+    'feature_method': 'gaussian_lv'
+}
+
+# bah = BAShapes(
+#     num_hops = 2,
+#     n = 2000,
+#     m = 1,
+#     num_shapes = None,
+#     shape_insert_strategy = 'neighborhood upper bound'
+# )
+bah = BAShapes(**hyp)
 #data, inhouse = bah.get_data(num_houses, multiple_features=True)
-data = bah.get_graph()
+data = bah.get_graph(use_fixed_split=True)
 
 # Get nodes in the house:
-inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
+inhouse = (data.y == 0).nonzero(as_tuple=True)[0]
 
-model = GCN(64, input_feat = 3, classes = 2)
+model = GCN(64, input_feat = 10, classes = 2)
 print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -51,14 +60,19 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 
 ground_truth = bah.explanations[node_idx] # Get Explanation object
 
-visualize_node_explanation(ground_truth, ax = ax1, show = False)
-
+#visualize_node_explanation(ground_truth, ax = ax1, show = False)
+ground_truth.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax=ax1)
 ax1.set_title('Ground Truth')
 
 # Use first dimension of explanation matrix as the displayed explanation value:
-visualize_subgraph_explanation(exp.enc_subgraph.edge_index, 
-    [exp.node_imp[i,0].item() for i in range(exp.node_imp.shape[0])], 
-    node_idx = int(node_idx), ax = ax2, show = False)
+# visualize_subgraph_explanation(exp.enc_subgraph.edge_index, 
+#     [exp.node_imp[i,0].item() for i in range(exp.node_imp.shape[0])], 
+#     node_idx = int(node_idx), ax = ax2, show = False)
+
+# Aggregate node_imp for visualization:
+exp.node_imp = [torch.sum(exp.node_imp[i]).item() for i in range(len(exp.node_imp))]
+
+exp.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax=ax2)
 ax2.set_title('Guided Backprop (Explanation wrt Degree)')
 
 model.eval()

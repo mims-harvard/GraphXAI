@@ -3,6 +3,7 @@ from torch import Tensor
 import torch.nn as nn
 import copy
 from typing import Callable, Tuple
+from torch_geometric.nn import GCNConv
 from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
 
@@ -23,10 +24,14 @@ class GraphSequential(nn.Sequential):
 
     def forward(self, *input) -> Tensor:
         for module in self:
+            print(input)
+            print(module)
             if isinstance(input, tuple):
                 input = module(*input)
             else:
                 input = module(input)
+            print(input)
+            print(module)
         return input
 
 #class GNN_LRP(WalkBase):
@@ -114,6 +119,7 @@ class GNN_LRP(_BaseDecomposition):
 
         #super().forward(x, edge_index, **kwargs)
         super().set_graph_attr(x, edge_index, explain_graph = False, **kwargs)
+        #self.set_graph_attr(x, edge_index, explain_graph = False, **kwargs)
         self.model.eval()
 
         # Ensure types:
@@ -134,7 +140,7 @@ class GNN_LRP(_BaseDecomposition):
         # Get subgraph of nodes in computational graph:
         khop_info  = k_hop_subgraph(
             node_idx, self.L, edge_index_with_loop, relabel_nodes=True,
-            num_nodes=None, flow=self.flow())
+            num_nodes=None, flow=self._flow())
 
         self.hard_edge_mask = khop_info[-1]
 
@@ -171,7 +177,9 @@ class GNN_LRP(_BaseDecomposition):
                         if hasattr(fc_modules[0], 'weight'):
                             ori_fc_weight = fc_modules[0].weight.data
                             fc_modules[0].weight.data = ori_fc_weight + gamma_ * ori_fc_weight
-                else:
+                elif isinstance(modules[0], GCNConv):
+                    ori_gnn_weights.append(modules[0].lin.weight.data)
+                else: # Should be Linear layer
                     ori_gnn_weights.append(modules[0].weight.data)
 
                     # (.)^ = (.) + \gamma * \rho(.)
@@ -206,6 +214,7 @@ class GNN_LRP(_BaseDecomposition):
                 h = x.requires_grad_(True)
                 for i, walk_step in enumerate(walk_steps): # Iterate over layers:
                     modules = walk_step['module']
+                    print('walk step modules', modules)
 
                     if i == (len(walk_step) - 1): 
                         # Compute h propagation differently if we're at the last GNN layer

@@ -22,7 +22,7 @@ class GCN_2layer(torch.nn.Module):
     def forward(self, x, edge_index):
         x = self.conv1(x, edge_index)
         x = self.batchnorm1(x)
-        x = torch.nn.PReLU()(x)
+        x = x.relu()
         x = self.conv2(x, edge_index)
         return x
 
@@ -41,6 +41,21 @@ class GCN_3layer(torch.nn.Module):
         x = x.relu()
         x = self.gcn2(x, edge_index)
         x = self.batchnorm2(x)
+        x = x.relu()
+        x = self.gcn3(x, edge_index)
+        return x
+
+class GCN_3layer_basic(torch.nn.Module):
+    def __init__(self, hidden_channels, input_feat, classes):
+        super(GCN_3layer_basic, self).__init__()
+        self.gcn1 = GCNConv(input_feat, hidden_channels)
+        self.gcn2 = GCNConv(hidden_channels, hidden_channels)
+        self.gcn3 = GCNConv(hidden_channels, classes)
+
+    def forward(self, x, edge_index):
+        x = self.gcn1(x, edge_index)
+        x = x.relu()
+        x = self.gcn2(x, edge_index)
         x = x.relu()
         x = self.gcn3(x, edge_index)
         return x
@@ -67,7 +82,7 @@ class GIN_2layer(torch.nn.Module):
     def forward(self, x, edge_index):
         x = self.gin1(x, edge_index)
         x = self.batchnorm1(x)
-        x = torch.nn.PReLU()(x)
+        x = x.relu()
         x = self.gin2(x, edge_index)
         return x
 

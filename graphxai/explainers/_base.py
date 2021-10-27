@@ -82,6 +82,12 @@ class _BaseExplainer:
         self.edge_mask = None
         self.feature_mask = None
 
+    def _flow(self):
+        for module in self.model.modules():
+            if isinstance(module, MessagePassing):
+                return module.flow
+        return 'source_to_target'
+
     def _predict(self, x: torch.Tensor, edge_index: torch.Tensor,
                  return_type: str = 'label', forward_kwargs: dict = {}):
         """
