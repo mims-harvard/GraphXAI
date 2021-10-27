@@ -163,9 +163,10 @@ class Explanation:
         else: # Assumed to be a tuple:
             self.enc_subgraph = EnclosingSubgraph(*subgraph)
 
-        if set_references:
-            self.node_reference = self.enc_subgraph.nodes
-            self.edge_reference = self.enc_subgraph.edge_index
+        #if set_references or self.node_reference is None:
+        self.node_reference = {self.enc_subgraph.nodes[i].item():i for i in range(self.enc_subgraph.nodes.shape[0])}
+        print(self.node_reference)
+            #self.edge_reference = self.enc_subgraph.edge_index
 
     def apply_subgraph_mask(self, 
         mask_node: Optional[bool] = False, 
@@ -317,8 +318,9 @@ class Explanation:
     def context_draw(self, 
             num_hops,
             additional_hops = 1, 
-            heat_by_prescence = True, 
-            heat_by_exp = False, 
+            heat_by_prescence = False, 
+            heat_by_exp = True, 
+            ax = None,
             show=False
         ):
         '''
@@ -340,10 +342,22 @@ class Explanation:
 
         if heat_by_prescence:
             node_c = [int(i in exp_nodes) for i in subG.nodes]
-        elif heat_by_exp:
-            raise NotImplementedError()
 
-        pos = nx.kamada_kawai_layout(subG)
-        nx.draw(subG, node_color = node_c)
+        if heat_by_exp:
+            node_c = []
+            for i in subG.nodes:
+                if i in self.enc_subgraph.nodes:
+                    node_c.append(self.node_imp[self.node_reference[i]])
+                else:
+                    node_c.append(0)
+
+        # Seed the position to stay consistent:
+        pos = nx.spring_layout(subG, seed = 1234)
+        nx.draw(subG, pos, node_color = node_c, ax = ax)
+
+        # Highlight the node index:
+        nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 
+                node_size = 400, ax = ax)
+
         if show:
             plt.show()
