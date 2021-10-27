@@ -81,6 +81,8 @@ class CAM(_BaseDecomposition):
 
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
+        # print([walk_steps[i]['module'] for i in range(len(walk_steps))])
+        # exit()
 
         # Get subgraph:
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
