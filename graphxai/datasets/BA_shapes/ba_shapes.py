@@ -6,12 +6,14 @@ import matplotlib.pyplot as plt
 from types import MethodType
 from typing import Optional, Callable
 from functools import partial
-from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.utils import k_hop_subgraph, to_undirected
 
 from ..synthetic_dataset import ShapeGraph
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
 from ..utils.shapes import *
+from graphxai.datasets.feature import make_structured_feature
+from graphxai.datasets.utils.graph_build import build_bound_graph
 
 class BAShapes(ShapeGraph):
     '''
@@ -45,14 +47,17 @@ class BAShapes(ShapeGraph):
             graph. 'local' method enforces a lower bound on number of 
             shapes in the (num_hops)-hop neighborhood of each node. 
             'neighborhood upper bound' enforces an upper-bound on the 
-            number of shapes per num_hops-hop neighborhood.
+            number of shapes per num_hops-hop neighborhood. 'bound_12' 
+            enforces that all nodes in the graph are either in 1 or 2
+            houses. 
             (:default: :obj:`'global'`)
         feature_method (str, optional): How to generate node features.
             Options are `'network stats'` (features are network statistics),
-            `'gaussian'` (features are random gaussians), and 
+            `'gaussian'` (features are random gaussians), 
+            `'gaussian_lv` (gaussian latent variables), and 
             `'onehot'` (features are random one-hot vectors) 
             (:default: :obj:`'network stats'`)
-        labeling_rule (str, optional): Rule of how to label the nodes.
+        labeling_method (str, optional): Rule of how to label the nodes.
             Options are `'feature'` (only label based on feature attributes), 
             `'edge` (only label based on edge structure), 
             `'edge and feature'` (label based on both feature attributes
@@ -97,9 +102,20 @@ class BAShapes(ShapeGraph):
             pass
         elif self.shape_name == 'circle':
             insert_shape = pentagon # 5-member ring
-        elif self.shape_name == 'random':
+
+        if self.shape_name == 'random':
+            # random_shape imported from utils.shapes
             self.get_shape = partial(random_shape, n=3) 
             # Currenlty only support for 3-member shape bank (n=3)
+        else:
+            self.get_shape = lambda: (insert_shape, 1)
+
+        if shape_insert_strategy.lower() == 'bound_12':
+            assert self.shape_name != 'random', 'Multiple shapes not yet supported for bounded graph'
+
+        y_before_x = False
+        if self.feature_method == 'gaussian_lv':
+            y_before_x = True
 
         super().__init__(
             name='BAHouses', 
@@ -108,6 +124,7 @@ class BAShapes(ShapeGraph):
             graph_construct_strategy = graph_construct_strategy,
             shape_insert_strategy = shape_insert_strategy,
             insertion_shape = insert_shape,
+            y_before_x = y_before_x,
             **kwargs
         )
 
@@ -115,7 +132,17 @@ class BAShapes(ShapeGraph):
         '''
         Returns a Barabasi-Albert graph with desired parameters
         '''
-        self.G = nx.barabasi_albert_graph(self.n, self.m, seed = self.seed)
+        if self.shape_insert_strategy == 'bound_12':
+            self.G = build_bound_graph(
+                shape = house, 
+                num_subgraphs = 10, 
+                inter_sg_connections = 1,
+                prob_connection = 1,
+                num_hops = self.num_hops,
+                base_graph = 'ba',
+                )
+        else:
+            self.G = nx.barabasi_albert_graph(self.n, self.m, seed = self.seed)
 
     def feature_generator(self):
         '''
@@ -139,8 +166,19 @@ class BAShapes(ShapeGraph):
                 feature = torch.zeros(3)
                 feature[random.choice(range(3))] = 1
                 return feature
+
+        elif self.feature_method == 'gaussian_lv':
+            x, self.feature_imp_true = make_structured_feature(self.yvals, n_features = 10,
+                n_informative = (torch.unique(self.yvals).shape[0]) * 2, seed = self.seed)
+
+            Gitems = list(self.G.nodes.items())
+            node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
+
+            def get_feature(node_idx):
+                return x[node_map[node_idx],:]
+        
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(f'{self.feature_method} feature method not supported')
 
         return get_feature
 
@@ -149,18 +187,18 @@ class BAShapes(ShapeGraph):
         Labeling rule for each node
         '''
 
-        avg_ccs = np.mean([self.G.nodes[i]['x'][1] for i in self.G.nodes])
+        # avg_ccs = np.mean([self.G.nodes[i]['x'][1] for i in self.G.nodes])
         
-        def get_label(node_idx):
-            # Count number of houses in k-hop neighborhood
-            # subset, _, _, _ = k_hop_subgraph(node_idx, self.num_hops, self.graph.edge_index)
-            # shapes = self.graph.shape[subset]
-            # num_houses = (torch.unique(shapes) > 0).nonzero(as_tuple=True)[0]
-            khop_edges = nx.bfs_edges(self.G, node_idx, depth_limit = self.num_hops)
-            nodes_in_khop = set(np.unique(list(khop_edges))) - set([node_idx])
-            num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-            # Enfore logical condition:
-            return torch.tensor(int(num_unique_houses == 1 and self.G.nodes[node_idx]['x'][0] > 1), dtype=torch.long)
+        # def get_label(node_idx):
+        #     # Count number of houses in k-hop neighborhood
+        #     # subset, _, _, _ = k_hop_subgraph(node_idx, self.num_hops, self.graph.edge_index)
+        #     # shapes = self.graph.shape[subset]
+        #     # num_houses = (torch.unique(shapes) > 0).nonzero(as_tuple=True)[0]
+        #     khop_edges = nx.bfs_edges(self.G, node_idx, depth_limit = self.num_hops)
+        #     nodes_in_khop = set(np.unique(list(khop_edges))) - set([node_idx])
+        #     num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
+        #     # Enfore logical condition:
+        #     return torch.tensor(int(num_unique_houses == 1 and self.G.nodes[node_idx]['x'][0] > 1), dtype=torch.long)
 
 
         if self.labeling_method == 'edge':
@@ -173,11 +211,19 @@ class BAShapes(ShapeGraph):
                     motif_in_khop = sum(np.unique([self.G.nodes[ni]['motif_id'] for ni in nodes_in_khop]))
                     return torch.tensor(motif_in_khop, dtype=torch.long)
             else:
-                def get_label(node_idx):
-                    nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                    num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
-                        for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-                    return torch.tensor(int(num_unique_houses == 1), dtype=torch.long)
+                if self.shape_insert_strategy == 'bound_12':
+                    node_labels = [d['shapes_in_khop'] - 1 for _, d in self.G.nodes(data=True)]
+                    Gitems = list(self.G.nodes.items())
+                    node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
+                    def get_label(node_idx):
+                        return torch.tensor(node_labels[node_map[node_idx]], dtype=torch.long)
+
+                else:
+                    def get_label(node_idx):
+                        nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
+                        num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
+                            for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
+                        return torch.tensor(int(num_unique_houses == 1), dtype=torch.long)
 
         elif self.labeling_method == 'feature':
             # Label based solely on node features
@@ -208,9 +254,37 @@ class BAShapes(ShapeGraph):
         return get_label
 
     def explanation_generator(self):
-        def gen(node_idx):
-            return None
-        return gen
+
+        # Label node and edge imp based off of each node's proximity to a house
+
+        if self.feature_method == 'gaussian_lv':
+            def exp_gen(node_idx):
+                # Set feature_imp to mask generated earlier:
+                feature_imp = self.feature_imp_true
+
+                # Tag all nodes in houses in the neighborhood:
+                khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
+                node_imp = torch.tensor([self.G.nodes[i]['shape'] for i in khop_nodes], dtype=torch.double)
+
+                exp = Explanation(
+                    feature_imp=feature_imp,
+                    node_imp = node_imp,
+                    node_idx = node_idx
+                )
+
+                khop_info = k_hop_subgraph(
+                    node_idx,
+                    num_hops = self.num_hops,
+                    edge_index = to_undirected(self.graph.edge_index)
+                )
+                exp.set_enclosing_subgraph(khop_info)
+                # exp.set_whole_graph(khop_info[0], khop_info[1])
+                exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
+                return exp
+        else:
+            def exp_gen(node_idx):
+                return None
+        return exp_gen
 
     def visualize(self, shape_label = False):
         '''
@@ -219,15 +293,21 @@ class BAShapes(ShapeGraph):
             it is a member of an inserted motif or not. If `False`, labels each node 
             according to its y-value. (:default: :obj:`True`)
         '''
+
+        Gitems = list(self.G.nodes.items())
+        node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
+
         if shape_label:
             y = [int(self.G.nodes[i]['shape'] > 0) for i in range(self.num_nodes)]
         else:
             ylist = self.graph.y.tolist()
-            y = [ylist[i] for i in self.G.nodes]
+            y = [ylist[node_map[i]] for i in self.G.nodes]
+
+        node_weights = {i:node_map[i] for i in self.G.nodes}
 
         pos = nx.kamada_kawai_layout(self.G)
         _, ax = plt.subplots()
-        nx.draw(self.G, pos, node_color = y, ax=ax)
+        nx.draw(self.G, pos, node_color = y, labels = node_weights, ax=ax)
         ax.set_title('BA Houses')
         plt.tight_layout()
         plt.show()

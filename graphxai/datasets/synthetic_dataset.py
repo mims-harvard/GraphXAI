@@ -4,7 +4,7 @@ import numpy as np
 import networkx as nx
 from typing import Optional
 
-from torch_geometric.utils import to_networkx, from_networkx
+from torch_geometric.utils import to_networkx, from_networkx, to_undirected
 from torch_geometric.data import Data
 from .dataset import NodeDataset, GraphDataset
 from graphxai.utils.nx_conversion import khop_subgraph_nx
@@ -201,7 +201,7 @@ class ShapeGraph(NodeDataset):
             gen_labels = self.labeling_rule()
             y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
 
-        edge_index = torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous()
+        edge_index = to_undirected(torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous())
 
         self.graph = Data(
             x=x, 
