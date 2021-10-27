@@ -257,10 +257,14 @@ class BAShapes(ShapeGraph):
 
         # Label node and edge imp based off of each node's proximity to a house
 
-        if self.feature_method == 'gaussian_lv':
+        if self.labeling_method == 'edge':
             def exp_gen(node_idx):
-                # Set feature_imp to mask generated earlier:
-                feature_imp = self.feature_imp_true
+
+                if self.feature_method == 'gaussian_lv':
+                    # Set feature_imp to mask generated earlier:
+                    feature_imp = self.feature_imp_true
+                else:
+                    raise NotImplementedError('Need to define node importance for other terms')
 
                 # Tag all nodes in houses in the neighborhood:
                 khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
