@@ -31,6 +31,15 @@ class _BaseDecomposition(_BaseExplainer):
             return -1
         else:
             return self.L
+    
+    def set_graph_attr(self,
+                x: Tensor,
+                edge_index: Tensor,
+                **kwargs
+                ):
+        self.num_edges = edge_index.shape[1]
+        self.num_nodes = x.shape[0]
+        self.device = x.device
 
     def extract_step(self, x: Tensor, edge_index: Tensor, detach: bool = True, split_fc: bool = False, forward_kwargs: dict = None):
         '''Gets information about every layer in the graph
