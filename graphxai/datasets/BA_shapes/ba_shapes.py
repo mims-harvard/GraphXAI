@@ -270,17 +270,26 @@ class BAShapes(ShapeGraph):
                 khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
                 node_imp = torch.tensor([self.G.nodes[i]['shape'] for i in khop_nodes], dtype=torch.double)
 
-                exp = Explanation(
-                    feature_imp=feature_imp,
-                    node_imp = node_imp,
-                    node_idx = node_idx
-                )
-
                 khop_info = k_hop_subgraph(
                     node_idx,
                     num_hops = self.num_hops,
                     edge_index = to_undirected(self.graph.edge_index)
                 )
+
+                # Get edge importance based on edges between any two nodes in motif
+                in_motif = node_imp.nonzero(as_tuple=True)[0]
+                edge_imp = torch.zeros(khop_info[1].shape[1], dtype=torch.double)
+                for i in range(khop_info[1].shape[1]):
+                    if khop_info[1][0,i] in in_motif and khop_info[1][1,i] in in_motif:
+                        edge_imp[i] = 1
+
+                exp = Explanation(
+                    feature_imp=feature_imp,
+                    node_imp = node_imp,
+                    edge_imp = edge_imp,
+                    node_idx = node_idx
+                )
+
                 exp.set_enclosing_subgraph(khop_info)
                 # exp.set_whole_graph(khop_info[0], khop_info[1])
                 exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
