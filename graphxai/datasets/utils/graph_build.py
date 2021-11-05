@@ -57,15 +57,18 @@ def increment_shape_counter(G, nodes, attr_measure, exclude_nodes = None):
     return G
 
 def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_bound, upper_bound):
+    G = G.copy()
     for n in nodes_to_search:
         khop = khop_subgraph_nx(node_idx = n, num_hops = num_hops, G = G)
 
-        num_unique = torch.unique([G.nodes[i]['shape_number'] for i in khop]).shape[0]
+        unique_shapes = torch.unique(torch.tensor([G.nodes[i]['shape_number'] for i in khop]))
+        num_unique = unique_shapes.shape[0] - 1 if 0 in unique_shapes else unique_shapes.shape[0]
 
         if num_unique < lower_bound or num_unique > upper_bound:
             return None
         else:
             G.nodes[n][attr_measure] = num_unique
+            G.nodes[n]['nearby_shapes'] = unique_shapes
 
     return G
 
@@ -91,12 +94,13 @@ def build_bound_graph(
     for i in range(num_subgraphs):
         current_shape = shape.copy()
         nx.set_node_attributes(current_shape, 1, 'shape')
-        #nx.set_node_attributes(current_shape, shape_number, 'shape_number')
+        nx.set_node_attributes(current_shape, shape_number, 'shape_number')
 
         s = subgraph_generator()
         relabeler = {ns: floor_counter + ns for ns in s.nodes}
         s = nx.relabel.relabel_nodes(s, relabeler)
         nx.set_node_attributes(s, 0, 'shape')
+        nx.set_node_attributes(s, 0, 'shape_number')
 
         # Join s and shape together:
         to_pivot = random.choice(list(shape.nodes))
@@ -118,81 +122,27 @@ def build_bound_graph(
         original_s_nodes = list(s.nodes)
         s.add_nodes_from(current_shape.nodes(data=True))
         s.add_edges_from(current_shape.edges)
-        #print(original_s_nodes)
-
-        #add_nodes = [current_shape.nodes(data=True)[n] for n in current_shape.nodes if n != pivot]
-
-        #print(list(set(list(current_shape.nodes)) - set([pivot])))
-        # s.add_nodes_from(list(set(list(current_shape.nodes)) - set([pivot])))
-        # # s.add_nodes_from(add_nodes)
-        # for n in current_shape.nodes: # Update properties of shape nodes
-        #     s.nodes[n]['shapes_in_khop'] = 1
-        # s.add_edges_from(list(current_shape.edges))
-
-        # nx.draw(s)
-        # plt.show()
 
         # Find k-hop from pivot:
         in_house = khop_subgraph_nx(node_idx = pivot, num_hops = num_hops, G = s)
         s.remove_nodes_from(set(s.nodes) - set(in_house) - set(current_shape.nodes))
-        nx.set_node_attributes(s, 1, 'shapes_in_khop')
 
-        # to_remove = []
-        # for o in original_s_nodes:
-        #     not_house_in_khop = check_khop_bound(s, 
-        #         node=o, 
-        #         num_hops = num_hops, 
-        #         attr_measure = 'shapes_in_khop', 
-        #         bound=0, 
-        #         min_or_max=1) # Detect if a node is within the distance of
-
-        #     # subgraph_nodes = khop_subgraph_nx(node_idx=o, num_hops = num_hops, G = s)
-        #     # measures = [s.nodes[n][attr_measure] for n in subgraph_nodes]
-
-        #     # if max(measures) < 1:
-
-        #     #if house_in_khop: # Maximum value should be 1 (either 1 or zero)
-        #         # Increment attribute for this node
-        #         #s.nodes[o]['shapes_in_khop'] = 1
-        #     if not_house_in_khop:
-        #         # Remove any nodes not within distance of shape:
-        #         to_remove.append(o)
-
-        #print(to_remove)
-        #s.remove_nodes_from(to_remove)
-
-        # Separately assign house_in_khop:
-        # for i in s.nodes:
-        #     s.nodes[i]['shapes_in_khop'] = 1
-
-        # nx.draw(s)
-        # plt.title('After')
-        # plt.show() 
+        # Ensure that pivot is assigned to proper shape:
+        s.nodes[pivot]['shape_number'] = shape_number
                 
-        subgraphs.append(s)
-        #print(s.nodes)
+        subgraphs.append(s.copy())
         floor_counter = max(list(s.nodes)) + 1
         original_shapes.append(current_shape.copy())
 
         shape_number += 1
 
-    # for n in range(len(subgraphs)):
-    #     nx.draw(subgraphs[n])
-    #     plt.show()
     G = nx.Graph()
-    #nx.set_node_attributes(G, 0, 'shapes')
-
-    # all_edges = []
-    # all_nodes = []
+    
     for i in range(len(subgraphs)):
-        # all_edges += list(subgraphs[i].edges)
-        # all_nodes += list(subgraphs[i].nodes())
         G.add_edges_from(subgraphs[i].edges)
         G.add_nodes_from(subgraphs[i].nodes(data=True))
 
-
-    # G.add_nodes_from(all_nodes)
-    # G.add_edges_from(all_edges)
+    G = G.to_undirected()
 
     # Join subgraphs via inner-subgraph connections
     # Rule: make 2 connections between any two graphs
@@ -209,68 +159,42 @@ def build_bound_graph(
                 if np.random.rand() > prob_connection:
                     continue
 
-
-                # # Store nodes previously held in subgraph of each shape:
-                prev_nodes_i = khop_subgraph_nx(node_idx=shape_node_per_subgraph[i], num_hops = num_hops, G = G)
-                prev_nodes_j = khop_subgraph_nx(node_idx=shape_node_per_subgraph[j], num_hops = num_hops, G = G)
-
-                # Get all possible edges between the two subgraphs:
                 x, y = np.meshgrid(list(subgraphs[i].nodes), list(subgraphs[j].nodes))
                 possible_edges = list(zip(x.flatten(), y.flatten()))
 
-                # Find random pair of nodes, search ahead to ensure bounds are not violated
                 rand_edge = None
+                break_flag = False
                 while len(possible_edges) > 0:
+
                     rand_edge = random.choice(possible_edges)
                     possible_edges.remove(rand_edge) # Remove b/c we're searching this edge possibility
+
 
                     tempG = G.copy()
 
                     # Make edge between the two:
                     tempG.add_edge(*rand_edge)
+                    tempG.add_edge(rand_edge[1], rand_edge[0])
 
-                    # Union of all nodes touching the house nodes - for each subgraph:
-                    temp_nodes1 = set()
-                    for t in original_shapes[i].nodes:
-                        temp_nodes1 = temp_nodes1.union(set(khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = tempG)))
-                    tempG = increment_shape_counter(
+                    khop_union = set()
+
+                    # Constant number of t's for each (10)
+                    for t in list(original_shapes[i].nodes) + list(original_shapes[j].nodes):
+                        khop_union = khop_union.union(set(khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = tempG)))
+
+                    tempG = incr_on_unique_houses(
+                        nodes_to_search = list(khop_union),   
                         G = tempG, 
-                        nodes = list(temp_nodes1), 
-                        attr_measure = 'shapes_in_khop',
-                        exclude_nodes = prev_nodes_i)
+                        num_hops = num_hops, 
+                        attr_measure = 'shapes_in_khop', 
+                        lower_bound = 1, 
+                        upper_bound = 2)
 
-                    temp_nodes2 = set()
-                    for t in original_shapes[j].nodes:
-                        temp_nodes2 = temp_nodes2.union(set(khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = tempG)))
-                    tempG = increment_shape_counter(
-                        G = tempG, 
-                        nodes = list(temp_nodes2), 
-                        attr_measure = 'shapes_in_khop',
-                        exclude_nodes = prev_nodes_j)
-
-
-                    # tempG = increment_shape_counter(
-                    #     G = tempG, 
-                    #     nodes = list(temp_nodes), 
-                    #     attr_measure = 'shapes_in_khop',
-                    #     exclude_nodes = list(set(prev_nodes_i).union(set(prev_nodes_j))))
-
-                    # Increment shape counters for proper nodes:
-                    # tempG = increment_shape_counter(tempG, insert_at_node = shape_node_per_subgraph[i], 
-                    #     attr_measure='shapes_in_khop', 
-                    #     num_hops = num_hops,
-                    #     exclude_nodes = prev_nodes_i)
-
-                    # tempG = increment_shape_counter(tempG, insert_at_node = shape_node_per_subgraph[j], 
-                    #     attr_measure='shapes_in_khop', 
-                    #     num_hops = num_hops,
-                    #     exclude_nodes = prev_nodes_j)
-
-                    # Check for violation:
-                    if check_graph_bound(tempG, 'shapes_in_khop', 2, 1):
+                    if tempG is None:
+                        rand_edge = None
+                        continue
+                    else:
                         break
-
-                    rand_edge = None # Would break out with this value if on final iteration
 
                 if rand_edge is not None: # If we found a valid edge
                     #print('Made change')
@@ -279,25 +203,30 @@ def build_bound_graph(
     # Ensure that G is connected
     G = G.subgraph(sorted(nx.connected_components(G), key = len, reverse = True)[0])
 
+    # Check the construction
+    # number_off = 0
+    # show_count = 0
+    # for t in G.nodes:
+    #     nodes = khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = G)
+    #     nodes_in_khop = list(set(nodes) - set([t])) 
+    #     #count = Counter([G.nodes[n]['shape'] for n in nodes_in_khop])[1]
+    #     unique = np.unique([G.nodes[n]['shape_number'] for n in nodes_in_khop])
+    #     n_unique = len(unique) - 1 if 0 in unique else len(unique)
+
+    #     if n_unique != G.nodes[t]['shapes_in_khop']:
+    #         print('node {}: count = {}, supposed = {}'.format(t, n_unique, G.nodes[t]['shapes_in_khop']))
+    #     if G.nodes[t]['shapes_in_khop'] != n_unique:
+    #         #print('node {}: count = {}, supposed = {}'.format(t, n_unique, G.nodes[t]['shapes_in_khop']))
+    #         print('off', unique)
+    #         number_off += 1
+
+    #     G.nodes[t]['shapes_in_khop'] = n_unique
+
+    # print('Number off:', number_off)
+
     # Renumber nodes to be constantly increasing integers starting from 0
-    # Unfreeze graph:
     mapping = {n:i for i, n in enumerate(G.nodes)}
     G = nx.relabel_nodes(G, mapping = mapping, copy = True)
-
-    G = G.to_undirected()
-
-    # Check the construction
-    for t in G.nodes:
-        nodes = khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = G)
-        nodes_in_khop = list(set(nodes) - set([t])) 
-        count = Counter([G.nodes[n]['shape'] for n in nodes_in_khop])[1]
-        if count != G.nodes[t]['shapes_in_khop']:
-            print('node {}: count = {}, supposed = {}'.format(t, count, G.nodes[t]['shapes_in_khop'] - 1))
-
-
-    # print(G.nodes)
-    # print(mapping)
-    # print(G.number_of_nodes())
 
     return G
 

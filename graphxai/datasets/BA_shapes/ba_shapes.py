@@ -187,20 +187,6 @@ class BAShapes(ShapeGraph):
         Labeling rule for each node
         '''
 
-        # avg_ccs = np.mean([self.G.nodes[i]['x'][1] for i in self.G.nodes])
-        
-        # def get_label(node_idx):
-        #     # Count number of houses in k-hop neighborhood
-        #     # subset, _, _, _ = k_hop_subgraph(node_idx, self.num_hops, self.graph.edge_index)
-        #     # shapes = self.graph.shape[subset]
-        #     # num_houses = (torch.unique(shapes) > 0).nonzero(as_tuple=True)[0]
-        #     khop_edges = nx.bfs_edges(self.G, node_idx, depth_limit = self.num_hops)
-        #     nodes_in_khop = set(np.unique(list(khop_edges))) - set([node_idx])
-        #     num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-        #     # Enfore logical condition:
-        #     return torch.tensor(int(num_unique_houses == 1 and self.G.nodes[node_idx]['x'][0] > 1), dtype=torch.long)
-
-
         if self.labeling_method == 'edge':
             # Label based soley on edge structure
             # Based on number of houses in neighborhood
@@ -212,11 +198,9 @@ class BAShapes(ShapeGraph):
                     return torch.tensor(motif_in_khop, dtype=torch.long)
             else:
                 if self.shape_insert_strategy == 'bound_12':
-                    node_labels = [d['shapes_in_khop'] - 1 for _, d in self.G.nodes(data=True)]
-                    Gitems = list(self.G.nodes.items())
-                    node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
+                    sh = nx.get_node_attributes(self.G, 'shapes_in_khop')
                     def get_label(node_idx):
-                        return torch.tensor(node_labels[node_map[node_idx]], dtype=torch.long)
+                        return torch.tensor(sh[node_idx] - 1, dtype=torch.long)
 
                 else:
                     def get_label(node_idx):
@@ -268,7 +252,8 @@ class BAShapes(ShapeGraph):
 
                 # Tag all nodes in houses in the neighborhood:
                 khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                node_imp = torch.tensor([self.G.nodes[i]['shape'] for i in khop_nodes], dtype=torch.double)
+                node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+                    # Make map between node importance in networkx and in pytorch data
 
                 khop_info = k_hop_subgraph(
                     node_idx,
@@ -276,8 +261,11 @@ class BAShapes(ShapeGraph):
                     edge_index = to_undirected(self.graph.edge_index)
                 )
 
+                node_imp = torch.tensor([node_imp_map[i.item()] for i in khop_info[0]], dtype=torch.double)
+
                 # Get edge importance based on edges between any two nodes in motif
-                in_motif = node_imp.nonzero(as_tuple=True)[0]
+                #in_motif = node_imp.nonzero(as_tuple=True)[0]
+                in_motif = khop_info[0][node_imp.bool()] # Get nodes in the motif
                 edge_imp = torch.zeros(khop_info[1].shape[1], dtype=torch.double)
                 for i in range(khop_info[1].shape[1]):
                     if khop_info[1][0,i] in in_motif and khop_info[1][1,i] in in_motif:
@@ -291,7 +279,6 @@ class BAShapes(ShapeGraph):
                 )
 
                 exp.set_enclosing_subgraph(khop_info)
-                # exp.set_whole_graph(khop_info[0], khop_info[1])
                 exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
                 return exp
         else:
