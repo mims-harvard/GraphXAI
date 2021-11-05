@@ -49,6 +49,8 @@ class NodeDataset:
             use_static_split (bool, optional): (:default: True)
         '''
 
+        print('data.y before masking', self.graph.y)
+
         if use_fixed_split:
             # Set train, test, val static masks:
             self.graph.train_mask = self.fixed_train_mask

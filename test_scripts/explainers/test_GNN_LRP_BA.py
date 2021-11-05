@@ -6,16 +6,36 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import GNN_LRP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
+from graphxai.datasets import BAShapes
 
+
+# n = 300
+# m = 2
+# num_houses = 20
+
+# bah = BA_Houses(n, m)
+# data, inhouse = bah.get_data(num_houses)
 
 n = 300
-m = 2
+m = 1
 num_houses = 20
 
-bah = BA_Houses(n, m)
-data, inhouse = bah.get_data(num_houses)
+hyp = {
+    'num_hops': 1,
+    'n': n,
+    'm': m,
+    'num_shapes': num_houses,
+    'shape_insert_strategy': 'bound_12',
+    'labeling_method': 'edge',
+    'shape_upper_bound': 1,
+    'feature_method': 'gaussian_lv'
+}
 
-model = GCN(64, input_feat = 1, classes = 2)
+bah = BAShapes(**hyp)
+data = bah.get_graph(use_fixed_split=True)
+inhouse = (data.y == 0).nonzero(as_tuple=True)[0]
+
+model = GCN(64, input_feat = 10, classes = 2)
 print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
@@ -36,10 +56,10 @@ gnn_lrp = GNN_LRP(model)
 
 exp = gnn_lrp.get_explanation_node(
     x = data.x,
-    label = int(pred_class),
-    node_idx = int(node_idx),
     edge_index = data.edge_index,
-    get_edge_scores=True,
+    node_idx = int(node_idx),
+    label = int(pred_class),
+    #get_edge_scores=True,
     edge_aggregator=torch.sum
 )
 
