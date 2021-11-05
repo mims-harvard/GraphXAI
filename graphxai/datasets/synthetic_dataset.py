@@ -189,7 +189,7 @@ class ShapeGraph(NodeDataset):
         if self.y_before_x:
             gen_labels = self.labeling_rule()
             y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
-            self.yvals = y
+            self.yvals = y.detach().clone() # MUST COPY TO AVOID MAJOR BUGS
 
         gen_features = self.feature_generator()
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
@@ -205,7 +205,7 @@ class ShapeGraph(NodeDataset):
 
         self.graph = Data(
             x=x, 
-            y=y, 
+            y=y,
             edge_index = edge_index, 
             shape = torch.tensor(list(nx.get_node_attributes(self.G, 'shape').values()))
         )
@@ -213,9 +213,7 @@ class ShapeGraph(NodeDataset):
         # Generate explanations
         exp_gen = self.explanation_generator()
 
-        print('num nodes (in class):', len(self.G.nodes))
         self.explanations = [exp_gen(n) for n in self.G.nodes]
-        print('Inner-class', len(self.explanations))
 
     def plant(self, 
             in_shape: set,
