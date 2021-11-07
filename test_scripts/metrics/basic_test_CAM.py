@@ -89,30 +89,36 @@ if __name__ == '__main__':
         acc = test(model, data)
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
 
+    model.eval()
+    preds = model(data.x, data.edge_index)
+
     # Choose a node that's in class 1 (connected to 2 houses)
-    class1 = (data.y == 0).nonzero(as_tuple=True)[0]
+    class1 = (data.y == 1).nonzero(as_tuple=True)[0]
     node_idx = random.choice(class1).item()
 
-    print('node_idx', node_idx, data.y[node_idx].item())
-    print('shapes_in_khop', bah.G.nodes[node_idx]['shapes_in_khop'])
-
-    model.eval()
-    pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
+    pred = preds[node_idx,:].reshape(-1,1)
     pred_class = pred.argmax(dim=0).item()
 
     print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
     print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
+
     # Compute CAM explanation
     act = lambda x: torch.argmax(x, dim=1)
     cam = CAM(model, activation = act)
-    cam_exp = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_class, edge_index = data.edge_index)
+    cam_exp = cam.get_explanation_node(
+        data.x, 
+        node_idx = int(node_idx), 
+        label = pred_class, 
+        edge_index = data.edge_index)
+        
     #Explanation
     # Get ground-truth explanation
     gt_exp = bah.explanations[node_idx]
 
     # Compute Grad-CAM explanation
     gcam = Grad_CAM(model, criterion = criterion)
+    print('node_idx', node_idx)
     gcam_exp = gcam.get_explanation_node(
                         data.x, 
                         y = data.y, 

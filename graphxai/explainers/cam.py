@@ -74,10 +74,12 @@ class CAM(_BaseDecomposition):
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved 
         '''
+
         if not directed:
             edge_index = to_undirected(edge_index)
 
-        label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item()) if label is None else label
+        if label is None:
+            label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item())
 
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
@@ -247,6 +249,9 @@ class Grad_CAM(_BaseDecomposition):
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved 
         '''
+
+        x = x.detach().clone()
+        y = y.detach().clone()
 
         x.requires_grad = True
 

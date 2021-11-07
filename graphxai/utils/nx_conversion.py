@@ -126,3 +126,82 @@ def khop_subgraph_nx(
     '''
     edges = list(nx.bfs_edges(G, node_idx, depth_limit = num_hops))
     return list(np.unique(edges))
+
+def match_torch_to_nx_edges(G: nx.Graph, edge_index: torch.Tensor):
+    '''
+    Gives dictionary matching index in edge_index to G.edges
+        - Supports matching for undirected edges
+        - Mainly for plotting
+    '''
+
+    edges_list = list(G.edges)
+
+
+    edges_map = dict()
+
+    for i in range(len(edges_list)):
+        e1, e2 = edges_list[i]
+
+        # Check e1 -> 0, e2 -> 1
+        cond1 = ((e1 == edge_index[0,:]) & (e2 == edge_index[1,:])).nonzero(as_tuple=True)[0]
+        cond2 = ((e2 == edge_index[0,:]) & (e1 == edge_index[1,:])).nonzero(as_tuple=True)[0]
+        #print(cond1)
+
+        if cond1.shape[0] > 0 and cond2.shape[0] > 0:
+            # Choose smallest
+            edges_map[(e1, e2)] = min(cond1[0].item(), cond2[0].item())
+
+        # Check e1 -> 1, e2 -> 0 if the first condition didn't work
+        if cond1.shape[0] == 0:
+            if cond2.shape[0] > 0:
+                edges_map[(e2, e1)] = i
+            else:
+                #print(e1, e2)
+                raise ValueError('Edge not in graph')
+        else:
+            edges_map[(e1, e2)] = i # Get first instance, don't care about duplicates
+
+    return edges_map
+
+def remove_duplicate_edges(edge_index):
+    # Removes duplicate edges from edge_index, making it arbitrarily directed (random positioning):
+
+    new_edge_index = []
+    added_nodes = set()
+    dict_tracker = dict()
+
+    edge_mask = torch.zeros(edge_index.shape[1], dtype=bool)
+
+    for i in range(edge_index.shape[1]):
+        e1 = edge_index[0,i].item()
+        e2 = edge_index[1,i].item()
+        if e1 in added_nodes:
+            if (e2 in dict_tracker[e1]):
+                continue
+            dict_tracker[e1].append(e2)
+        else:
+            dict_tracker[e1] = [e2]
+            added_nodes.add(e1)
+        if e2 in added_nodes:
+            if (e1 in dict_tracker[e2]):
+                continue
+            dict_tracker[e2].append(e1)
+        else:
+            dict_tracker[e2] = [e1]
+            added_nodes.add(e2)
+
+        new_edge_index.append((e1, e2)) # Append only one version
+        edge_mask[i] = True
+        # Both versions to dict checker
+        # if e1 in added_nodes:
+            
+        # else:
+            
+
+        # if e2 in added_nodes:
+        #     dict_tracker[e2].append(e1)
+        # else:
+        #     dict_tracker[e2] = [e1]
+        #     added_nodes.add(e2)
+
+    return torch.tensor(new_edge_index).t().contiguous(), edge_mask
