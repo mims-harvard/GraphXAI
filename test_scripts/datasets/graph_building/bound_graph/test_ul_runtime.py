@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from torch_geometric.utils import from_networkx
 from sklearn.model_selection import train_test_split
 
-from graphxai.datasets.utils.graph_build import build_bound_graph
+from graphxai.datasets.utils.bound_graph import build_bound_graph
 from graphxai.gnn_models.node_classification.testing import *
 
 from graphxai.utils import khop_subgraph_nx

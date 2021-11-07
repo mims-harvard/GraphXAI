@@ -13,7 +13,7 @@ from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
 from ..utils.shapes import *
 from graphxai.datasets.feature import make_structured_feature
-from graphxai.datasets.utils.graph_build import build_bound_graph
+from graphxai.datasets.utils.bound_graph import build_bound_graph
 
 class BAShapes(ShapeGraph):
     '''
@@ -77,9 +77,9 @@ class BAShapes(ShapeGraph):
         shape: Optional[str] = 'house',
         seed: Optional[int] = None,
         graph_construct_strategy: Optional[str] = 'plant',
-        shape_insert_strategy: Optional[str] = 'global',
-        feature_method: Optional[str] = 'network stats',
-        labeling_method: Optional[str] = 'edge and feature',
+        shape_insert_strategy: Optional[str] = 'bound_12',
+        feature_method: Optional[str] = 'gaussian_lv',
+        labeling_method: Optional[str] = 'edge',
         **kwargs):
 
         self.n = n
@@ -264,7 +264,6 @@ class BAShapes(ShapeGraph):
                 node_imp = torch.tensor([node_imp_map[i.item()] for i in khop_info[0]], dtype=torch.double)
 
                 # Get edge importance based on edges between any two nodes in motif
-                #in_motif = node_imp.nonzero(as_tuple=True)[0]
                 in_motif = khop_info[0][node_imp.bool()] # Get nodes in the motif
                 edge_imp = torch.zeros(khop_info[1].shape[1], dtype=torch.double)
                 for i in range(khop_info[1].shape[1]):
