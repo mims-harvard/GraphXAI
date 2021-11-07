@@ -3,10 +3,11 @@ import torch
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from torch_geometric.utils import from_networkx, k_hop_subgraph
+from torch_geometric.utils import from_networkx, k_hop_subgraph, subgraph
 from torch_geometric.data import Data
 
 import graphxai.utils as gxai_utils
+from graphxai.utils.nx_conversion import match_torch_to_nx_edges, remove_duplicate_edges
 
 from typing import Optional
 
@@ -328,7 +329,8 @@ class Explanation:
         Args:
         '''
 
-        wholeG = gxai_utils.to_networkx_conv(self.graph.get_Data(), to_undirected=True)
+        data_G = self.graph.get_Data()
+        wholeG = gxai_utils.to_networkx_conv(data_G, to_undirected=True)
         kadd_hop_neighborhood = gxai_utils.khop_subgraph_nx(
                 G = wholeG, 
                 num_hops= num_hops + additional_hops, 
@@ -340,20 +342,59 @@ class Explanation:
         # Identify highlighting nodes:
         exp_nodes = self.enc_subgraph.nodes
 
+        draw_args = dict()
+
         if heat_by_prescence:
-            node_c = [int(i in exp_nodes) for i in subG.nodes]
+            if self.node_imp is not None:
+                node_c = [int(i in exp_nodes) for i in subG.nodes]
+                draw_args['node_color'] = node_c
 
         if heat_by_exp:
-            node_c = []
-            for i in subG.nodes:
-                if i in self.enc_subgraph.nodes:
-                    node_c.append(self.node_imp[self.node_reference[i]])
-                else:
-                    node_c.append(0)
+            if self.node_imp is not None:
+                node_c = []
+                for i in subG.nodes:
+                    if i in self.enc_subgraph.nodes:
+                        node_c.append(self.node_imp[self.node_reference[i]])
+                    else:
+                        node_c.append(0)
+
+                draw_args['node_color'] = node_c
+
+            if self.edge_imp is not None:
+                whole_edge_index, _ = subgraph(kadd_hop_neighborhood, edge_index = data_G.edge_index)
+
+                # Need to match edge indices across edge_index and edges in graph
+                tuple_edge_index = [(whole_edge_index[0,i].item(), whole_edge_index[1,i].item()) \
+                    for i in range(whole_edge_index.shape[1])]
+
+                print(len(tuple_edge_index), self.edge_imp.shape)
+
+                trimmed_enc_subg_edge_index, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
+                positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
+                positive_edges = [(trimmed_enc_subg_edge_index[0,e].item(), trimmed_enc_subg_edge_index[1,e].item()) \
+                    for e in positive_edge_indices]
+
+                # Tuples in list should be hashable
+                edge_list = list(subG.edges)
+
+                # Get dictionary with mapping from edge index to networkx graph
+                edge_matcher = match_torch_to_nx_edges(subG, remove_duplicate_edges(whole_edge_index)[0])
+
+                edge_heat = torch.zeros(len(edge_list))
+
+                for e in positive_edges:
+                    # Must find index, which is not very efficient
+                    edge_heat[edge_matcher[e]] = 1
+
+                draw_args['edge_color'] = edge_heat.tolist()
+                #coolwarm
+                draw_args['edge_cmap'] = plt.cm.coolwarm
+
+            # Heat edge explanations if given
 
         # Seed the position to stay consistent:
         pos = nx.spring_layout(subG, seed = 1234)
-        nx.draw(subG, pos, node_color = node_c, ax = ax)
+        nx.draw(subG, pos, ax = ax, **draw_args)
 
         # Highlight the node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 

@@ -15,6 +15,11 @@ from ..utils.shapes import *
 from graphxai.datasets.feature import make_structured_feature
 from graphxai.datasets.utils.bound_graph import build_bound_graph
 
+from ..utils.feature_generators import net_stats_generator, random_continuous_generator
+from ..utils.feature_generators import random_onehot_generator, gaussian_lv_generator
+from ..utils.label_generators import motif_id_label, binary_feature_label, number_motif_equal_label
+from ..utils.label_generators import bound_graph_label, logical_edge_feature_label
+
 class BAShapes(ShapeGraph):
     '''
     BA Shapes dataset with keyword arguments for different planting, 
@@ -149,33 +154,16 @@ class BAShapes(ShapeGraph):
         Returns function to generate features for one node_idx
         '''
         if self.feature_method == 'network stats':
-            deg_cent = nx.degree_centrality(self.G)
-            def get_feature(node_idx):
-                return torch.tensor([self.G.degree[node_idx], 
-                    nx.clustering(self.G, node_idx), 
-                    deg_cent[node_idx]]).float()
+            get_feature = net_stats_generator(self.G)
 
         elif self.feature_method == 'gaussian':
-            def get_feature(node_idx):
-                # Random random Gaussian feature vector:
-                return torch.normal(mean=0, std=1.0, size = (3,))
+            get_feature = random_continuous_generator(3) # Gets length 3 vector
 
         elif self.feature_method == 'onehot':
-            def get_feature(node_idx):
-                # Random one-hot feature vector:
-                feature = torch.zeros(3)
-                feature[random.choice(range(3))] = 1
-                return feature
+            get_feature = random_onehot_generator(3) # Gets length 3 vector
 
         elif self.feature_method == 'gaussian_lv':
-            x, self.feature_imp_true = make_structured_feature(self.yvals, n_features = 10,
-                n_informative = (torch.unique(self.yvals).shape[0]) * 2, seed = self.seed)
-
-            Gitems = list(self.G.nodes.items())
-            node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
-
-            def get_feature(node_idx):
-                return x[node_map[node_idx],:]
+            get_feature, self.feature_imp_true = gaussian_lv_generator(self.G, self.yvals, seed = self.seed)
         
         else:
             raise NotImplementedError(f'{self.feature_method} feature method not supported')
@@ -191,46 +179,21 @@ class BAShapes(ShapeGraph):
             # Label based soley on edge structure
             # Based on number of houses in neighborhood
             if self.shape_name == 'random':
-                def get_label(node_idx):
-                    nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                    # For now, sum motif id's in k-hop (min is 0 for no motifs)
-                    motif_in_khop = sum(np.unique([self.G.nodes[ni]['motif_id'] for ni in nodes_in_khop]))
-                    return torch.tensor(motif_in_khop, dtype=torch.long)
+                get_label = motif_id_label(self.G, self.num_hops)
             else:
                 if self.shape_insert_strategy == 'bound_12':
-                    sh = nx.get_node_attributes(self.G, 'shapes_in_khop')
-                    def get_label(node_idx):
-                        return torch.tensor(sh[node_idx] - 1, dtype=torch.long)
-
+                    get_label = bound_graph_label(self.G)
                 else:
-                    def get_label(node_idx):
-                        nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                        num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
-                            for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-                        return torch.tensor(int(num_unique_houses == 1), dtype=torch.long)
+                    get_label = number_motif_equal_label(self.G, self.num_hops, equal_number=1)
 
         elif self.labeling_method == 'feature':
             # Label based solely on node features
             # Based on if feature[1] > median of all nodes
-            max_node = len(list(self.G.nodes))
-            node_attr = nx.get_node_attributes(self.G, 'x')
-            x1 = [node_attr[i][1] for i in range(max_node)]
-            med1 = np.median(x1)
-            def get_label(node_idx):
-                return torch.tensor(int(x1[node_idx] > med1), dtype=torch.long)
+            get_label = binary_feature_label(self.G)
 
         elif self.labeling_method == 'edge and feature':
-            # Calculate median (as for feature):
-            max_node = len(list(self.G.nodes))
-            node_attr = nx.get_node_attributes(self.G, 'x')
-            x1 = [node_attr[i][1] for i in range(max_node)]
-            med1 = np.median(x1)
-
-            def get_label(node_idx):
-                nodes_in_khop = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                num_unique_houses = len(np.unique([self.G.nodes[ni]['shape'] \
-                    for ni in nodes_in_khop if self.G.nodes[ni]['shape'] > 0 ]))
-                return torch.tensor(int(num_unique_houses == 1 and x1[node_idx] > med1), dtype=torch.long)
+            # Note: currently built to only work with network statistics features
+            get_label = logical_edge_feature_label(self.G, num_hops = self.num_hops, feature_method = 'median')
 
         else:
             raise NotImplementedError() 
