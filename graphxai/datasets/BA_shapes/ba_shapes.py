@@ -128,7 +128,7 @@ class BAShapes(ShapeGraph):
             num_shapes = num_shapes,
             graph_construct_strategy = graph_construct_strategy,
             shape_insert_strategy = shape_insert_strategy,
-            insertion_shape = insert_shape,
+            insert_shape = insert_shape,
             y_before_x = y_before_x,
             **kwargs
         )
@@ -139,7 +139,7 @@ class BAShapes(ShapeGraph):
         '''
         if self.shape_insert_strategy == 'bound_12':
             self.G = build_bound_graph(
-                shape = house, 
+                shape = self.insertion_shape, 
                 num_subgraphs = 10, 
                 inter_sg_connections = 1,
                 prob_connection = 1,
