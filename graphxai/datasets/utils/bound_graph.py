@@ -58,7 +58,8 @@ def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_boun
     for n in nodes_to_search:
         khop = khop_subgraph_nx(node_idx = n, num_hops = num_hops, G = G)
 
-        unique_shapes = torch.unique(torch.tensor([G.nodes[i]['shape_number'] for i in khop]))
+        #unique_shapes = torch.unique(torch.tensor([G.nodes[i]['shape_number'] for i in khop]))
+        unique_shapes = torch.unique(torch.tensor([G.nodes[i]['shape'] for i in khop]))
         num_unique = unique_shapes.shape[0] - 1 if 0 in unique_shapes else unique_shapes.shape[0]
 
         if num_unique < lower_bound or num_unique > upper_bound:
@@ -90,14 +91,15 @@ def build_bound_graph(
     shape_number = 1
     for i in range(num_subgraphs):
         current_shape = shape.copy()
-        nx.set_node_attributes(current_shape, 1, 'shape')
-        nx.set_node_attributes(current_shape, shape_number, 'shape_number')
+        #nx.set_node_attributes(current_shape, 1, 'shape')
+        #nx.set_node_attributes(current_shape, shape_number, 'shape_number')
+        nx.set_node_attributes(current_shape, shape_number, 'shape')
 
         s = subgraph_generator()
         relabeler = {ns: floor_counter + ns for ns in s.nodes}
         s = nx.relabel.relabel_nodes(s, relabeler)
         nx.set_node_attributes(s, 0, 'shape')
-        nx.set_node_attributes(s, 0, 'shape_number')
+        #nx.set_node_attributes(s, 0, 'shape_number')
 
         # Join s and shape together:
         to_pivot = random.choice(list(shape.nodes))
@@ -125,8 +127,10 @@ def build_bound_graph(
         s.remove_nodes_from(set(s.nodes) - set(in_house) - set(current_shape.nodes))
 
         # Ensure that pivot is assigned to proper shape:
-        s.nodes[pivot]['shape_number'] = shape_number
-                
+        #s.nodes[pivot]['shape_number'] = shape_number
+        s.nodes[pivot]['shape'] = shape_number
+
+
         subgraphs.append(s.copy())
         floor_counter = max(list(s.nodes)) + 1
         original_shapes.append(current_shape.copy())

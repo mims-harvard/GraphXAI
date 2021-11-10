@@ -12,7 +12,8 @@ from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic
-from graphxai.datasets import BAShapes
+#from graphxai.datasets import BAShapes
+from graphxai.datasets.new_BAshapes import ShapeGraph
 
 from graphxai.utils import to_networkx_conv, Explanation
 
@@ -66,13 +67,15 @@ if __name__ == '__main__':
         'n': n,
         'm': m,
         'num_shapes': num_houses,
+        'model_layers': 3,
         'shape_insert_strategy': 'bound_12',
         'labeling_method': 'edge',
         'shape_upper_bound': 1,
         'feature_method': 'gaussian_lv'
     }
 
-    bah = BAShapes(**hyp)
+    #bah = BAShapes(**hyp)
+    bah = ShapeGraph(**hyp)
     data = bah.get_graph(use_fixed_split=True)
 
     model = GCN_3layer_basic(64, input_feat = 10, classes = 2)
@@ -136,19 +139,16 @@ if __name__ == '__main__':
     # Plotting:
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
-    gt_exp.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax = ax1)
+    gt_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
     ax1.set_title('Ground Truth')
 
-    cam_exp.context_draw(
-        num_hops = bah.num_hops, 
-        additional_hops = 2, 
-        heat_by_exp = True, ax = ax2)
+    cam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
 
     ax2.set_title('CAM')
     ymin, ymax = ax2.get_ylim()
     xmin, xmax = ax2.get_xlim()
     ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_exp_score))
-    gcam_exp.context_draw(num_hops = bah.num_hops, additional_hops = 2, heat_by_exp = True, ax = ax3)
+    gcam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
     ax3.set_title('Grad-CAM')
     ymin, ymax = ax3.get_ylim()
     xmin, xmax = ax3.get_xlim()
