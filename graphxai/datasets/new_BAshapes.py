@@ -3,23 +3,23 @@ import random
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from types import MethodType, Union
-from typing import Optional, Callable
+from types import MethodType
+from typing import Optional, Callable, Union
 from functools import partial
 from torch_geometric.utils import k_hop_subgraph, to_undirected
 from torch_geometric.data import Data
 
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
-from ..utils.shapes import *
+from .utils.shapes import *
 from .dataset import NodeDataset, GraphDataset
 from graphxai.datasets.feature import make_structured_feature
 from graphxai.datasets.utils.bound_graph import build_bound_graph
 
-from ..utils.feature_generators import net_stats_generator, random_continuous_generator
-from ..utils.feature_generators import random_onehot_generator, gaussian_lv_generator
-from ..utils.label_generators import motif_id_label, binary_feature_label, number_motif_equal_label
-from ..utils.label_generators import bound_graph_label, logical_edge_feature_label
+from .utils.feature_generators import net_stats_generator, random_continuous_generator
+from .utils.feature_generators import random_onehot_generator, gaussian_lv_generator
+from .utils.label_generators import motif_id_label, binary_feature_label, number_motif_equal_label
+from .utils.label_generators import bound_graph_label, logical_edge_feature_label
 
 class ShapeGraph(NodeDataset):
     '''
@@ -42,6 +42,9 @@ class ShapeGraph(NodeDataset):
             If planting strategy is global, total number of shapes in
             the graph. If planting strategy is local, number of shapes
             per num_hops - hop neighborhood of each node.
+        model_layers (int, optional): Number of layers within the GNN that will
+            be explained. This defines the extent of the ground-truth explanations
+            that are created by the method. (:default: :obj:`3`)
         shape (str, optional): Type of shape to be inserted into graph.
             Options are `'house'`, `'flag'`, `'circle'`, and `'multiple'`. 
             If `'multiple'`, random shapes are generated to insert into 
@@ -75,6 +78,14 @@ class ShapeGraph(NodeDataset):
             shape_upper_bound (int, Optional): Number of maximum shapes
                 to add per num_hops-hop neighborhood in the 'neighborhood
                 upper bound' planting policy.
+
+    Members:
+        G (nx.Graph): Networkx version of the graph for the dataset
+            - Contains many values per-node: 
+                1. 'shape': which motif a given node is within
+                2. 'shapes_in_khop': number of motifs within a (num_hops)-
+                    hop neighborhood of the given node.
+                    - Note: only for bound graph
     '''
 
     def __init__(self, 
@@ -82,6 +93,7 @@ class ShapeGraph(NodeDataset):
         n: int, 
         m: int, 
         num_shapes: int, 
+        model_layers: int = 3,
         shape: Union[str, nx.Graph] = 'house',
         seed: Optional[int] = None,
         graph_construct_strategy: Optional[str] = 'plant',
@@ -97,6 +109,7 @@ class ShapeGraph(NodeDataset):
         self.num_shapes = num_shapes
         self.shape_insert_strategy = shape_insert_strategy
         self.graph_construct_strategy = graph_construct_strategy
+        self.model_layers = model_layers
 
         # Barabasi-Albert parameters (will generalize later)
         self.n = n
@@ -112,11 +125,13 @@ class ShapeGraph(NodeDataset):
             num_shapes = n # Set to maximum if num_houses left at None
 
         # Get shape:
+        self.shape_method = ''
         if isinstance(shape, nx.Graph):
             self.insert_shape = shape
         else:
             self.insert_shape = None
             shape = shape.lower()
+            self.shape_method = shape
             if shape == 'house':
                 self.insert_shape = house
             elif shape == 'flag':
@@ -129,7 +144,7 @@ class ShapeGraph(NodeDataset):
                 self.get_shape = partial(random_shape, n=3) 
                 # Currenlty only support for 3-member shape bank (n=3)
             else:
-                self.get_shape = lambda: (insert_shape, 1)
+                self.get_shape = lambda: (self.insert_shape, 1)
 
             if shape_insert_strategy.lower() == 'bound_12':
                 assert shape != 'random', 'Multiple shapes not yet supported for bounded graph'
@@ -404,7 +419,7 @@ class ShapeGraph(NodeDataset):
         if self.labeling_method == 'edge':
             # Label based soley on edge structure
             # Based on number of houses in neighborhood
-            if shape == 'random':
+            if self.shape_method == 'random':
                 get_label = motif_id_label(self.G, self.num_hops)
             else:
                 if self.shape_insert_strategy == 'bound_12':
@@ -439,14 +454,18 @@ class ShapeGraph(NodeDataset):
                 else:
                     raise NotImplementedError('Need to define node importance for other terms')
 
+                # Find nodes in num_hops
+                original_in_num_hop = set([self.G.nodes[n]['shape'] for n in khop_subgraph_nx(node_idx, self.num_hops, self.G) if self.G.nodes[n]['shape'] != 0])
+
                 # Tag all nodes in houses in the neighborhood:
-                khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+                khop_nodes = khop_subgraph_nx(node_idx, self.model_layers, self.G)
+                #node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+                node_imp_map = {i:(self.G.nodes[i]['shape'] in original_in_num_hop) for i in khop_nodes}
                     # Make map between node importance in networkx and in pytorch data
 
                 khop_info = k_hop_subgraph(
                     node_idx,
-                    num_hops = self.num_hops,
+                    num_hops = self.model_layers,
                     edge_index = to_undirected(self.graph.edge_index)
                 )
 
@@ -467,7 +486,7 @@ class ShapeGraph(NodeDataset):
                 )
 
                 exp.set_enclosing_subgraph(khop_info)
-                exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
+                #exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
                 return exp
         else:
             def exp_gen(node_idx):

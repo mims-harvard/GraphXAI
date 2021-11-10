@@ -99,7 +99,6 @@ class WholeGraph:
 
         return G
 
-
 class Explanation:
     '''
     Members:
@@ -318,6 +317,7 @@ class Explanation:
 
     def context_draw(self, 
             num_hops,
+            graph_data,
             additional_hops = 1, 
             heat_by_prescence = False, 
             heat_by_exp = True, 
@@ -329,8 +329,8 @@ class Explanation:
         Args:
         '''
 
-        data_G = self.graph.get_Data()
-        wholeG = gxai_utils.to_networkx_conv(data_G, to_undirected=True)
+        #data_G = self.graph.get_Data()
+        wholeG = gxai_utils.to_networkx_conv(graph_data, to_undirected=True)
         kadd_hop_neighborhood = gxai_utils.khop_subgraph_nx(
                 G = wholeG, 
                 num_hops= num_hops + additional_hops, 
@@ -361,7 +361,7 @@ class Explanation:
                 draw_args['node_color'] = node_c
 
             if self.edge_imp is not None:
-                whole_edge_index, _ = subgraph(kadd_hop_neighborhood, edge_index = data_G.edge_index)
+                whole_edge_index, _ = subgraph(kadd_hop_neighborhood, edge_index = graph_data.edge_index)
 
                 # Need to match edge indices across edge_index and edges in graph
                 tuple_edge_index = [(whole_edge_index[0,i].item(), whole_edge_index[1,i].item()) \

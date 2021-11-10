@@ -28,6 +28,7 @@ class ShapeGraph(NodeDataset):
         num_subgraphs (int, optional): Roughly controls size of output graph
         graph_sparsity (float, optional): Controls how sparse the subgraphs
             are connected in the bound graph. Should be float between 0 and 1.
+            Lower is more sparse.
         
     '''
 
