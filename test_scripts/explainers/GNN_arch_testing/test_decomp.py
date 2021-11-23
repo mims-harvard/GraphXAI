@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import GNN_LRP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
+from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic
 from graphxai.datasets.new_BAshapes import ShapeGraph
 
 
@@ -35,7 +36,7 @@ bah = ShapeGraph(**hyp)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 0).nonzero(as_tuple=True)[0]
 
-model = GCN(64, input_feat = 10, classes = 2)
+model = GIN_3layer_basic(64, input_feat = 10, classes = 2)
 print(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)

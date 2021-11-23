@@ -108,6 +108,28 @@ class GIN_3layer(torch.nn.Module):
         x = self.gin3(x, edge_index)
         return x
 
+class GIN_3layer_basic(torch.nn.Module):
+    def __init__(self, hidden_channels, input_feat, classes):
+        super(GIN_3layer_basic, self).__init__()
+        self.mlp_gin1 = torch.nn.Linear(input_feat, hidden_channels)
+        self.gin1 = GINConv(self.mlp_gin1)
+        #self.batchnorm1 = BatchNorm(hidden_channels)
+        self.mlp_gin2 = torch.nn.Linear(hidden_channels, hidden_channels)
+        self.gin2 = GINConv(self.mlp_gin2)
+        #self.batchnorm2 = BatchNorm(hidden_channels)
+        self.mlp_gin3 = torch.nn.Linear(hidden_channels, classes)
+        self.gin3 = GINConv(self.mlp_gin3)
+
+    def forward(self, x, edge_index):
+        x = self.gin1(x, edge_index)
+        #x = self.batchnorm1(x)
+        x = x.relu()
+        x = self.gin2(x, edge_index)
+        #x = self.batchnorm2(x)
+        x = x.relu()
+        x = self.gin3(x, edge_index)
+        return x
+
 def train(model, optimizer,
           criterion, data):
     model.train()
