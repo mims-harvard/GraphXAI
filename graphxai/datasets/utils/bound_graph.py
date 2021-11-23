@@ -2,56 +2,12 @@ import random
 import numpy as np
 import networkx as nx
 from functools import partial
-from collections import Counter
+from typing import Optional, Callable, Union
 from .shapes import house
 from graphxai.utils import khop_subgraph_nx
 import matplotlib.pyplot as plt
 
 from graphxai.gnn_models.node_classification.testing import *
-
-def check_khop_bound(G, node, num_hops, attr_measure, bound, min_or_max = 1):
-    '''
-    Searches khop-neighborhood to ensure no nodes violate bound of a given
-        measure
-        Ex: ensure no nodes w/in k-hop have more than x # of adjacent shapes
-    Args:
-        bound (float): Bounding value for attribute (inclusive bound)
-    '''
-
-    subgraph_nodes = khop_subgraph_nx(node_idx=node, num_hops = num_hops, G = G)
-
-    measures = [G.nodes[s][attr_measure] for s in subgraph_nodes]
-    return (max(measures) <= bound) if min_or_max else (min(measures) >= bound)
-
-
-def check_graph_bound(G, attr_measure, bound, min_or_max = 1):
-    '''
-    Searches an entire graph to ensure that some attribute does not violate a bound
-    '''
-    attrs = [G.nodes[n][attr_measure] for n in G.nodes]
-    return (max(attrs) <= bound) if min_or_max else (min(attrs) >= bound)
-
-def increment_shape_counter(G, nodes, attr_measure, exclude_nodes = None):
-#def increment_shape_counter(G, insert_at_node, attr_measure, num_hops, exclude_nodes = None):
-    '''
-    Increments some attribute based on how man
-    '''
-
-    # subgraph_nodes = khop_subgraph_nx(node_idx = insert_at_node, num_hops = num_hops, G = G)
-
-    # if exclude_nodes is not None:
-    #     subgraph_nodes = list(set(subgraph_nodes) - set(exclude_nodes)) # Remove nodes from consideration
-
-    # for n in subgraph_nodes:
-    #     G.nodes[n][attr_measure] += 1
-
-    for n in nodes:
-        if exclude_nodes is not None:
-            if n in exclude_nodes:
-                continue
-        G.nodes[n][attr_measure] += 1
-
-    return G
 
 def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_bound, upper_bound):
     G = G.copy()
@@ -71,15 +27,32 @@ def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_boun
     return G
 
 
-
 def build_bound_graph(
-        shape = house, 
-        num_subgraphs = 5, 
-        inter_sg_connections = 1,
-        prob_connection = 0.5,
-        num_hops = 2,
-        base_graph = 'ba',
-        ):
+        shape: Optional[nx.Graph] = house, 
+        num_subgraphs: Optional[int] = 5, 
+        inter_sg_connections: Optional[int] = 1,
+        prob_connection: Optional[float] = 1,
+        num_hops: Optional[int] = 2,
+        base_graph: Optional[str] = 'ba',
+        ) -> nx.Graph:
+    '''
+    Creates a synthetic graph with one or two motifs within a given neighborhood and
+        then labeling nodes based on the number of motifs around them. 
+    Can be thought of as building unique explanations for each node, with either one
+        or two motifs being the explanation.
+    Args:
+        shape (nx.Graph, optional): Motif to be inserted.
+        num_subgraphs (int, optional): Number of initial subgraphs to create. Roughly
+            controls number of nodes in the graph.
+        inter_sg_connections (int, optional): How many connections to be made between
+            subgraphs. Higher value will create more inter-connected graph. 
+        prob_connection (float, optional): Probability of making connection between 
+            subgraphs. Can introduce sparsity and stochasticity to graph generation.
+        num_hops (int, optional): Number of hops to consider for labeling a node.
+        base_graph (str, optional): Base graph algorithm used to generate each subgraph.
+            Options are `'ba'` (Barabasi-Albert) (:default: :obj:`'ba'`)
+    '''
+
     # Create graph:
     if base_graph == 'ba':
         subgraph_generator = partial(nx.barabasi_albert_graph, n=5 * num_hops, m=1)

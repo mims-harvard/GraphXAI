@@ -213,14 +213,18 @@ class BAShapes(ShapeGraph):
                 else:
                     raise NotImplementedError('Need to define node importance for other terms')
 
+                # Find nodes in num_hops
+                original_in_num_hop = set([self.G.nodes[n]['shape'] for n in khop_subgraph_nx(node_idx, self.num_hops, self.G) if self.G.nodes[n]['shape'] != 0])
+
                 # Tag all nodes in houses in the neighborhood:
-                khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-                node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+                khop_nodes = khop_subgraph_nx(node_idx, self.model_layers, self.G)
+                #node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+                node_imp_map = {i:(self.G.nodes[i]['shape'] in original_in_num_hop) for i in khop_nodes}
                     # Make map between node importance in networkx and in pytorch data
 
                 khop_info = k_hop_subgraph(
                     node_idx,
-                    num_hops = self.num_hops,
+                    num_hops = self.model_layers,
                     edge_index = to_undirected(self.graph.edge_index)
                 )
 
@@ -241,7 +245,7 @@ class BAShapes(ShapeGraph):
                 )
 
                 exp.set_enclosing_subgraph(khop_info)
-                exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
+                #exp.set_whole_graph(x = self.x, edge_index = self.graph.edge_index)
                 return exp
         else:
             def exp_gen(node_idx):
