@@ -24,14 +24,14 @@ class GraphSequential(nn.Sequential):
 
     def forward(self, *input) -> Tensor:
         for module in self:
-            print(input)
-            print(module)
+            #print(input)
+            #print(module)
             if isinstance(input, tuple):
                 input = module(*input)
             else:
                 input = module(input)
-            print(input)
-            print(module)
+            #print(input)
+            #print(module)
         return input
 
 #class GNN_LRP(WalkBase):
@@ -216,51 +216,55 @@ class GNN_LRP(_BaseDecomposition):
                     modules = walk_step['module']
                     print('walk step modules', modules)
 
-                    if i == (len(walk_step) - 1): 
-                        # Compute h propagation differently if we're at the last GNN layer
-                        std_h = GraphSequential(*modules)(h, torch.zeros(2, h.shape[0], dtype=torch.long, device=self.device))
+                    # if i == (len(walk_step) - 1): 
+                    #     # Compute h propagation differently if we're at the last GNN layer
+                    #     std_h = GraphSequential(*modules)(h, torch.zeros(2, h.shape[0], dtype=torch.long, device=self.device))
 
-                        s = gnn_gamma_modules[i](h, torch.zeros(2, h.shape[0], dtype=torch.long, device=self.device))
-                        ht = (s + epsilon) * (std_h / (s + epsilon)).detach()
-                        h = ht
+                    #     s = gnn_gamma_modules[i](h, torch.zeros(2, h.shape[0], dtype=torch.long, device=self.device))
+                    #     ht = (s + epsilon) * (std_h / (s + epsilon)).detach()
+                    #     h = ht
 
-                    else: # Means we're before the last GNN layer
+                    #else: # Means we're before the last GNN layer
 
-                        if hasattr(modules[0], 'nn'): # Only for GINs:
-                            # for the specific 2-layer nn GINs.
-                            gin = modules[0]
-                            run1 = gin(h, edge_index, probe=True)
-                            std_h1 = gin.fc_steps[0]['output']
-                            gamma_run1 = gnn_gamma_modules[i](h, edge_index, probe=True)
-                            p1 = gnn_gamma_modules[i].fc_steps[0]['output']
-                            q1 = (p1 + epsilon) * (std_h1 / (p1 + epsilon)).detach()
+                    if hasattr(modules[0], 'nn'): # Only for GINs:
+                        # for the specific 2-layer nn GINs.
+                        gin = modules[0]
+                        run1 = gin(h, edge_index, probe=True)
+                        std_h1 = gin.fc_steps[0]['output']
+                        gamma_run1 = gnn_gamma_modules[i](h, edge_index, probe=True)
+                        p1 = gnn_gamma_modules[i].fc_steps[0]['output']
+                        q1 = (p1 + epsilon) * (std_h1 / (p1 + epsilon)).detach()
 
-                            std_h2 = GraphSequential(*gin.fc_steps[1]['module'])(q1)
-                            p2 = GraphSequential(*gnn_gamma_modules[i].fc_steps[1]['module'])(q1)
-                            q2 = (p2 + epsilon) * (std_h2 / (p2 + epsilon)).detach()
-                            q = q2
-                        else: # For GCN layers:
+                        std_h2 = GraphSequential(*gin.fc_steps[1]['module'])(q1)
+                        p2 = GraphSequential(*gnn_gamma_modules[i].fc_steps[1]['module'])(q1)
+                        q2 = (p2 + epsilon) * (std_h2 / (p2 + epsilon)).detach()
+                        q = q2
+                    else: # For GCN layers:
 
-                            std_h = GraphSequential(*modules)(h, edge_index)
+                        std_h = GraphSequential(*modules)(h, edge_index)
 
-                            # --- LRP-gamma ---
-                            p = gnn_gamma_modules[i](h, edge_index)
-                            q = (p + epsilon) * (std_h / (p + epsilon)).detach()
+                        # --- LRP-gamma ---
+                        p = gnn_gamma_modules[i](h, edge_index)
+                        print('Layer {}'.format(i))
+                        q = (p + epsilon) * (std_h / (p + epsilon)).detach()
 
-                        # --- pick a path ---
-                        mk = torch.zeros((h.shape[0], 1), device=self.device)
-                        k = walk_node_indices[i + 1]
-                        mk[k] = 1
-                        ht = q * mk + q.detach() * (1 - mk)
-                        h = ht
+                    # --- pick a path ---
+                    mk = torch.zeros((h.shape[0], 1), device=self.device)
+                    k = walk_node_indices[i + 1]
+                    mk[k] = 1
+                    ht = q * mk + q.detach() * (1 - mk)
+                    h = ht
 
                 # --- FC LRP_gamma ---
                 for i, fc_step in enumerate(fc_steps): # Compute forward passes over FC for given walk
                     modules = fc_step['module']
-                    std_h = nn.Sequential(*modules)(h)
+                    # **************************
+                    std_h = nn.Sequential(*modules)(h) if i != 0 \
+                            else GraphSequential(*modules)(h, torch.zeros(h.shape[0], dtype=torch.long, device=self.device))
 
                     # --- gamma ---
-                    s = fc_gamma_modules[i](h)
+                    s = fc_gamma_modules[i](h) if i != 0 \
+                            else fc_gamma_modules[i](h, torch.zeros(h.shape[0], dtype=torch.long, device=self.device))
                     ht = (s + epsilon) * (std_h / (s + epsilon)).detach()
                     h = ht
 

@@ -8,12 +8,12 @@ from torch_geometric.data import Data
 
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
-from ..utils.shapes import house
+from graphxai.datasets.utils.shapes import house
 from .dataset import NodeDataset
 from graphxai.datasets.utils.bound_graph import build_bound_graph
 
-from ..utils.feature_generators import gaussian_lv_generator
-from ..utils.label_generators import bound_graph_label
+from graphxai.datasets.utils.feature_generators import gaussian_lv_generator
+from graphxai.datasets.utils.label_generators import bound_graph_label
 
 class ShapeGraph(NodeDataset):
     '''
@@ -48,7 +48,7 @@ class ShapeGraph(NodeDataset):
                     num_subgraphs = num_subgraphs, 
                     inter_sg_connections = 1,
                     prob_connection = graph_sparsity,
-                    num_hops = self.num_hops,
+                    num_hops = 1,
                     base_graph = 'ba',
                 )
         self.generate_shape_graph() # Makes explanations, 
@@ -83,7 +83,7 @@ class ShapeGraph(NodeDataset):
         gen_labels = bound_graph_label(self.G)
         y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
 
-        gen_features, self.feature_imp_true = gaussian_lv_generator(self.G, y.detach().clone(), seed = self.seed)
+        gen_features, self.feature_imp_true = gaussian_lv_generator(self.G, y.detach().clone()) #seed = self.seed)
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         for i in self.G.nodes:
@@ -110,17 +110,24 @@ class ShapeGraph(NodeDataset):
 
         def exp_gen(node_idx):
 
-            # Set feature_imp to mask generated earlier:
-            feature_imp = self.feature_imp_true
+            # if self.feature_method == 'gaussian_lv':
+            #     # Set feature_imp to mask generated earlier:
+            #     feature_imp = self.feature_imp_true
+            # else:
+            #     raise NotImplementedError('Need to define node importance for other terms')
+
+            # Find nodes in num_hops
+            original_in_num_hop = set([self.G.nodes[n]['shape'] for n in khop_subgraph_nx(node_idx, self.num_hops, self.G) if self.G.nodes[n]['shape'] != 0])
 
             # Tag all nodes in houses in the neighborhood:
-            khop_nodes = khop_subgraph_nx(node_idx, self.num_hops, self.G)
-            node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+            khop_nodes = khop_subgraph_nx(node_idx, self.model_layers, self.G)
+            #node_imp_map = {i:(self.G.nodes[i]['shape_number'] > 0) for i in khop_nodes}
+            node_imp_map = {i:(self.G.nodes[i]['shape'] in original_in_num_hop) for i in khop_nodes}
                 # Make map between node importance in networkx and in pytorch data
 
             khop_info = k_hop_subgraph(
                 node_idx,
-                num_hops = self.num_hops,
+                num_hops = self.model_layers,
                 edge_index = to_undirected(self.graph.edge_index)
             )
 
@@ -134,7 +141,7 @@ class ShapeGraph(NodeDataset):
                     edge_imp[i] = 1
 
             exp = Explanation(
-                feature_imp=feature_imp,
+                feature_imp=self.feature_imp_true,
                 node_imp = node_imp,
                 edge_imp = edge_imp,
                 node_idx = node_idx

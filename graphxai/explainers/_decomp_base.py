@@ -78,6 +78,8 @@ class _BaseDecomposition(_BaseExplainer):
 
         # --- divide layer sets ---
 
+        print('Layer extractor', [layer_extractor[i][0] for i in range(len(layer_extractor))])
+
         walk_steps = []
         fc_steps = []
         pool_flag = False
@@ -116,11 +118,29 @@ class _BaseDecomposition(_BaseExplainer):
             else: # Append anything to FC that is not MessagePassing at its origin
                 # Still supports sequential layers
                 fc_steps.append(step)
+            # print('layer', layer[0])
+            # if isinstance(layer[0], MessagePassing) or isinstance(layer[0], GNNPool):
+            #     if isinstance(layer[0], GNNPool):
+            #         pool_flag = True
+            #     if step['module'] and step['input'] is not None:
+            #         walk_steps.append(step)
+            #     step = {'input': layer[1], 'module': [], 'output': None}
+            # if pool_flag and split_fc and isinstance(layer[0], nn.Linear):
+            #     if step['module']:
+            #         fc_steps.append(step)
+            #     step = {'input': layer[1], 'module': [], 'output': None}
+            # step['module'].append(layer[0])
+            # step['output'] = layer[2]
 
         for walk_step in walk_steps:
             if hasattr(walk_step['module'][0], 'nn') and walk_step['module'][0].nn is not None:
                 # We don't allow any outside nn during message flow process in GINs
                 walk_step['module'] = [walk_step['module'][0]]
+            elif hasattr(walk_step['module'][0], 'lin') and walk_step['module'][0].lin is not None:
+                walk_step['module'] = [walk_step['module'][0]]
+
+        # print('Walk steps', [walk_steps[i]['module'] for i in range(len(walk_steps))])
+        # print('fc steps', [fc_steps[i]['module'] for i in range(len(fc_steps))])
 
         return walk_steps, fc_steps
 
