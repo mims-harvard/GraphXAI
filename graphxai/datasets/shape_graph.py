@@ -11,15 +11,13 @@ from torch_geometric.data import Data
 
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from graphxai import Explanation
-from .utils.shapes import *
-from .dataset import NodeDataset, GraphDataset
+from graphxai.datasets.utils.shapes import *
+from graphxai.datasets.dataset import NodeDataset, GraphDataset
 from graphxai.datasets.feature import make_structured_feature
 from graphxai.datasets.utils.bound_graph import build_bound_graph
 
-from .utils.feature_generators import net_stats_generator, random_continuous_generator
-from .utils.feature_generators import random_onehot_generator, gaussian_lv_generator
-from .utils.label_generators import motif_id_label, binary_feature_label, number_motif_equal_label
-from .utils.label_generators import bound_graph_label, logical_edge_feature_label
+from graphxai.datasets.utils.feature_generators import gaussian_lv_generator
+from graphxai.datasets.utils.label_generators import bound_graph_label
 
 class ShapeGraph(NodeDataset):
     '''
@@ -88,9 +86,7 @@ class ShapeGraph(NodeDataset):
                     - Note: only for bound graph
     '''
 
-    def __init__(self, 
-#        num_hops: int, 
-#        num_shapes: int, 
+    def __init__(self,  
         model_layers: int = 3,
         shape: Union[str, nx.Graph] = 'house',
         seed: Optional[int] = None):
@@ -145,6 +141,7 @@ class ShapeGraph(NodeDataset):
 
         # Set random splits for size n graph:
         range_set = list(range(self.num_nodes))
+        random.seed(1234) # Seed random before making splits
         train_nodes = random.sample(range_set, int(self.num_nodes * 0.7))
         test_nodes  = random.sample(range_set, int(self.num_nodes * 0.25))
         valid_nodes = random.sample(range_set, int(self.num_nodes * 0.05))
