@@ -11,7 +11,8 @@ from graphxai.explainers import CAM, Grad_CAM
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
-from graphxai.datasets import BAShapes
+#from graphxai.datasets import BAShapes
+from graphxai.datasets.shape_graph import ShapeGraph
 
 from graphxai.utils import to_networkx_conv
 
@@ -22,18 +23,19 @@ num_houses = 20
 # bah = BA_Houses(n, m)
 # data, inhouse = bah.get_data(num_houses, multiple_features=True)
 
-hyp = {
-    'num_hops': 2,
-    'n': n,
-    'm': m,
-    'num_shapes': num_houses,
-    'shape_insert_strategy': 'bound_12',
-    'labeling_method': 'edge',
-    'shape_upper_bound': 1,
-    'feature_method': 'gaussian_lv'
-}
+# hyp = {
+#     'num_hops': 2,
+#     'n': n,
+#     'm': m,
+#     'num_shapes': num_houses,
+#     'shape_insert_strategy': 'bound_12',
+#     'labeling_method': 'edge',
+#     'shape_upper_bound': 1,
+#     'feature_method': 'gaussian_lv'
+# }
 
-bah = BAShapes(**hyp)
+#bah = BAShapes(**hyp)
+bah = ShapeGraph(model_layers = 3)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
@@ -66,7 +68,7 @@ exp = cam.get_explanation_node(data.x, node_idx = int(node_idx), label = pred_cl
 gt_exp = bah.explanations[node_idx]
 # gt_exp.enc_subgraph.draw(show=True)
 
-gt_exp.context_draw(num_hops = 2, show=True)
+#t_exp.context_draw(num_hops = 2, show=True)
 
 print('node_imp', gt_exp.node_imp)
 print('nodes for enc_subgraph', gt_exp.enc_subgraph.nodes)
@@ -75,12 +77,11 @@ print('num_hops', bah.num_hops)
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 # Ground truth plot:
-gt_exp.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax = ax1)
+gt_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
 # CAM plot:
-#visualize_subgraph_explanation(exp.enc_subgraph.edge_index, exp.node_imp, connected = False, node_idx = int(node_idx), ax = ax2, show = False)
-exp.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax = ax2)
+exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
 ax2.set_title('CAM')
 
 gcam = Grad_CAM(model, criterion = criterion)
@@ -92,7 +93,7 @@ exp = gcam.get_explanation_node(
                     average_variant=True)
 
 #Grad-CAM plot:
-exp.context_draw(num_hops = bah.num_hops, additional_hops = 1, heat_by_exp = True, ax = ax3)
+exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
 ax3.set_title('Grad-CAM')
 
 ymin, ymax = ax1.get_ylim()
