@@ -49,8 +49,6 @@ class NodeDataset:
             use_static_split (bool, optional): (:default: True)
         '''
 
-        print('data.y before masking', self.graph.y)
-
         if use_fixed_split:
             # Set train, test, val static masks:
             self.graph.train_mask = self.fixed_train_mask
@@ -104,26 +102,18 @@ class NodeDataset:
     def y(self):
         return self.graph.y
 
-    # @property
-    # def name(self):
-    #     return self.name
-
     def __getitem__(self, idx):
         assert idx == 0, 'Dataset has only one graph'
         return self.graph, self.explanation
 
 
 class GraphDataset:
-    def __init__(self, 
-        name,
-        download: Optional[bool] = False,
-        root: Optional[str] = None
-        ):
+    def __init__(self, name):
 
         self.name = name
 
-        self.graph_list = []
-        self.explanation_list = []
+        self.dataset = []
+        self.explanations = []
         # explanation_list - list of explanations for each graph
 
     def get_train_loader(
@@ -154,6 +144,19 @@ class GraphDataset:
         else:
             pass
 
+    def split_dataset(
+            self,
+            val_size: float,
+            test_size: float,
+            use_fixed_split: float = False
+        ):
+
+        if use_fixed_split:
+            pass
+
+        else:
+            pass
+
     def get_val_loader(
         self, 
         use_static_split = True, 
@@ -172,7 +175,7 @@ class GraphDataset:
         pass
 
     def __getitem__(self, idx):
-        return self.graph_list[idx], self.explanation_list[idx]
+        return self.dataset[idx], self.explanation_list[idx]
 
 class MUTAG_Dataset(GraphDataset):
     def __init__(self):
