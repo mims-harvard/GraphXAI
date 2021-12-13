@@ -18,25 +18,28 @@ y = [d['shapes_in_khop'] for _, d in G.nodes(data=True)]
 shape = [d['shape'] for _,d in G.nodes(data=True)]
 
 # Time analysis:
-num_hops_search = [1, 2, 3, 4]
-num_subgraph_search = [5, 10, 20, 30, 40, 50]
+#num_hops_search = [1]
+
+prob_connection_search = [0.02, 0.025, 0.03, 0.04]
+num_subgraph_search = [5, 10, 20, 30, 40, 50, 75, 100]
 
 time_dict = {subg: [] for subg in num_subgraph_search}
 size_dict = {subg: [] for subg in num_subgraph_search}
 
-for hops in num_hops_search:
+for p in prob_connection_search:
     for sub in num_subgraph_search:
-        print('Hops:', hops, 'Num_subg:', sub)
+        print('prob connect:', p, 'Num_subg:', sub)
         start_time = time.time()
-        G = build_bound_graph(num_subgraphs = sub, num_hops = hops, prob_connection = 1)
+        G = build_bound_graph(num_subgraphs = sub, num_hops = 1, prob_connection = p)
         # nx.draw(G)
         # plt.show()
         size_graph = G.number_of_nodes()
         t = time.time() - start_time
         print('\t Time:', t)
         print('\t Size:', size_graph)
+        print('\t Is Connected?:', nx.is_connected(G))
         time_dict[sub].append(t)
         size_dict[sub].append(size_graph)
 
-pd.DataFrame(time_dict, index = num_hops_search).to_csv('runtimes.csv')
-pd.DataFrame(size_dict, index = num_hops_search).to_csv('sizes.csv')
+pd.DataFrame(time_dict, index = prob_connection_search).to_csv('runtimes.csv')
+pd.DataFrame(size_dict, index = prob_connection_search).to_csv('sizes.csv')

@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 from graphxai.gnn_models.node_classification.testing import *
 
 def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_bound, upper_bound):
-    G = G.copy()
+    #G = G.copy()
+
+    incr_tuples = {}
+
     for n in nodes_to_search:
         khop = khop_subgraph_nx(node_idx = n, num_hops = num_hops, G = G)
 
@@ -21,8 +24,15 @@ def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_boun
         if num_unique < lower_bound or num_unique > upper_bound:
             return None
         else:
-            G.nodes[n][attr_measure] = num_unique
-            G.nodes[n]['nearby_shapes'] = unique_shapes
+
+            incr_tuples[n] = (num_unique, unique_shapes)
+
+            # G.nodes[n][attr_measure] = num_unique
+            # G.nodes[n]['nearby_shapes'] = unique_shapes
+
+    for k, v in incr_tuples.items():
+        G.nodes[k][attr_measure] = v[0]
+        G.nodes[k]['nearby_shapes'] = v[1]
 
     return G
 
@@ -34,6 +44,7 @@ def build_bound_graph(
         prob_connection: Optional[float] = 1,
         num_hops: Optional[int] = 2,
         base_graph: Optional[str] = 'ba',
+        **kwargs,
         ) -> nx.Graph:
     '''
     Creates a synthetic graph with one or two motifs within a given neighborhood and
@@ -55,7 +66,10 @@ def build_bound_graph(
 
     # Create graph:
     if base_graph == 'ba':
-        subgraph_generator = partial(nx.barabasi_albert_graph, n=5 * num_hops, m=1)
+        if 'n_ba' in kwargs:
+            subgraph_generator = partial(nx.barabasi_albert_graph, n=kwargs['n_ba'], m=1)
+        else:
+            subgraph_generator = partial(nx.barabasi_albert_graph, n=5 * num_hops, m=1)
 
     subgraphs = []
     shape_node_per_subgraph = []
@@ -119,14 +133,13 @@ def build_bound_graph(
     G = G.to_undirected()
 
     # Join subgraphs via inner-subgraph connections
-    # Rule: make 2 connections between any two graphs
     for i in range(len(subgraphs)):
         for j in range(i + 1, len(subgraphs)):
             #if i == j: # Don't connect the same subgraph
             #    continue
 
             s = subgraphs[i]
-            # Try to make num_hops connections between subgraphs i, j:
+            # Try to make connections between subgraphs i, j:
             for k in range(inter_sg_connections):
 
                 # Screen whether to try to make a connection:
@@ -137,18 +150,18 @@ def build_bound_graph(
                 possible_edges = list(zip(x.flatten(), y.flatten()))
 
                 rand_edge = None
-                break_flag = False
+
+                tempG = G.copy()
+
                 while len(possible_edges) > 0:
 
                     rand_edge = random.choice(possible_edges)
                     possible_edges.remove(rand_edge) # Remove b/c we're searching this edge possibility
 
-
-                    tempG = G.copy()
-
                     # Make edge between the two:
-                    tempG.add_edge(*rand_edge)
+                    tempG.add_edge(rand_edge[0], rand_edge[1])
                     tempG.add_edge(rand_edge[1], rand_edge[0])
+                    #print('rand_edge 1', rand_edge)
 
                     khop_union = set()
 
@@ -156,7 +169,7 @@ def build_bound_graph(
                     for t in list(original_shapes[i].nodes) + list(original_shapes[j].nodes):
                         khop_union = khop_union.union(set(khop_subgraph_nx(node_idx = t, num_hops = num_hops, G = tempG)))
 
-                    tempG = incr_on_unique_houses(
+                    incr_ret = incr_on_unique_houses(
                         nodes_to_search = list(khop_union),   
                         G = tempG, 
                         num_hops = num_hops, 
@@ -164,10 +177,15 @@ def build_bound_graph(
                         lower_bound = 1, 
                         upper_bound = 2)
 
-                    if tempG is None:
+                    if incr_ret is None:
+                        #print('rand_edge 2', rand_edge)
+                        tempG.remove_edge(rand_edge[0], rand_edge[1])
+                        #tempG.remove_edge(rand_edge[1], rand_edge[0])
+
                         rand_edge = None
                         continue
                     else:
+                        tempG = incr_ret
                         break
 
                 if rand_edge is not None: # If we found a valid edge
