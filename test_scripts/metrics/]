@@ -19,50 +19,7 @@ from graphxai.datasets.shape_graph import ShapeGraph
 
 from graphxai.utils import to_networkx_conv, Explanation
 
-def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
-    '''
-    Args:
-        gt_exp (Explanation): Ground truth explanation from the dataset.
-        generated_exp (Explanation): Explanation output by an explainer.
-    '''
-
-    # TODO: 1) Check that subgraphs match
-    #       2) Have to implement the cases where we have multiple ground-truth    #          explanations
-
-    EPS = 1e-09
-    thresh = 0.8
-    relative_positives = (gt_exp.node_imp == 1).nonzero(as_tuple=True)[0]
-    true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
-
-    # Accessing the enclosing subgraph. Will be the same for both explanation.:
-    exp_subgraph = generated_exp.enc_subgraph
-
-    calc_node_imp = generated_exp.node_imp
-
-    TPs = []
-    FPs = []
-    FNs = []
-    for i, node in enumerate(exp_subgraph.nodes):
-        # Restore original node numbering
-        positive = calc_node_imp[i].item() > thresh
-        if positive:
-            if node in true_nodes:
-                TPs.append(node)
-            else:
-                FPs.append(node)
-        else:
-            if node in true_nodes:
-                FNs.append(node)
-    TP = len(TPs)
-    FP = len(FPs)
-    FN = len(FNs)
-    JAC = TP / (TP + FP + FN + EPS)
-    # print(f'TP / (TP+FP+FN) edge score of gnn explainer is {edge_score}')
-
-    return JAC
-
-
-def graph_exp_faith(generated_exp: Explanation) -> float:
+def comp_gt(gt_exp: Explanation, generated_exp: Explanation) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -131,7 +88,7 @@ if __name__ == '__main__':
     torch.manual_seed(912)
     torch.cuda.manual_seed(912)
     # ipdb.set_trace()
-    data = bah.get_graph(seed=912)
+    data = bah.get_graph(use_fixed_split=True, seed=912)
 
     model = GIN_3layer_basic(64, input_feat = 10, classes = 2)
     # print(model)
@@ -196,10 +153,10 @@ if __name__ == '__main__':
         gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
 
         # Compute Scores
-        cam_exp_score = graph_exp_acc(gt_exp, cam_exp)
-        print(f'Faithfulness score for CAM={cam_exp_score}')
-        gcam_exp_score = graph_exp_acc(gt_exp, gcam_exp)
-        print(f'Faithfulness score for GradCAM={gcam_exp_score}')
+        cam_exp_score = comp_gt(gt_exp, cam_exp)
+        print(f'Faithfulness score for CAM {cam_exp_score}')
+        gcam_exp_score = comp_gt(gt_exp, gcam_exp)
+        print(f'Faithfulness score for GradCAM {gcam_exp_score}')
 
         # Plotting:
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
