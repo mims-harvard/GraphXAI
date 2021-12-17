@@ -1,8 +1,10 @@
 import torch
-from torch_geometric.nn import GCNConv, GINConv, BatchNorm
+from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge
+from torch_geometric.nn import Sequential
 
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
+# ----------------------- GCNs ----------------------------
 class GCN_1layer(torch.nn.Module):
     def __init__(self, input_feat, classes):
         super(GCN_1layer, self).__init__()
@@ -59,6 +61,8 @@ class GCN_3layer_basic(torch.nn.Module):
         x = x.relu()
         x = self.gcn3(x, edge_index)
         return x
+
+# ----------------------- GINs ----------------------------
 
 class GIN_1layer(torch.nn.Module):
     def __init__(self, input_feat, classes):
@@ -129,6 +133,49 @@ class GIN_3layer_basic(torch.nn.Module):
         x = x.relu()
         x = self.gin3(x, edge_index)
         return x
+
+# ----------------------- GraphSAGEs ----------------------------
+class GSAGE_3layer(torch.nn.Module):
+    def __init__(self, hidden_channels, input_feat, classes):
+        super(GSAGE_3layer, self).__init__()
+        self.gsage1 = SAGEConv(input_feat, hidden_channels)
+        self.batchnorm1 = BatchNorm(hidden_channels)
+        self.gsage2 = SAGEConv(hidden_channels, hidden_channels)
+        self.batchnorm2 = BatchNorm(hidden_channels)
+        self.gsage3 = SAGEConv(hidden_channels, classes)
+
+    def forward(self, x, edge_index):
+        x = self.gsage1(x, edge_index)
+        x = self.batchnorm1(x)
+        x = x.relu()
+        x = self.gsage2(x, edge_index)
+        x = self.batchnorm2(x)
+        x = x.relu()
+        x = self.gsage3(x, edge_index)
+        return x
+
+# ----------------------- JKNets ----------------------------
+class JKNet_3layer(torch.nn.Module):
+    def __init__(self, hidden_channels, input_feat, classes):
+        super(JKNet_3layer, self).__init__()
+        self.jknet = Sequential( 'x, edge_index', [
+            (SAGEConv(input_feat, hidden_channels), 'x, edge_index -> x1'),
+            (BatchNorm(hidden_channels), 'x1 -> x1'),
+            (torch.nn.PReLU(), 'x1 -> x1'),
+            (SAGEConv(hidden_channels, hidden_channels), 'x1, edge_index -> x2'),
+            (BatchNorm(hidden_channels), 'x2 -> x2'),
+            (torch.nn.PReLU(), 'x2 -> x2'),
+            (SAGEConv(hidden_channels, hidden_channels), 'x2, edge_index -> x3'),
+            (BatchNorm(hidden_channels), 'x3 -> x3'),
+            (torch.nn.PReLU(), 'x3 -> x3'),
+            (lambda x1, x2, x3: [x1, x2, x3], 'x1, x2, x3 -> xs'),
+            (JumpingKnowledge('cat', hidden_channels, num_layers = 2), 'xs -> x'),
+            torch.nn.Linear(3 * hidden_channels, classes),
+        ]
+        )
+
+    def forward(self, x, edge_index):
+        return self.jknet(x, edge_index)
 
 def train(model, optimizer,
           criterion, data):
