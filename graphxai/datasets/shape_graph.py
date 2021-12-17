@@ -89,7 +89,10 @@ class ShapeGraph(NodeDataset):
     def __init__(self,  
         model_layers: int = 3,
         shape: Union[str, nx.Graph] = 'house',
-        seed: Optional[int] = None):
+        seed: Optional[int] = None,
+        num_subgraphs = 10,
+        prob_connection = 1,
+        base_graph = 'ba'): # TODO: turn the last three arguments into kwargs
 
         super().__init__(name = 'ShapeGraph', num_hops = model_layers)
 
@@ -129,11 +132,11 @@ class ShapeGraph(NodeDataset):
         # Build graph:
         self.G = build_bound_graph(
                 shape = self.insert_shape, 
-                num_subgraphs = 10, 
+                num_subgraphs = num_subgraphs, 
                 inter_sg_connections = 1,
-                prob_connection = 1,
+                prob_connection = prob_connection,
                 num_hops = 1,
-                base_graph = 'ba',
+                base_graph = base_graph,
                 )
 
         self.generate_shape_graph() # Performs planting, augmenting, etc.

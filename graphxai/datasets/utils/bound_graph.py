@@ -36,7 +36,6 @@ def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_boun
 
     return G
 
-
 def build_bound_graph(
         shape: Optional[nx.Graph] = house, 
         num_subgraphs: Optional[int] = 5, 
@@ -104,14 +103,14 @@ def build_bound_graph(
             i += 1
 
         current_shape = nx.relabel.relabel_nodes(current_shape, convert)
-
-        original_s_nodes = list(s.nodes)
+        
         s.add_nodes_from(current_shape.nodes(data=True))
         s.add_edges_from(current_shape.edges)
 
         # Find k-hop from pivot:
         in_house = khop_subgraph_nx(node_idx = pivot, num_hops = num_hops, G = s)
         s.remove_nodes_from(set(s.nodes) - set(in_house) - set(current_shape.nodes))
+        nx.set_node_attributes(s, 1, 'shapes_in_khop')
 
         # Ensure that pivot is assigned to proper shape:
         #s.nodes[pivot]['shape_number'] = shape_number
