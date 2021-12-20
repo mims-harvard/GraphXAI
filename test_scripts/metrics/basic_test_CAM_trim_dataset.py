@@ -10,8 +10,8 @@ from graphxai.explainers import CAM, Grad_CAM
 #from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
-from graphxai.gnn_models.node_classification import GCN, train, test
-from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic
+#from graphxai.gnn_models.node_classification import GCN, train, test
+from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
 #from graphxai.datasets import BAShapes
 from graphxai.datasets.shape_graph import ShapeGraph
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # }
 
     #bah = BAShapes(**hyp)
-    bah = ShapeGraph(model_layers = 3)
+    bah = ShapeGraph(model_layers = 3, num_subgraphs = 40, prob_connection=0.2)
     data = bah.get_graph(use_fixed_split=True)
 
     model = GCN_3layer_basic(64, input_feat = 10, classes = 2)
@@ -86,11 +86,13 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
-    # Train the model for 200 epochs:
-    for epoch in range(1, 201):
+    # Train the model for 500 epochs:
+    for epoch in range(1, 1001):
         loss = train(model, optimizer, criterion, data)
-        acc = test(model, data)
-        print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
+        #acc = test(model, data)
+        f1, acc, prec, rec = test(model, data)
+        #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
+        print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}')
 
     model.eval()
     preds = model(data.x, data.edge_index)
@@ -121,7 +123,6 @@ if __name__ == '__main__':
 
     # Compute Grad-CAM explanation
     gcam = Grad_CAM(model, criterion = criterion)
-    print('node_idx', node_idx)
     gcam_exp = gcam.get_explanation_node(
                         data.x, 
                         y = data.y, 
@@ -161,6 +162,4 @@ if __name__ == '__main__':
     ax1.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
 
     plt.show()
-
-    print(gt_exp.edge_imp)
 

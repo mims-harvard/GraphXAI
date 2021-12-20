@@ -92,6 +92,7 @@ class ShapeGraph(NodeDataset):
         seed: Optional[int] = None,
         num_subgraphs = 10,
         prob_connection = 1,
+        subgraph_size = 13,
         base_graph = 'ba'): # TODO: turn the last three arguments into kwargs
 
         super().__init__(name = 'ShapeGraph', num_hops = model_layers)
@@ -135,6 +136,7 @@ class ShapeGraph(NodeDataset):
                 num_subgraphs = num_subgraphs, 
                 inter_sg_connections = 1,
                 prob_connection = prob_connection,
+                subgraph_size = subgraph_size,
                 num_hops = 1,
                 base_graph = base_graph,
                 )
