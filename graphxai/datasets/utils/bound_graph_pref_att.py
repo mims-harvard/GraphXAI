@@ -36,6 +36,44 @@ def incr_on_unique_houses(nodes_to_search, G, num_hops, attr_measure, lower_boun
 
     return G
 
+def ba_around_shape(shape: nx.Graph, add_size: int):
+    '''
+    Incrementally adds nodes around a shape in a Barabasi-Albert style
+    '''
+    # Get degree, probability distribution of shape
+    dist = []
+    degs = []
+
+    original_nodes = set(shape.nodes())
+
+    def get_dist():
+        degs = [d for n, d in shape.degree() if n in original_nodes]
+        total_degree = sum(degs)
+        dist = [degs[i]/total_degree for i in range(len(degs))]
+        return dist
+
+    nodes_in_shape = shape.number_of_nodes()
+    node_list = list(shape.nodes())
+    top_nodes = max(node_list)
+    #print(top_nodes)
+
+    for i in range(add_size):
+        # Must connect to only nodes within original gfraph
+        connect_node = np.random.choice(node_list, p = get_dist())
+        new_node = top_nodes + i + 1
+        shape.add_node(new_node)
+        shape.add_edge(connect_node, new_node) # Just add one edge b/c shape is undirected
+        #print(f'new: {new_node}', '\t', f'connect: {connect_node}')
+        shape.nodes[new_node]['shape'] = 0 # Set to zero because its not in a shape
+    
+    # c = [int(not (i in node_list)) for i in shape.nodes]
+    # nx.draw(shape, node_color = c, cmap = 'brg')
+    # plt.show()
+
+    return shape
+
+
+
 def build_bound_graph(
         shape: Optional[nx.Graph] = house, 
         num_subgraphs: Optional[int] = 5, 
@@ -43,6 +81,7 @@ def build_bound_graph(
         prob_connection: Optional[float] = 1,
         num_hops: Optional[int] = 2,
         base_graph: Optional[str] = 'ba',
+        subgraph_size: int = 13,
         **kwargs,
         ) -> nx.Graph:
     '''
@@ -63,64 +102,34 @@ def build_bound_graph(
             Options are `'ba'` (Barabasi-Albert) (:default: :obj:`'ba'`)
     '''
 
-    # Create graph:
-    if base_graph == 'ba':
-        if 'n_ba' in kwargs:
-            subgraph_generator = partial(nx.barabasi_albert_graph, n=kwargs['n_ba'], m=1)
-        else:
-            subgraph_generator = partial(nx.barabasi_albert_graph, n=5 * num_hops, m=1)
-
     subgraphs = []
     shape_node_per_subgraph = []
     original_shapes = []
     floor_counter = 0
     shape_number = 1
+
+    nodes_in_shape = shape.number_of_nodes()
+
     for i in range(num_subgraphs):
         current_shape = shape.copy()
-        #nx.set_node_attributes(current_shape, 1, 'shape')
-        #nx.set_node_attributes(current_shape, shape_number, 'shape_number')
+
         nx.set_node_attributes(current_shape, shape_number, 'shape')
 
-        s = subgraph_generator()
-        relabeler = {ns: floor_counter + ns for ns in s.nodes}
-        s = nx.relabel.relabel_nodes(s, relabeler)
-        nx.set_node_attributes(s, 0, 'shape')
-        #nx.set_node_attributes(s, 0, 'shape_number')
-
-        # Join s and shape together:
-        to_pivot = random.choice(list(shape.nodes))
-        pivot = random.choice(list(s.nodes))
-
-        shape_node_per_subgraph.append(pivot) # This node represents the shape in the graph
-
-        convert = {to_pivot: pivot}
-
-        mx_nodes = max(list(s.nodes))
-        i = 1
-        for n in current_shape.nodes:
-            if not (n == to_pivot):
-                convert[n] = mx_nodes + i
-            i += 1
-
-        current_shape = nx.relabel.relabel_nodes(current_shape, convert)
-        
-        s.add_nodes_from(current_shape.nodes(data=True))
-        s.add_edges_from(current_shape.edges)
-
-        # Find k-hop from pivot:
-        in_house = khop_subgraph_nx(node_idx = pivot, num_hops = num_hops, G = s)
-        s.remove_nodes_from(set(s.nodes) - set(in_house) - set(current_shape.nodes))
-        nx.set_node_attributes(s, 1, 'shapes_in_khop')
-
-        # Ensure that pivot is assigned to proper shape:
-        #s.nodes[pivot]['shape_number'] = shape_number
-        s.nodes[pivot]['shape'] = shape_number
-
-
-        subgraphs.append(s.copy())
-        floor_counter = max(list(s.nodes)) + 1
+        relabeler = {ns: floor_counter + ns for ns in current_shape.nodes}
+        current_shape = nx.relabel.relabel_nodes(current_shape, relabeler)
         original_shapes.append(current_shape.copy())
 
+        subi_size = np.random.poisson(lam = subgraph_size - nodes_in_shape)
+        s = ba_around_shape(current_shape, add_size = subi_size)
+
+        # All nodes have one shape in their k-hop (guaranteed by building procedure)
+        nx.set_node_attributes(s, 1, 'shapes_in_khop')
+
+        # Append a copy of subgraph to subgraphs vector
+        subgraphs.append(s.copy())
+
+        # Increment floor counter and shape number:
+        floor_counter = max(list(s.nodes)) + 1
         shape_number += 1
 
     G = nx.Graph()
@@ -148,14 +157,34 @@ def build_bound_graph(
                 x, y = np.meshgrid(list(subgraphs[i].nodes), list(subgraphs[j].nodes))
                 possible_edges = list(zip(x.flatten(), y.flatten()))
 
+                # Create preferential attachment distribution: -------------------
+                #total_degs = 2 * (subgraphs[i].number_of_edges() + subgraphs[j].number_of_edges()) # Total of degrees between each graph
+                deg_dist = np.array([(subgraphs[i].degree(ni) + subgraphs[j].degree(nj)) for ni, nj in possible_edges])
+                running_mask = np.ones(deg_dist.shape[0])
+                #deg_dist = list((np.round(deg_dist, 4) / np.sum(np.round(deg_dist, 4))))
+                #print(np.sum(deg_dist))
+                indices_to_choose = list(range(len(possible_edges)))
+                # ----------------------------------------------------------------
+
                 rand_edge = None
 
                 tempG = G.copy()
 
-                while len(possible_edges) > 0:
+                #while len(possible_edges) > 0:
+                while np.sum(running_mask) > 0:
 
-                    rand_edge = random.choice(possible_edges)
-                    possible_edges.remove(rand_edge) # Remove b/c we're searching this edge possibility
+                    # rand_edge = random.choice(possible_edges)
+                    # possible_edges.remove(rand_edge) # Remove b/c we're searching this edge possibility
+
+                    # -----------
+                    rand_i = np.random.choice(indices_to_choose, p = deg_dist / np.sum(deg_dist))
+                    rand_edge = possible_edges[rand_i]
+                    old_deg = deg_dist[rand_i]
+                    running_mask[rand_i] = 0
+
+                    if np.sum(running_mask) > 0:
+                        deg_dist = (deg_dist + old_deg/np.sum(running_mask) * running_mask) * running_mask
+                    # -----------
 
                     # Make edge between the two:
                     tempG.add_edge(rand_edge[0], rand_edge[1])

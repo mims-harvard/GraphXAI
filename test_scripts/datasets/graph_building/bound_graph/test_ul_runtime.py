@@ -20,7 +20,8 @@ shape = [d['shape'] for _,d in G.nodes(data=True)]
 # Time analysis:
 #num_hops_search = [1]
 
-prob_connection_search = [0.02, 0.025, 0.03, 0.04]
+#prob_connection_search = [0.02, 0.025, 0.03, 0.04]
+prob_connection_search = [0.01, 0.02, 0.025, 0.03, 0.04, 0.05, 0.1, 0.15, 0.5, 0.75, 1]
 num_subgraph_search = [5, 10, 20, 30, 40, 50, 75, 100]
 
 time_dict = {subg: [] for subg in num_subgraph_search}
