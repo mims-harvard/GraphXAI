@@ -78,7 +78,7 @@ class _BaseDecomposition(_BaseExplainer):
 
         # --- divide layer sets ---
 
-        print('Layer extractor', [layer_extractor[i][0] for i in range(len(layer_extractor))])
+        # print('Layer extractor', [layer_extractor[i][0] for i in range(len(layer_extractor))])
 
         walk_steps = []
         fc_steps = []

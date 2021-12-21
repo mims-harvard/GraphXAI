@@ -83,8 +83,6 @@ class CAM(_BaseDecomposition):
 
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
-        # print([walk_steps[i]['module'] for i in range(len(walk_steps))])
-        # exit()
 
         # Get subgraph:
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
@@ -178,8 +176,8 @@ class CAM(_BaseDecomposition):
         '''
         last_conv_layer = walk_steps[-1]
 
-        if isinstance(last_conv_layer['module'][0], GCNConv):
-            weight_vec = last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
+        if isinstance(last_conv_layer['module'][0], GINConv):
+            weight_vec = last_conv_layer['module'][0].nn.weight[predicted_c, :].detach()  # last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
         elif isinstance(last_conv_layer['module'][0], torch.nn.Linear):
             weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
 
@@ -394,9 +392,12 @@ class Grad_CAM(_BaseDecomposition):
     def __grad_by_layer(self, layer):
         # Index 0 of parameters to avoid calculating gradients for biases
         module_at_layer = list(self.model.children())[layer]
+
         if isinstance(module_at_layer, GCNConv):
             grad = module_at_layer.lin.weight.grad
         elif isinstance(module_at_layer, GINConv):
+            grad = module_at_layer.nn.weight.grad
+        else:
             grad = module_at_layer.weight.grad
 
         return grad.mean(dim=1)

@@ -38,7 +38,7 @@ class NodeDataset:
         #self.explanations = []
 
     def get_graph(self, 
-        use_fixed_split = True, 
+        use_fixed_split = False, 
         split_sizes = (0.7, 0.2, 0.1),
         stratify = True, 
         seed = None):
@@ -48,7 +48,8 @@ class NodeDataset:
         Args:
             use_static_split (bool, optional): (:default: True)
         '''
-
+        import ipdb
+        # ipdb.set_trace()
         if use_fixed_split:
             # Set train, test, val static masks:
             self.graph.train_mask = self.fixed_train_mask
@@ -61,7 +62,10 @@ class NodeDataset:
             # Create a split for user (based on seed, etc.)
             train_mask, test_mask = train_test_split(list(range(self.graph.num_nodes)), 
                                 test_size = split_sizes[1] + split_sizes[2], 
-                                random_state = seed, stratify = self.graph.y.tolist() if stratify else None)
+                                random_state = seed)  # , stratify = self.graph.y.tolist() if stratify else None)
+            # print(self.graph.y.tolist())
+            # print(train_mask)
+            # exit(0)
 
             if split_sizes[2] > 0:
                 valid_mask, test_mask = train_test_split(test_mask, 
