@@ -20,7 +20,7 @@ for p in prob_connection_search:
         print('prob connect:', p, 'Num_subg:', sub)
         start_time = time.time()
         #G = build_bound_graph(num_subgraphs = sub, num_hops = 1, prob_connection = p)
-        bah = ShapeGraph(model_layers=3, num_subgraphs=sub, prob_connection=p)
+        bah = ShapeGraph(model_layers=3, num_subgraphs=sub, prob_connection=p, verify = False)
         G = bah.G
         # nx.draw(G)
         # plt.show()
