@@ -86,7 +86,7 @@ class ShapeGraph(NodeDataset):
         self.subgraph_size = 13 if 'subgraph_size' not in kwargs else kwargs['subgraph_size']
         self.base_graph = 'ba' if 'base_graph' not in kwargs else kwargs['base_graph']
         self.verify = True if 'verify' not in kwargs else kwargs['verify']
-        self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_connection']
+        self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
 
         # Barabasi-Albert parameters (will generalize later)
         self.seed = seed
@@ -137,8 +137,7 @@ class ShapeGraph(NodeDataset):
                         inter_sg_connections = 1,
                         prob_connection = self.prob_connection,
                         subgraph_size = self.subgraph_size,
-                        num_hops = 1,
-                        base_graph = self.base_graph,
+                        num_hops = 1
                         )
 
                 if verify_motifs(self.G, self.insert_shape):
@@ -167,8 +166,7 @@ class ShapeGraph(NodeDataset):
                     inter_sg_connections = 1,
                     prob_connection = self.prob_connection,
                     subgraph_size = self.subgraph_size,
-                    num_hops = 1,
-                    base_graph = self.base_graph,
+                    num_hops = 1
                     )
 
 

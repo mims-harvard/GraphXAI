@@ -10,9 +10,9 @@ from sklearn.model_selection import KFold, train_test_split, StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 from graphxai.datasets.shape_graph import ShapeGraph
-from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic
+from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, GCN_4layer_basic, GAT_3layer_basic
 from graphxai.gnn_models.node_classification.testing import GCN_2layer, GIN_2layer
-from graphxai.gnn_models.node_classification.testing import GSAGE_3layer, JKNet_3layer
+from graphxai.gnn_models.node_classification.testing import GSAGE_3layer, JKNet_3layer, JKNet_3layer_lstm
 
 def train_on_split(
         model, 
@@ -60,7 +60,7 @@ def test_model_on_ShapeGraph(model, epochs_per_run = 500, num_cvs = 30):
     for i in trange(num_cvs):
         # Gen dataset:
         #bah = ShapeGraph(model_layers = 3)
-        bah = ShapeGraph(model_layers = 3, num_subgraphs = 40, prob_connection = 0.5)
+        bah = ShapeGraph(model_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
         data = bah.get_graph()
         # Cross-validation split on dataset nodes:
         kf = StratifiedKFold(n_splits = 10, shuffle = True)
@@ -118,19 +118,19 @@ def test_model_on_ShapeGraph(model, epochs_per_run = 500, num_cvs = 30):
         print('{} Score: {:.4f} +- {:.4f}'.format(metrics[i], np.mean(l), (ci[1] - ci[0]) / 2))
 
 if __name__ == '__main__':
-    print('Graph: n=75, p=0.1, sn=8')
-    model = lambda : GSAGE_3layer(
-        hidden_channels=64, 
-        input_feat = 10,
-        classes = 2)
-    print('GSAGE 3 layer, hc = 64')
-    # model = lambda : GCN_3layer_basic(
-    #     hidden_channels=64, 
+    print('Graph: n=100, p=0.09, sn=13')
+    # model = lambda : GSAGE_3layer(
+    #     hidden_channels=16, 
     #     input_feat = 10,
     #     classes = 2)
-    # print('GCN 3 layer, hc = 64')
+    # print('GSAGE 3 layer, hc = 16, epochs = 150')
+    model = lambda : GAT_3layer_basic(
+        hidden_channels=16, 
+        input_feat = 10,
+        classes = 2)
+    print('GAT 3 layer, hc = 16')
 
-    test_model_on_ShapeGraph(model, epochs_per_run=500)
+    test_model_on_ShapeGraph(model, epochs_per_run=100, num_cvs = 10)
 
 
 
