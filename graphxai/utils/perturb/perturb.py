@@ -31,7 +31,7 @@ def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
     # Convert to networkx graph for rewiring edges
     data = Data(edge_index=edge_index, num_nodes=num_nodes)
     G = convert.to_networkx(data, to_undirected=True)
-    rewired_G = swap(G, subset, nswap=nswap, max_tries=500*nswap, seed=seed)
+    rewired_G = swap(G, subset, nswap=nswap, max_tries=1000*nswap, seed=seed)
     rewired_adj_mat = adj_mat(rewired_G)
     rewired_edge_index = convert.from_scipy_sparse_matrix(rewired_adj_mat)[0]
     return rewired_edge_index

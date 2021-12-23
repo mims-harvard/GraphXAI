@@ -129,6 +129,7 @@ class Explanation:
         node_reference: Optional[torch.tensor] = None,
         edge_reference: Optional[torch.tensor] = None,
         graph = None):
+
         # Establish basic properties
         self.feature_imp = feature_imp
         self.node_imp = node_imp
