@@ -97,6 +97,19 @@ class ShapeGraph(NodeDataset):
         self.graph = None
         self.model_layers = model_layers
 
+<<<<<<< HEAD
+=======
+        # Parse kwargs:
+        self.variant = 0 if 'variant' not in kwargs else kwargs['variant']
+            # 0 is old, 1 is preferential attachment one
+        self.num_subgraphs = 10 if 'num_subgraphs' not in kwargs else kwargs['num_subgraphs']
+        self.prob_connection = 1 if 'prob_connection' not in kwargs else kwargs['prob_connection']
+        self.subgraph_size = 13 if 'subgraph_size' not in kwargs else kwargs['subgraph_size']
+        self.base_graph = 'ba' if 'base_graph' not in kwargs else kwargs['base_graph']
+        self.verify = True if 'verify' not in kwargs else kwargs['verify']
+        self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
+
+>>>>>>> 04cdbf4a11d9667ee5446c47122a44526df7b406
         # Barabasi-Albert parameters (will generalize later)
         self.seed = seed
 
@@ -124,7 +137,63 @@ class ShapeGraph(NodeDataset):
 
             assert shape != 'random', 'Multiple shapes not yet supported for bounded graph'
 
+<<<<<<< HEAD
         #self.y_before_x = (self.feature_method == 'gaussian_lv')
+=======
+        # Build graph:
+
+        if self.verify and shape != 'random':
+            for i in range(self.max_tries_verification):
+                if self.variant == 0:
+                    self.G = BBG_old(
+                        shape = self.insert_shape, 
+                        num_subgraphs = self.num_subgraphs, 
+                        inter_sg_connections = 1,
+                        prob_connection = self.prob_connection,
+                        subgraph_size = self.subgraph_size,
+                        num_hops = 1,
+                        base_graph = self.base_graph,
+                        )
+
+                elif self.variant == 1:
+                    self.G = BBG_PA(
+                        shape = self.insert_shape, 
+                        num_subgraphs = self.num_subgraphs, 
+                        inter_sg_connections = 1,
+                        prob_connection = self.prob_connection,
+                        subgraph_size = self.subgraph_size,
+                        num_hops = 1
+                        )
+
+                if verify_motifs(self.G, self.insert_shape):
+                    # If the motif verification passes
+                    break
+            else:
+                # Raise error if we couldn't generate a valid graph
+                raise RuntimeError(f'Could not build a valid graph in {self.max_tries_verification} attempts. \
+                    \n Try using different parameters for graph generation or increasing max_tries_verification argument value.')
+            
+        else:
+            if self.variant == 0:
+                self.G = BBG_old(
+                        shape = self.insert_shape, 
+                        num_subgraphs = self.num_subgraphs, 
+                        inter_sg_connections = 1,
+                        prob_connection = self.prob_connection,
+                        subgraph_size = self.subgraph_size,
+                        num_hops = 1,
+                        base_graph = self.base_graph,
+                        )
+            elif self.variant == 1:
+                self.G = BBG_PA(
+                    shape = self.insert_shape, 
+                    num_subgraphs = self.num_subgraphs, 
+                    inter_sg_connections = 1,
+                    prob_connection = self.prob_connection,
+                    subgraph_size = self.subgraph_size,
+                    num_hops = 1
+                    )
+>>>>>>> 04cdbf4a11d9667ee5446c47122a44526df7b406
 
         # Build graph:
         self.G = build_bound_graph(
