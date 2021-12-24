@@ -14,9 +14,7 @@ from graphxai import Explanation
 from graphxai.datasets.utils.shapes import *
 from graphxai.datasets.dataset import NodeDataset, GraphDataset
 from graphxai.datasets.feature import make_structured_feature
-from graphxai.datasets.utils.bound_graph import build_bound_graph as BBG_old
-from graphxai.datasets.utils.bound_graph_pref_att import build_bound_graph as BBG_PA
-from graphxai.datasets.utils.verify import verify_motifs
+from graphxai.datasets.utils.bound_graph import build_bound_graph
 
 from graphxai.datasets.utils.feature_generators import gaussian_lv_generator
 from graphxai.datasets.utils.label_generators import bound_graph_label
@@ -28,7 +26,20 @@ class ShapeGraph(NodeDataset):
 
     ..note:: Flag and circle shapes not yet implemented
 
+    TODO: NEED TO FIX DOCSTRING
+
     Args:
+        num_hops (int): Number of hops for each node's enclosing 
+            subgraph. Should correspond to number of graph convolutional
+            layers in GNN. 
+        n (int): For global planting method, corresponds to the total number of 
+            nodes in graph. If using local planting method, corresponds to the 
+            starting number of nodes in graph.
+        m (int): Number of edges per node in graph.
+        num_shapes (int): Number of shapes for given planting strategy.
+            If planting strategy is global, total number of shapes in
+            the graph. If planting strategy is local, number of shapes
+            per num_hops - hop neighborhood of each node.
         model_layers (int, optional): Number of layers within the GNN that will
             be explained. This defines the extent of the ground-truth explanations
             that are created by the method. (:default: :obj:`3`)
@@ -37,26 +48,35 @@ class ShapeGraph(NodeDataset):
             If `'multiple'`, random shapes are generated to insert into 
             the graph.
             (:default: :obj:`'house'`)
-        seed (int, optional): Seed for graph generation. (:default: `None`)
-
-        TODO: Ensure seed keeps graph generation constant.
+        graph_construct_strategy (str, optional): Type of insertion strategy for 
+            each motif. Options are `'plant'` or `'staple'`.
+            (:default: :obj:`'plant'`)
+        shape_insert_strategy (str, optional): How to decide where shapes are 
+            planted. 'global' method chooses random nodes from entire 
+            graph. 'local' method enforces a lower bound on number of 
+            shapes in the (num_hops)-hop neighborhood of each node. 
+            'neighborhood upper bound' enforces an upper-bound on the 
+            number of shapes per num_hops-hop neighborhood. 'bound_12' 
+            enforces that all nodes in the graph are either in 1 or 2
+            houses. 
+            (:default: :obj:`'global'`)
+        feature_method (str, optional): How to generate node features.
+            Options are `'network stats'` (features are network statistics),
+            `'gaussian'` (features are random gaussians), 
+            `'gaussian_lv` (gaussian latent variables), and 
+            `'onehot'` (features are random one-hot vectors) 
+            (:default: :obj:`'network stats'`)
+        labeling_method (str, optional): Rule of how to label the nodes.
+            Options are `'feature'` (only label based on feature attributes), 
+            `'edge` (only label based on edge structure), 
+            `'edge and feature'` (label based on both feature attributes
+            and edge structure). (:default: :obj:`'edge and feature'`)
 
         kwargs: Additional arguments
-            variant (int): 0 indicates using the old ShapeGraph method, and 1 indicates
-                using the new ShapeGraph method (i.e. one with pref. attachment).   
-            num_subgraphs (int): Number of individual subgraphs to use in order to build
-                the graph. Doesn't guarantee size of graph. (:default: :obj:`10`)
-            prob_connection (float): Probability of making a connection between any two
-                of the original subgraphs. Roughly controls sparsity and number of 
-                class 0 vs. class 1 nodes. (:default: :obj:`1`)
-            subgraph_size (int): Expected size of each individual subgraph.
-            base_graph (str): Base graph structure to use for generating subgraphs.
-                Only in effect for variant 0. (:default: :obj:`'ba'`)
-            verify (bool): Verifies that graph does not have any "bad" motifs in it.
-                (:default: :obj:`True`)
-            max_tries_verification (int): Maximum number of tries to re-generate a 
-                graph that contains bad motifs. (:default: :obj:`5`)
-            
+            shape_upper_bound (int, Optional): Number of maximum shapes
+                to add per num_hops-hop neighborhood in the 'neighborhood
+                upper bound' planting policy.
+
     Members:
         G (nx.Graph): Networkx version of the graph for the dataset
             - Contains many values per-node: 
@@ -69,24 +89,13 @@ class ShapeGraph(NodeDataset):
     def __init__(self,  
         model_layers: int = 3,
         shape: Union[str, nx.Graph] = 'house',
-        seed: Optional[int] = None,
-        **kwargs): # TODO: turn the last three arguments into kwargs
+        seed: Optional[int] = None):
 
         super().__init__(name = 'ShapeGraph', num_hops = model_layers)
 
         self.in_shape = []
         self.graph = None
         self.model_layers = model_layers
-
-        # Parse kwargs:
-        self.variant = 0 if 'variant' not in kwargs else kwargs['variant']
-            # 0 is old, 1 is preferential attachment one
-        self.num_subgraphs = 10 if 'num_subgraphs' not in kwargs else kwargs['num_subgraphs']
-        self.prob_connection = 1 if 'prob_connection' not in kwargs else kwargs['prob_connection']
-        self.subgraph_size = 13 if 'subgraph_size' not in kwargs else kwargs['subgraph_size']
-        self.base_graph = 'ba' if 'base_graph' not in kwargs else kwargs['base_graph']
-        self.verify = True if 'verify' not in kwargs else kwargs['verify']
-        self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_connection']
 
         # Barabasi-Albert parameters (will generalize later)
         self.seed = seed
@@ -115,62 +124,17 @@ class ShapeGraph(NodeDataset):
 
             assert shape != 'random', 'Multiple shapes not yet supported for bounded graph'
 
+        #self.y_before_x = (self.feature_method == 'gaussian_lv')
+
         # Build graph:
-
-        if self.verify and shape != 'random':
-            for i in range(self.max_tries_verification):
-                if self.variant == 0:
-                    self.G = BBG_old(
-                        shape = self.insert_shape, 
-                        num_subgraphs = self.num_subgraphs, 
-                        inter_sg_connections = 1,
-                        prob_connection = self.prob_connection,
-                        subgraph_size = self.subgraph_size,
-                        num_hops = 1,
-                        base_graph = self.base_graph,
-                        )
-
-                elif self.variant == 1:
-                    self.G = BBG_PA(
-                        shape = self.insert_shape, 
-                        num_subgraphs = self.num_subgraphs, 
-                        inter_sg_connections = 1,
-                        prob_connection = self.prob_connection,
-                        subgraph_size = self.subgraph_size,
-                        num_hops = 1,
-                        base_graph = self.base_graph,
-                        )
-
-                if verify_motifs(self.G, self.insert_shape):
-                    # If the motif verification passes
-                    break
-            else:
-                # Raise error if we couldn't generate a valid graph
-                raise RuntimeError(f'Could not build a valid graph in {self.max_tries_verification} attempts. \
-                    \n Try using different parameters for graph generation or increasing max_tries_verification argument value.')
-            
-        else:
-            if self.variant == 0:
-                self.G = BBG_old(
-                        shape = self.insert_shape, 
-                        num_subgraphs = self.num_subgraphs, 
-                        inter_sg_connections = 1,
-                        prob_connection = self.prob_connection,
-                        subgraph_size = self.subgraph_size,
-                        num_hops = 1,
-                        base_graph = self.base_graph,
-                        )
-            elif self.variant == 1:
-                self.G = BBG_PA(
-                    shape = self.insert_shape, 
-                    num_subgraphs = self.num_subgraphs, 
-                    inter_sg_connections = 1,
-                    prob_connection = self.prob_connection,
-                    subgraph_size = self.subgraph_size,
-                    num_hops = 1,
-                    base_graph = self.base_graph,
-                    )
-
+        self.G = build_bound_graph(
+                shape = self.insert_shape, 
+                num_subgraphs=100,
+                inter_sg_connections=1,
+                prob_connection=0.1,
+                num_hops=1,
+                base_graph = 'ba',
+                )
 
         self.generate_shape_graph() # Performs planting, augmenting, etc.
         self.num_nodes = self.G.number_of_nodes() # Number of nodes in graph
@@ -253,7 +217,6 @@ class ShapeGraph(NodeDataset):
 
         exp.set_enclosing_subgraph(khop_info)
         return exp
-
 
     def visualize(self, shape_label = False):
         '''

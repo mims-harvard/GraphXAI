@@ -15,13 +15,9 @@ from graphxai.explainers import CAM, Grad_CAM
 # from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
+from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic
 # from graphxai.datasets import BAShapes
-=======
-from graphxai.gnn_models.node_classification import GCN, train, test
-from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
-#from graphxai.datasets import BAShapes
-
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges
@@ -124,9 +120,12 @@ def graph_exp_faith(generated_exp: Explanation, top_k=0.25) -> float:
         # check if the graph is disconnected!!
         pert_softmax = F.softmax(pert_vec, dim=-1)
 
+    ipdb.set_trace()
     if generated_exp.edge_imp is not None:
-        cal_edge_imp = generated_exp.edge_imp
-        
+        # Identifying the top_k edges in the explanation subgraph
+        edge_imp = torch.Tensor([0.1, 0.4, 0.3, 0.25, 0.9])
+        top_k_nodes = edge_imp.topk(int(edge_imp.shape[0] * top_k))[1]
+        # TODO: After using an explanation method that generates edge-level explanation
 
     GEF = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
@@ -300,223 +299,74 @@ if __name__ == '__main__':
         print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
         print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
-        if data.y[node_idx].item() == pred.argmax(dim=0).item():
-            # Compute CAM explanation
-            act = lambda x: torch.argmax(x, dim=1)
-            cam = CAM(model, activation=act)
-            cam_exp = cam.get_explanation_node(
-                data.x,
-                node_idx=int(node_idx),
-                label=pred_class,
-                edge_index=data.edge_index)
-
-            # Explanation
-            # Get ground-truth explanation
-            gt_exp = bah.explanations[node_idx]
-
-            # Compute Grad-CAM explanation
-            gcam = Grad_CAM(model, criterion=criterion)
-            # print('node_idx', node_idx)
-            gcam_exp = gcam.get_explanation_node(
-                data.x,
-                y=data.y,
-                node_idx=int(node_idx),
-                edge_index=data.edge_index,
-                average_variant=True)
-
-            # Normalize the explanations to 0-1 range:
-            cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
-            gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
-
-            # Compute Scores
-            cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
-            cam_gef_score = graph_exp_faith(cam_exp)
-            delta = calculate_delta(gcam_exp, torch.where(data.train_mask == True)[0], label=data.y)
-            cam_ges_score = graph_exp_stability(cam_exp, node_id=node_idx, model=model, delta=delta)
-            print('### CAM ###')
-            print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
-            print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
-            print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
-            # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
-            # gcam_gef_score = graph_exp_faith(gcam_exp)
-            # gcam_ges_score = graph_exp_stability(gcam_exp, node_id=node_idx, model=model, delta=delta)
-            # print('\n### GradCAM ###')
-            # print(f'Graph Explanation Accuracy using GradCAM={gcam_gea_score:.3f}')
-            # print(f'Graph Explanation Faithfulness using GradCAM={gcam_gef_score:.3f}')
-            # print(f'Graph Explanation Stability using GradCAM={gcam_ges_score:.3f}')
-
-            # # Plotting:
-            # fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-            #
-            # gt_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax1)
-            # ax1.set_title('Ground Truth')
-            #
-            # cam_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax2)
-            #
-            # ax2.set_title('CAM')
-            # ymin, ymax = ax2.get_ylim()
-            # xmin, xmax = ax2.get_xlim()
-            # ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_gea_score))
-            # gcam_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax3)
-            # ax3.set_title('Grad-CAM')
-            # ymin, ymax = ax3.get_ylim()
-            # xmin, xmax = ax3.get_xlim()
-            # ax3.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(gcam_gea_score))
-            #
-            # ymin, ymax = ax1.get_ylim()
-            # xmin, xmax = ax1.get_xlim()
-            # # print('node_idx', node_idx, data.y[node_idx].item())
-            # ax1.text(xmin, ymax - 0.1 * (ymax - ymin), 'Label = {:d}'.format(data.y[node_idx].item()))
-            # ax1.text(xmin, ymax - 0.15 * (ymax - ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
-            #
-            # plt.savefig('demo.pdf', bbox_inches='tight')
-=======
+        # if data.y[node_idx].item() == pred.argmax(dim=0).item():
         # Compute CAM explanation
+        ipdb.set_trace()
         act = lambda x: torch.argmax(x, dim=1)
-        # ipdb.set_trace()
-        cam = CAM(model, activation = act)
+        cam = CAM(model, activation=act)
         cam_exp = cam.get_explanation_node(
-            data.x, 
-            node_idx = int(node_idx), 
-            label = pred_class, 
-            edge_index = data.edge_index)
-        
-        #Explanation
+            data.x,
+            node_idx=int(node_idx),
+            label=pred_class,
+            edge_index=data.edge_index)
+
+        # Explanation
         # Get ground-truth explanation
         gt_exp = bah.explanations[node_idx]
 
         # Compute Grad-CAM explanation
-        gcam = Grad_CAM(model, criterion = criterion)
+        gcam = Grad_CAM(model, criterion=criterion)
         # print('node_idx', node_idx)
         gcam_exp = gcam.get_explanation_node(
-                            data.x, 
-                            y = data.y, 
-                            node_idx = int(node_idx), 
-                            edge_index = data.edge_index, 
-                            average_variant=True)
+            data.x,
+            y=data.y,
+            node_idx=int(node_idx),
+            edge_index=data.edge_index,
+            average_variant=True)
 
         # Normalize the explanations to 0-1 range:
         cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
         gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
 
         # Compute Scores
-        cam_exp_score = graph_exp_acc(gt_exp, cam_exp)
-        print(f'Faithfulness score for CAM={cam_exp_score}')
-        gcam_exp_score = graph_exp_acc(gt_exp, gcam_exp)
-        print(f'Faithfulness score for GradCAM={gcam_exp_score}')
+        cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
+        cam_gef_score = graph_exp_faith(cam_exp)
+        delta = calculate_delta(gcam_exp, torch.where(data.train_mask == True)[0], label=data.y)
+        cam_ges_score = graph_exp_stability(cam_exp, node_id=node_idx, model=model, delta=delta)
+        print('### CAM ###')
+        print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
+        print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
+        print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
+        # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
+        # gcam_gef_score = graph_exp_faith(gcam_exp)
+        # gcam_ges_score = graph_exp_stability(gcam_exp, node_id=node_idx, model=model, delta=delta)
+        # print('\n### GradCAM ###')
+        # print(f'Graph Explanation Accuracy using GradCAM={gcam_gea_score:.3f}')
+        # print(f'Graph Explanation Faithfulness using GradCAM={gcam_gef_score:.3f}')
+        # print(f'Graph Explanation Stability using GradCAM={gcam_ges_score:.3f}')
 
-        # Plotting:
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-    
-        gt_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
-        ax1.set_title('Ground Truth')
-    
-        cam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
-    
-        ax2.set_title('CAM')
-        ymin, ymax = ax2.get_ylim()
-        xmin, xmax = ax2.get_xlim()
-        ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_exp_score))
-        gcam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
-        ax3.set_title('Grad-CAM')
-        ymin, ymax = ax3.get_ylim()
-        xmin, xmax = ax3.get_xlim()
-        ax3.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(gcam_exp_score))
-
-        ymin, ymax = ax1.get_ylim()
-        xmin, xmax = ax1.get_xlim()
-        # print('node_idx', node_idx, data.y[node_idx].item())
-        ax1.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(data.y[node_idx].item()))
-        ax1.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
-
-        plt.savefig('demo.pdf', bbox_inches='tight')
-
-        # print(gt_exp.edge_imp)
-=======
-    bah = ShapeGraph(model_layers = 3, num_subgraphs = 40, prob_connection=0.2)
-    data = bah.get_graph(use_fixed_split=True)
-
-    model = GCN_3layer_basic(64, input_feat = 10, classes = 2)
-    print(model)
-    print('Samples in Class 0', torch.sum(data.y == 0).item())
-    print('Samples in Class 1', torch.sum(data.y == 1).item())
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    # Train the model for 500 epochs:
-    for epoch in range(1, 1001):
-        loss = train(model, optimizer, criterion, data)
-        #acc = test(model, data)
-        f1, acc, prec, rec = test(model, data)
-        #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
-        print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}')
-
-    model.eval()
-    preds = model(data.x, data.edge_index)
-
-    # Choose a node that's in class 1 (connected to 2 houses)
-    class1 = (data.y == 1).nonzero(as_tuple=True)[0]
-    node_idx = random.choice(class1).item()
-
-    pred = preds[node_idx,:].reshape(-1,1)
-    pred_class = pred.argmax(dim=0).item()
-
-    print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
-    print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
-
-
-    # Compute CAM explanation
-    act = lambda x: torch.argmax(x, dim=1)
-    cam = CAM(model, activation = act)
-    cam_exp = cam.get_explanation_node(
-        data.x, 
-        node_idx = int(node_idx), 
-        label = pred_class, 
-        edge_index = data.edge_index)
-        
-    #Explanation
-    # Get ground-truth explanation
-    gt_exp = bah.explanations[node_idx]
-
-    # Compute Grad-CAM explanation
-    gcam = Grad_CAM(model, criterion = criterion)
-    gcam_exp = gcam.get_explanation_node(
-                        data.x, 
-                        y = data.y, 
-                        node_idx = int(node_idx), 
-                        edge_index = data.edge_index, 
-                        average_variant=True)
-
-    # Normalize the explanations to 0-1 range:
-    cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
-    gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
-    # Compute Scores
-    cam_exp_score = comp_gt(gt_exp, cam_exp)
-    gcam_exp_score = comp_gt(gt_exp, gcam_exp)
-
-    # Plotting:
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-
-    gt_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
-    ax1.set_title('Ground Truth')
-
-    cam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
-
-    ax2.set_title('CAM')
-    ymin, ymax = ax2.get_ylim()
-    xmin, xmax = ax2.get_xlim()
-    ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_exp_score))
-    gcam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
-    ax3.set_title('Grad-CAM')
-    ymin, ymax = ax3.get_ylim()
-    xmin, xmax = ax3.get_xlim()
-    ax3.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(gcam_exp_score))
-
-    ymin, ymax = ax1.get_ylim()
-    xmin, xmax = ax1.get_xlim()
-    print('node_idx', node_idx, data.y[node_idx].item())
-    ax1.text(xmin, ymax - 0.1*(ymax-ymin), 'Label = {:d}'.format(data.y[node_idx].item()))
-    ax1.text(xmin, ymax - 0.15*(ymax-ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
-
-    plt.show()
+        # # Plotting:
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+        #
+        # gt_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax1)
+        # ax1.set_title('Ground Truth')
+        #
+        # cam_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax2)
+        #
+        # ax2.set_title('CAM')
+        # ymin, ymax = ax2.get_ylim()
+        # xmin, xmax = ax2.get_xlim()
+        # ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_gea_score))
+        # gcam_exp.context_draw(num_hops=bah.num_hops, graph_data=data, additional_hops=1, heat_by_exp=True, ax=ax3)
+        # ax3.set_title('Grad-CAM')
+        # ymin, ymax = ax3.get_ylim()
+        # xmin, xmax = ax3.get_xlim()
+        # ax3.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(gcam_gea_score))
+        #
+        # ymin, ymax = ax1.get_ylim()
+        # xmin, xmax = ax1.get_xlim()
+        # # print('node_idx', node_idx, data.y[node_idx].item())
+        # ax1.text(xmin, ymax - 0.1 * (ymax - ymin), 'Label = {:d}'.format(data.y[node_idx].item()))
+        # ax1.text(xmin, ymax - 0.15 * (ymax - ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
+        #
+        # plt.savefig('demo.pdf', bbox_inches='tight')

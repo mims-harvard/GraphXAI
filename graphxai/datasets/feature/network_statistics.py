@@ -28,7 +28,7 @@ def make_network_stats_feature(edge_index: torch.Tensor, include: list = ['degre
             continue
         feature_names.append(feature_name)
 
-    X = torch.hstack(features)
+    X = torch.cat(features)
 
     # Assume all non-noise features are useful
     feature_mask = torch.zeros(len(features)+num_useless_features, dtype=bool)
@@ -38,7 +38,7 @@ def make_network_stats_feature(edge_index: torch.Tensor, include: list = ['degre
     if num_useless_features > 0:
         noise = torch.randn(N, num_useless_features)
         feature_names += ['noise'] * num_useless_features
-        X = torch.hstack([X, noise])
+        X = torch.cat([X, noise], dim=-1)
 
     if shuffle:
         # Randomly permute features

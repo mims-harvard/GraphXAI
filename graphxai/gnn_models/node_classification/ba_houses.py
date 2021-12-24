@@ -59,8 +59,8 @@ class BA_Houses:
         edge_index = torch.tensor(list(G.edges), dtype=torch.long)
 
         # Split out train and test:
-        train_mask = torch.full((self.n,), False)
-        test_mask = torch.full((self.n,), False)
+        train_mask = torch.full((self.n,), False, dtype=bool)
+        test_mask = torch.full((self.n,), False, dtype=bool)
 
         test_set = set(random.sample(list(range(self.n)), int(test_size * self.n)))
         for i in range(self.n):

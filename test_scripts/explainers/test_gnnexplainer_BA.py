@@ -1,4 +1,6 @@
 import random
+
+import ipdb
 import torch
 import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
@@ -29,6 +31,7 @@ model = GCN(16, input_feat=data.x.shape[1], classes=2)
 print(model)
 
 node_idx = int(random.choice(inhouse))
+
 
 def experiment(data, plot_train=False):
 
@@ -70,6 +73,7 @@ def experiment(data, plot_train=False):
 
     # Compare with ground truth unique explanation
     # Locate which house
+    ipdb.set_trace()
     true_nodes, true_edges = [(nodes, edges) for nodes, edges in bah.houses if node_idx in nodes][0]
     TPs = []
     FPs = []
