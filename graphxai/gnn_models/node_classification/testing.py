@@ -295,6 +295,5 @@ def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
 
             return test_score, acc, precision, recall, auprc, auroc
 
-        return test_score, acc, precision, recall
     
     return acc
