@@ -18,3 +18,12 @@ To run the MUTAG scripts, you'll need to provide an additional command-line argu
 ```>>> python3 test_GBP_MUTAG.py 6```
 
 Note that all of these scripts will both provide output through stdout as well as show an image through matplotlib.
+
+## Loading Saved ShapeGraph
+ShapeGraph 1 is a large synthetic graph that has many desirable properties for evaluating GNN explanations. You load it in the following way:
+```
+from graphxai.datasets import load_ShapeGraph
+
+SG = load_ShapeGraph(number=1) 
+# SG now holds a fully loaded and verified ShapeGraph object.
+```
