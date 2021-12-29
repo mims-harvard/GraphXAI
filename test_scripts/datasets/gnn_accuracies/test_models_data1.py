@@ -10,6 +10,7 @@ from tqdm import trange
 from sklearn.model_selection import KFold, train_test_split, StratifiedKFold
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
+from graphxai.datasets import load_ShapeGraph
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, GCN_4layer_basic, GAT_3layer_basic
 from graphxai.gnn_models.node_classification.testing import GCN_2layer, GIN_2layer
@@ -68,7 +69,7 @@ def test_on_split(
     
     return acc
 
-def test_model_on_ShapeGraph(model, epochs_per_run = 500, num_cvs = 30):
+def test_model_on_ShapeGraph(model, SG, epochs_per_run = 500, num_cvs = 30):
 
     # Cross-validate the model 10 times:
     f1_cv = []
@@ -78,14 +79,16 @@ def test_model_on_ShapeGraph(model, epochs_per_run = 500, num_cvs = 30):
     auprc_cv = []
     auroc_cv = []
 
+    #bah = ShapeGraph(model_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
+    data = SG.get_graph()
+
     for i in trange(num_cvs):
         # Gen dataset:
         #bah = ShapeGraph(model_layers = 3)
-        bah = ShapeGraph(model_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
-        data = bah.get_graph()
+
         # Cross-validation split on dataset nodes:
         kf = StratifiedKFold(n_splits = 10, shuffle = True)
-        nodes = list(range(bah.num_nodes))
+        nodes = list(range(SG.num_nodes))
 
         f1_cvi = []
         acc_cvi = []
@@ -101,26 +104,13 @@ def test_model_on_ShapeGraph(model, epochs_per_run = 500, num_cvs = 30):
             optimizer = torch.optim.Adam(modeli.parameters(), lr = 0.01)
             criterion = torch.nn.CrossEntropyLoss()
 
-            val_losses = []
+            # val_losses = []
 
             train_idx, val_idx = train_test_split(train_index, test_size = 0.05, shuffle = True, 
                 stratify = (data.y[train_index]).numpy())
 
-            for epoch in range(epochs_per_run):
+            for _ in range(epochs_per_run):
                 loss = train_on_split(modeli, optimizer, criterion, data, train_index)
-
-                # Get validation loss:
-                # val_losses.append(test_on_split(modeli, data, val_idx, num_classes = 2)[0])
-
-                # if len(val_losses) > 5:
-                #     improvement = [int(val_losses[i] >= val_losses[i+1]) for i in range(-5, -1)]
-
-                #     if sum(improvement) == 0:
-                #         break
-
-            #print(epoch)
-                
-            #f1, acc, precision, recall = test_on_split(modeli, data, test_index, num_classes = 2)
 
             f1, acc, precision, recall, auprc, auroc = test_on_split(modeli, data, test_index, num_classes = 2, get_auc = True)
 
@@ -158,7 +148,8 @@ if __name__ == '__main__':
         classes = 2)
     print('GAT 3 layer, hc = 16')
 
-    test_model_on_ShapeGraph(model, epochs_per_run=100, num_cvs = 5)
+    SG = load_ShapeGraph(number = 1)
+    test_model_on_ShapeGraph(model, SG = SG, epochs_per_run=100, num_cvs = 5)
 
 
 

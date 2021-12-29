@@ -106,12 +106,14 @@ class ShapeGraph(NodeDataset):
             elif shape == 'circle':
                 self.insert_shape = pentagon # 5-member ring
 
-            if shape == 'random':
-                # random_shape imported from utils.shapes
-                self.get_shape = partial(random_shape, n=3) 
-                # Currenlty only support for 3-member shape bank (n=3)
-            else:
-                self.get_shape = lambda: (self.insert_shape, 1)
+            # if shape == 'random':
+            #     # random_shape imported from utils.shapes
+            #     self.get_shape = partial(random_shape, n=3) 
+            #     # Currenlty only support for 3-member shape bank (n=3)
+            # else:
+            #     def tmp():
+            #         return self.insert_shape, 1
+            #     self.get_shape = tmp
 
             assert shape != 'random', 'Multiple shapes not yet supported for bounded graph'
 

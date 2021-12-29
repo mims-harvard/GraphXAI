@@ -2,6 +2,7 @@ import torch
 from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge, GATConv
 from torch_geometric.nn import Sequential
 
+import sklearn.metrics as metrics
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
 # ----------------------- GCNs ----------------------------
@@ -266,16 +267,31 @@ def train(model, optimizer,
     optimizer.step()  # Update parameters based on gradients.
     return loss
     
-def test(model, data, num_classes = 2):
+def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
     model.eval()
     out = model(data.x, data.edge_index)
     pred = out.argmax(dim=1)  # Use the class with highest probability.
 
-    acc = accuracy_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+    true_Y = data.y[data.test_mask].tolist()
+
+    acc = accuracy_score(true_Y, pred[data.test_mask].tolist())
     if num_classes == 2:
-        test_score = f1_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
-        precision = precision_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
-        recall = recall_score(data.y[data.test_mask].tolist(), pred[data.test_mask].tolist())
+        test_score = f1_score(true_Y, pred[data.test_mask].tolist())
+        precision = precision_score(true_Y, pred[data.test_mask].tolist())
+        recall = recall_score(true_Y, pred[data.test_mask].tolist())
+
+        # AUROC and AUPRC
+        if get_auc:
+            probs = model.predict_proba(data.x, data.edge_index)[data.test_mask,1].numpy()
+            auprc = metrics.average_precision_score(true_Y, probs)
+            auroc = metrics.roc_auc_score(true_Y, probs)
+
+            # Get AUC's:
+            # auprc = metrics.auc(prc[0], prc[1])
+            # auroc = metrics.auc(roc[0], roc[1])
+
+            return test_score, acc, precision, recall, auprc, auroc
+
         return test_score, acc, precision, recall
     
     return acc

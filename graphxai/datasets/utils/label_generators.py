@@ -34,10 +34,6 @@ def binary_feature_label(G, method = 'median'):
 
     return get_label
 
-
-def number_of_motifs_label(G):
-    pass
-
 def number_motif_equal_label(G, num_hops, equal_number=1):
     def get_label(node_idx):
         nodes_in_khop = khop_subgraph_nx(node_idx, num_hops, G)

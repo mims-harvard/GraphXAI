@@ -1,5 +1,6 @@
-from graphxai.utils.explanation import EnclosingSubgraph
+import pickle
 import torch
+from copy import deepcopy
 
 import pandas as pd
 from graphxai.utils import Explanation#, WholeGraph
@@ -9,6 +10,8 @@ from torch_geometric.utils import k_hop_subgraph
 from sklearn.model_selection import train_test_split
 
 from typing import List, Optional, Callable, Union, Any, Tuple
+
+from graphxai.utils.explanation import EnclosingSubgraph
 
 def get_dataset(dataset, download = False):
     '''
@@ -48,7 +51,7 @@ class NodeDataset:
         Args:
             use_static_split (bool, optional): (:default: True)
         '''
-        import ipdb
+        #import ipdb
         # ipdb.set_trace()
         if use_fixed_split:
             # Set train, test, val static masks:
@@ -62,7 +65,7 @@ class NodeDataset:
             # Create a split for user (based on seed, etc.)
             train_mask, test_mask = train_test_split(list(range(self.graph.num_nodes)), 
                                 test_size = split_sizes[1] + split_sizes[2], 
-                                random_state = seed)  # , stratify = self.graph.y.tolist() if stratify else None)
+                                random_state = seed, stratify = self.graph.y.tolist() if stratify else None)
             # print(self.graph.y.tolist())
             # print(train_mask)
             # exit(0)
@@ -93,6 +96,10 @@ class NodeDataset:
 
     def __len__(self) -> int:
         return 1 # There is always just one graph
+
+    def dump(self, fname = None):
+        fname = self.name + '.pickle' if fname is None else fname
+        torch.save(self, open(fname, 'wb'))
 
     @property
     def x(self):
