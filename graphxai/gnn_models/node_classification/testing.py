@@ -1,3 +1,4 @@
+import ipdb
 import torch
 from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge, GATConv
 from torch_geometric.nn import Sequential
@@ -5,7 +6,6 @@ from torch_geometric.nn import Sequential
 import sklearn.metrics as metrics
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
-# ----------------------- GCNs ----------------------------
 class GCN_1layer(torch.nn.Module):
     def __init__(self, input_feat, classes):
         super(GCN_1layer, self).__init__()
@@ -132,13 +132,16 @@ class GIN_3layer(torch.nn.Module):
         x = self.gin3(x, edge_index)
         return x
 
+
 class GIN_3layer_basic(torch.nn.Module):
     def __init__(self, hidden_channels, input_feat, classes):
         super(GIN_3layer_basic, self).__init__()
         self.mlp_gin1 = torch.nn.Linear(input_feat, hidden_channels)
         self.gin1 = GINConv(self.mlp_gin1)
+        self.batchnorm1 = BatchNorm(hidden_channels)
         self.mlp_gin2 = torch.nn.Linear(hidden_channels, hidden_channels)
         self.gin2 = GINConv(self.mlp_gin2)
+        self.batchnorm2 = BatchNorm(hidden_channels)
         self.mlp_gin3 = torch.nn.Linear(hidden_channels, classes)
         self.gin3 = GINConv(self.mlp_gin3)
 
@@ -188,10 +191,10 @@ class GSAGE_3layer(torch.nn.Module):
         x = self.gsage1(x, edge_index)
         x = self.batchnorm1(x)
         x = x.relu()
-        x = self.gsage2(x, edge_index)
+        x = self.gin2(x, edge_index)
         x = self.batchnorm2(x)
         x = x.relu()
-        x = self.gsage3(x, edge_index)
+        x = self.gin3(x, edge_index)
         return x
 
 # ----------------------- JKNets ----------------------------
