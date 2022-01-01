@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from numpy import ndarray
 from torch_geometric.utils import to_networkx
 
-from graphxai.explainers import CAM, Grad_CAM
+from graphxai.explainers import CAM, GradCAM
 # from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
@@ -318,7 +318,7 @@ if __name__ == '__main__':
         gt_exp = bah.explanations[node_idx]
 
         # Compute Grad-CAM explanation
-        gcam = Grad_CAM(model, criterion=criterion)
+        gcam = GradCAM(model, criterion=criterion)
         # print('node_idx', node_idx)
         gcam_exp = gcam.get_explanation_node(
             data.x,

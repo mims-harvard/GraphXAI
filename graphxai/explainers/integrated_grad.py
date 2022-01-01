@@ -2,7 +2,7 @@ import torch
 from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
-
+from graphxai.utils import Explanation
 
 class IntegratedGradExplainer(_BaseExplainer):
     """
@@ -66,11 +66,23 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
+
+        # Integrated gradients for only node_idx:
+        # baseline[0] just gets a single-value 0-tensor
         integrated_gradients = ((x[torch.where(subset == node_idx)[0].item()]
                                  - baseline[0]) * avg_grads)
-        exp['feature_imp'] = integrated_gradients
 
-        return exp, khop_info
+        # Integrated gradients across the enclosing subgraph:
+        all_node_ig = ((x[subset] - baseline) * avg_grads)
+
+        exp = Explanation(
+            feature_imp = integrated_gradients,
+            node_imp = all_node_ig,
+            node_idx = node_idx
+        )
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,

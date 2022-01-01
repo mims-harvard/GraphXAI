@@ -6,7 +6,7 @@ from sklearn.linear_model import LassoLars
 from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation
 
 
 class GraphLIME(_BaseExplainer):
@@ -102,7 +102,7 @@ class GraphLIME(_BaseExplainer):
         sub_x = x[subset].detach().cpu().numpy()  # [n x d]
         sub_y = y[subset].detach().cpu().numpy()  # [n x 1]
 
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
         n, d = sub_x.shape
 
@@ -118,9 +118,12 @@ class GraphLIME(_BaseExplainer):
         solver = LassoLars(self.rho, fit_intercept=False, normalize=False, positive=True)
         solver.fit(K_bar * n, L_bar * n)
 
-        exp['feature_imp'] = torch.from_numpy(solver.coef_)
+        feat_imp = torch.from_numpy(solver.coef_)
 
-        return exp, khop_info
+        exp = Explanation(feature_imp=feat_imp)
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,

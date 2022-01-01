@@ -4,6 +4,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation
 
 
 class GNNExplainer(_BaseExplainer):
@@ -61,15 +62,22 @@ class GNNExplainer(_BaseExplainer):
                 3. the `edge_index` mask indicating which edges were preserved
         """
         label = self._predict(x, edge_index,
-                              forward_kwargs=forward_kwargs) if label is None else label
+                              forward_kwargs=forward_kwargs)# if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
+
+        print('IN GNNEXPLAINER')
+        print('node_idx', node_idx)
+        print('edge_index', edge_index)
 
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
-                           relabel_nodes=True, num_nodes=x.shape[0])
+                           relabel_nodes=True) #num_nodes=x.shape[0])
         sub_x = x[subset]
+
+        print('sub_x shape', sub_x.shape)
+        print('sub edge index shape', sub_edge_index.shape)
 
         self._set_masks(sub_x, sub_edge_index, explain_feature=explain_feature)
 
@@ -100,6 +108,9 @@ class GNNExplainer(_BaseExplainer):
                     h = sub_x * mask.view(1, -1).sigmoid()
                 else:
                     h = sub_x
+                print('h shape', h.shape)
+                print('h', h)
+                print('sub edge index shape', sub_edge_index.shape)
                 log_prob = self._predict(h, sub_edge_index, return_type='log_prob')
                 loss = loss_fn(log_prob, mask, mask_type)
                 loss.backward()
@@ -107,14 +118,24 @@ class GNNExplainer(_BaseExplainer):
 
         if explain_feature:
             train(self.feature_mask, 'feature')
-            exp['feature_imp'] = self.feature_mask.data.sigmoid()
+            feat_imp = self.feature_mask.data.sigmoid()
 
         train(self.edge_mask, 'edge')
-        exp['edge_imp'] = self.edge_mask.data.sigmoid()
+        edge_imp = self.edge_mask.data.sigmoid()
+
+        print('IN GNNEXPLAINER')
+        print('edge imp shape', edge_imp.shape)
 
         self._clear_masks()
 
-        return exp, khop_info
+        exp = Explanation(
+            feature_imp = feat_imp,
+            edge_imp = edge_imp
+        )
+
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               label: torch.Tensor = None,

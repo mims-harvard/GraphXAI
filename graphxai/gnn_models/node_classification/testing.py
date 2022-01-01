@@ -138,10 +138,8 @@ class GIN_3layer_basic(torch.nn.Module):
         super(GIN_3layer_basic, self).__init__()
         self.mlp_gin1 = torch.nn.Linear(input_feat, hidden_channels)
         self.gin1 = GINConv(self.mlp_gin1)
-        self.batchnorm1 = BatchNorm(hidden_channels)
         self.mlp_gin2 = torch.nn.Linear(hidden_channels, hidden_channels)
         self.gin2 = GINConv(self.mlp_gin2)
-        self.batchnorm2 = BatchNorm(hidden_channels)
         self.mlp_gin3 = torch.nn.Linear(hidden_channels, classes)
         self.gin3 = GINConv(self.mlp_gin3)
 
@@ -274,6 +272,7 @@ def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
     model.eval()
     out = model(data.x, data.edge_index)
     pred = out.argmax(dim=1)  # Use the class with highest probability.
+    probas = out.softmax(dim=1)[data.test_mask,1].detach().clone().numpy()
 
     true_Y = data.y[data.test_mask].tolist()
 
@@ -285,13 +284,8 @@ def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
 
         # AUROC and AUPRC
         if get_auc:
-            probs = model.predict_proba(data.x, data.edge_index)[data.test_mask,1].numpy()
-            auprc = metrics.average_precision_score(true_Y, probs)
-            auroc = metrics.roc_auc_score(true_Y, probs)
-
-            # Get AUC's:
-            # auprc = metrics.auc(prc[0], prc[1])
-            # auroc = metrics.auc(roc[0], roc[1])
+            auprc = metrics.average_precision_score(true_Y, probas, pos_label = 1)
+            auroc = metrics.roc_auc_score(true_Y, probas)
 
             return test_score, acc, precision, recall, auprc, auroc
 

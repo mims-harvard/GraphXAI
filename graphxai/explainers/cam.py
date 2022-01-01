@@ -103,7 +103,6 @@ class CAM(_BaseDecomposition):
             node_idx = node_idx
         )
         exp.set_enclosing_subgraph(khop_info)
-        exp.set_whole_graph(x, edge_index)
 
         return exp
 
@@ -178,6 +177,8 @@ class CAM(_BaseDecomposition):
 
         if isinstance(last_conv_layer['module'][0], GINConv):
             weight_vec = last_conv_layer['module'][0].nn.weight[predicted_c, :].detach()  # last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
+        elif isinstance(last_conv_layer['module'][0], GCNConv):
+            weight_vec = last_conv_layer['module'][0].lin.weight[predicted_c, :].detach()
         elif isinstance(last_conv_layer['module'][0], torch.nn.Linear):
             weight_vec = last_conv_layer['module'][0].weight[predicted_c, :].detach()
 
@@ -188,7 +189,7 @@ class CAM(_BaseDecomposition):
         return L_cam_n.item()
 
 
-class Grad_CAM(_BaseDecomposition):
+class GradCAM(_BaseDecomposition):
     '''
     Gradient Class-Activation Mapping for GNNs
     '''
@@ -272,8 +273,6 @@ class Grad_CAM(_BaseDecomposition):
             node_idx = node_idx
         )
         exp.set_enclosing_subgraph(khop_info)
-        exp.set_whole_graph(x, edge_index)
-        #exp.node_idx = node_idx
 
         if average_variant:
             # Size of all nodes in the subgraph:

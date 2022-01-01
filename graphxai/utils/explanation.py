@@ -322,12 +322,16 @@ class Explanation:
             additional_hops = 1, 
             heat_by_prescence = False, 
             heat_by_exp = True, 
+            node_agg_method = 'sum',
             ax = None,
             show=False
         ):
         '''
         Shows the explanation in context of a few more hops out than its k-hop neighborhood
         Args:
+            node_agg_method (str, optional): Aggregation method to use for showing multi-dimensional
+                node importance scores (i.e. across features, such as GuidedBP or Vanilla Gradient).
+                Options: :obj:`'sum'` and :obj:`'max'`. (:default: :obj:`'sum'`)
         '''
 
         #data_G = self.graph.get_Data()
@@ -339,6 +343,8 @@ class Explanation:
             )
 
         subG = wholeG.subgraph(kadd_hop_neighborhood)
+
+        node_agg = torch.sum if node_agg_method == 'sum' else torch.max
 
         # Identify highlighting nodes:
         exp_nodes = self.enc_subgraph.nodes
@@ -355,9 +361,17 @@ class Explanation:
                 node_c = []
                 for i in subG.nodes:
                     if i in self.enc_subgraph.nodes:
-                        node_c.append(self.node_imp[self.node_reference[i]])
+                        if isinstance(self.node_imp[self.node_reference[i]], torch.Tensor):
+                            if self.node_imp[self.node_reference[i]].dim() > 0:
+                                c = node_agg(self.node_imp[self.node_reference[i]]).item()
+                            else:
+                                c = self.node_imp[self.node_reference[i]].item()
+                        else:
+                            c = self.node_imp[self.node_reference[i]]
                     else:
-                        node_c.append(0)
+                        c = 0
+
+                    node_c.append(c)
 
                 draw_args['node_color'] = node_c
 
@@ -367,8 +381,6 @@ class Explanation:
                 # Need to match edge indices across edge_index and edges in graph
                 tuple_edge_index = [(whole_edge_index[0,i].item(), whole_edge_index[1,i].item()) \
                     for i in range(whole_edge_index.shape[1])]
-
-                print(len(tuple_edge_index), self.edge_imp.shape)
 
                 trimmed_enc_subg_edge_index, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
                 positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
@@ -400,6 +412,18 @@ class Explanation:
         # Highlight the node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 
                 node_size = 400, ax = ax)
+
+        if show:
+            plt.show()
+
+    def show_feature_imp(self, ax = None, show = False):
+
+        ax = ax if ax is not None else plt.gca()
+
+        # Draw a heatmap on the axis:
+        feat_imp = self.feature_imp.numpy()
+
+        ax.imshow(feat_imp.reshape((-1, 1)))
 
         if show:
             plt.show()

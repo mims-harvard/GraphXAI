@@ -183,19 +183,18 @@ class SubgraphX(_BaseExplainer):
         # Need to parse results:
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
+        khop_info = k_hop_subgraph(node_idx, self.L, edge_index)
+        subgraph_edge_mask = khop_info[3] # Mask over edges
+
         # Set explanation
         exp = Explanation(
-            node_imp = node_mask,
-            edge_imp = edge_mask,
+            node_imp = node_mask[khop_info[0]], # Apply node mask
+            edge_imp = edge_mask[subgraph_edge_mask],
             node_idx = node_idx
         )
-        # exp.node_imp = node_mask # Importance variables will hold masks
-        # exp.edge_imp = edge_mask
-        # exp.node_idx = node_idx
-        sg = k_hop_subgraph(node_idx, self.L, edge_index)
-        exp.set_enclosing_subgraph(sg)
 
-        #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
+        exp.set_enclosing_subgraph(khop_info)
+
         return exp
 
     def get_explanation_graph(self, 

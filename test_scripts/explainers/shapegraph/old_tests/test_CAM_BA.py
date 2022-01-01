@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from torch_geometric.utils import to_networkx
 
-from graphxai.explainers import CAM, Grad_CAM
+from graphxai.explainers import CAM, GradCAM
 #from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
@@ -84,7 +84,7 @@ ax1.set_title('Ground Truth')
 exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
 ax2.set_title('CAM')
 
-gcam = Grad_CAM(model, criterion = criterion)
+gcam = GradCAM(model, criterion = criterion)
 exp = gcam.get_explanation_node(
                     data.x, 
                     y = data.y, 
