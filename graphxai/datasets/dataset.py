@@ -1,4 +1,4 @@
-import pickle
+import pickle, random
 import torch
 from copy import deepcopy
 
@@ -95,6 +95,109 @@ class NodeDataset:
             num_hops = self.num_hops, 
             edge_index = self.graph.edge_index)
         return EnclosingSubgraph(*k_hop_tuple)
+
+    def nodes_with_label(self, label = 0) -> torch.Tensor:
+        '''
+        Get all nodes that are a certain label
+        Args:
+            label (int, optional): Label for which to find nodes.
+                (:default: :obj:`0`)
+
+        Returns:
+            torch.Tensor: Indices of nodes that are of the label
+        '''
+        return (self.graph.y == label).nonzero(as_tuple=True)[0]
+
+    def choose_node_with_label(self, label = 0) -> tuple[int, Explanation]:
+        '''
+        Choose a random node with a given label
+        Args:
+            label (int, optional): Label for which to find node.
+                (:default: :obj:`0`)
+
+        Returns:
+            tuple(int, Explanation):
+                int: Node index found
+                Explanation: explanation corresponding to that node index
+        '''
+        nodes = self.nodes_with_label(label = label)
+        node_idx = random.choice(nodes).item()
+
+        return node_idx, self.explanations[node_idx]
+
+    def nodes_in_shape(self, inshape = True):
+        '''
+        Get a group of nodes by shape membership.
+
+        Args:
+            inshape (bool, optional): If the nodes are in a shape.
+                :obj:`True` means that the nodes returned are in a shape.
+                :obj:`False` means that the nodes are not in a shape.
+
+        Returns:
+            torch.Tensor: All node indices for nodes in or not in a shape.
+        '''
+        # Get all nodes in a shape
+        if inshape:
+            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] > 0]).long()
+        else:
+            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] == 0]).long()
+
+    def choose_node_in_shape(self, inshape = True) -> tuple[int, Explanation]:
+        '''
+        Gets a random node by shape membership.
+
+        Args:
+            inshape (bool, optional): If the node is in a shape.
+                :obj:`True` means that the node returned is in a shape.
+                :obj:`False` means that the node is not in a shape.
+
+        Returns:
+            tuple[int, Explanation]
+                int: Node index found
+                Explanation: Explanation corresponding to that node index
+        '''
+        nodes = self.nodes_in_shape(inshape = inshape)
+        node_idx = random.choice(nodes).item()
+
+        return node_idx, self.explanations[node_idx]
+
+
+    def choose_node(self, inshape = None, label = None):
+        '''
+        Chooses random nodes in the graph. Has support for multiple logical
+            indexing.
+
+        Args:
+            inshape (bool, optional): If the node is in a shape.
+                :obj:`True` means that the node returned is in a shape.
+                :obj:`False` means that the node is not in a shape.
+            label (int, optional): Label for which to find node.
+                (:default: :obj:`0`)
+        
+        Returns:
+        '''
+        if inshape is None:
+            if label is None:
+                to_choose = torch.arange(end = self.num_nodes)
+            else:
+                to_choose = self.nodes_with_label(label = label)
+        
+        elif label is None:
+            to_choose = self.nodes_in_shape(inshape = inshape)
+
+        else:
+            t_inshape = self.nodes_in_shape(inshape = inshape)
+            t_label = self.nodes_with_label(label = label)
+
+            # Joint masking over shapes and labels:
+            to_choose = torch.as_tensor([n.item() for n in t_label if n in t_inshape]).long()
+
+        assert_fmt = 'Could not find a node in {} with inshape={}, label={}'
+        assert to_choose.nelement() > 0, assert_fmt.format(self.name, inshape, label)
+
+        node_idx = random.choice(to_choose).item()
+        return node_idx, self.explanations[node_idx]
 
     def __len__(self) -> int:
         return 1 # There is always just one graph

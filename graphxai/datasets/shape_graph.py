@@ -241,7 +241,18 @@ class ShapeGraph(NodeDataset):
         in_motif = khop_info[0][node_imp.bool()] # Get nodes in the motif
         edge_imp = torch.zeros(khop_info[1].shape[1], dtype=torch.double)
         for i in range(khop_info[1].shape[1]):
-            if khop_info[1][0,i] in in_motif and khop_info[1][1,i] in in_motif:
+            # Highlight edge connecting two nodes in a motif
+            if (khop_info[1][0,i] in in_motif) and (khop_info[1][1,i] in in_motif):
+                edge_imp[i] = 1
+                continue
+            
+            # Make sure that we highlight edges connecting to the source node if that
+            #   node is not in a motif:
+            one_edge_in_motif = ((khop_info[1][0,i] in in_motif) or (khop_info[1][1,i] in in_motif))
+            node_idx_in_motif = (node_idx in in_motif)
+            one_end_of_edge_is_nidx = ((khop_info[1][0,i] == node_idx) or (khop_info[1][1,i] == node_idx))
+
+            if (one_edge_in_motif and one_end_of_edge_is_nidx) and (not node_idx_in_motif):
                 edge_imp[i] = 1
 
         exp = Explanation(
