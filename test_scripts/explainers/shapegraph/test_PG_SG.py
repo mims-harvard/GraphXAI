@@ -2,7 +2,7 @@ import random
 import torch
 import matplotlib.pyplot as plt
 
-from graphxai.explainers import GNNExplainer
+from graphxai.explainers import PGExplainer
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train 
 from graphxai.datasets.shape_graph import ShapeGraph
 
@@ -29,7 +29,7 @@ for epoch in range(1, 101):
 
 # Get prediction of a node in the 2-house class:
 model.eval()
-node_idx = random.choice(inhouse).item()
+node_idx = random.choice(inhouse)
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
 pred_class = pred.argmax(dim=0).item()
 
@@ -45,16 +45,19 @@ gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_h
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
-gnnexp = GNNExplainer(model)
-exp = gnnexp.get_explanation_node(
-                    node_idx = node_idx, 
-                    x = data.x,  
-                    edge_index = data.edge_index)
+explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'conv3', 
+    max_epochs=10, lr=0.1)
+explainer.train_explanation_model(data)
+exp = explainer.get_explanation_node(
+                    node_idx = int(node_idx), 
+                    x = data.x, 
+                    edge_index = data.edge_index, 
+                    label = data.y)
 # ------------------------------------------------------------------------
 
 # Grad-CAM plot:
 exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
-ax2.set_title('GNNExplainer')
+ax2.set_title('PGExplainer')
 
 # More plotting details:
 ymin, ymax = ax1.get_ylim()

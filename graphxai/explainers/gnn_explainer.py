@@ -4,7 +4,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
-from graphxai.utils import Explanation
+from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
 class GNNExplainer(_BaseExplainer):
@@ -34,7 +34,7 @@ class GNNExplainer(_BaseExplainer):
                              edge_index: torch.Tensor,
                              label: torch.Tensor = None,
                              num_hops: int = None,
-                             explain_feature: bool = False,
+                             explain_feature: bool = True,
                              forward_kwargs: dict = {}):
         """
         Explain a node prediction.
@@ -48,6 +48,7 @@ class GNNExplainer(_BaseExplainer):
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
             explain_feature (bool): whether to compute the feature mask or not
+                (:default: :obj:`True`)
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
 
@@ -71,7 +72,9 @@ class GNNExplainer(_BaseExplainer):
         print('node_idx', node_idx)
         print('edge_index', edge_index)
 
-        khop_info = subset, sub_edge_index, mapping, _ = \
+        org_eidx = edge_index.clone()
+
+        khop_info = subset, sub_edge_index, mapping, hard_edge_mask = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True) #num_nodes=x.shape[0])
         sub_x = x[subset]
@@ -108,29 +111,36 @@ class GNNExplainer(_BaseExplainer):
                     h = sub_x * mask.view(1, -1).sigmoid()
                 else:
                     h = sub_x
-                print('h shape', h.shape)
-                print('h', h)
-                print('sub edge index shape', sub_edge_index.shape)
+                # print('h shape', h.shape)
+                # print('h', h)
+                # print('sub edge index shape', sub_edge_index.shape)
                 log_prob = self._predict(h, sub_edge_index, return_type='log_prob')
                 loss = loss_fn(log_prob, mask, mask_type)
                 loss.backward()
                 optimizer.step()
 
-        if explain_feature:
+        feat_imp = None
+        if explain_feature: # Get a feature mask
             train(self.feature_mask, 'feature')
             feat_imp = self.feature_mask.data.sigmoid()
 
         train(self.edge_mask, 'edge')
         edge_imp = self.edge_mask.data.sigmoid()
 
-        print('IN GNNEXPLAINER')
-        print('edge imp shape', edge_imp.shape)
+        # print('IN GNNEXPLAINER')
+        # print('edge imp shape', edge_imp.shape)
 
         self._clear_masks()
 
+        discrete_edge_mask = (edge_imp > 0.5) # Turn into bool activation because of sigmoid
+
+        khop_info = (subset, org_eidx[:,hard_edge_mask], mapping, hard_edge_mask)
+
         exp = Explanation(
             feature_imp = feat_imp,
-            edge_imp = edge_imp
+            node_imp = node_mask_from_edge_mask(khop_info[0], khop_info[1], edge_mask = discrete_edge_mask),
+            edge_imp = discrete_edge_mask.float(),
+            node_idx = node_idx
         )
 
         exp.set_enclosing_subgraph(khop_info)

@@ -10,7 +10,7 @@ from graphxai.datasets.shape_graph import ShapeGraph
 # Smaller graph is shown to work well with model accuracy, graph properties
 bah = ShapeGraph(model_layers = 3, 
     num_subgraphs = 100, 
-    prob_connection = 0.09, 
+    prob_connection = 0.08, 
     subgraph_size = 13)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
@@ -29,7 +29,7 @@ for epoch in range(1, 101):
 
 # Get prediction of a node in the 2-house class:
 model.eval()
-node_idx = random.choice(inhouse)
+node_idx = random.choice(inhouse).item()
 pred = model(data.x, data.edge_index)[node_idx, :].reshape(-1, 1)
 pred_class = pred.argmax(dim=0).item()
 
@@ -49,7 +49,7 @@ gcam = GradCAM(model, criterion = criterion)
 exp = gcam.get_explanation_node(
                     data.x, 
                     y = data.y, 
-                    node_idx = int(node_idx), 
+                    node_idx = node_idx, 
                     edge_index = data.edge_index, 
                     average_variant=True)
 # ------------------------------------------------------------------------

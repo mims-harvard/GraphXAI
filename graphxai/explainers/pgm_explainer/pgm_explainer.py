@@ -10,6 +10,7 @@ from pgmpy.models import BayesianModel
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.perturb import perturb_node_features
+from graphxai.utils import Explanation
 from .utils import chi_square_pgm, generalize_target, generalize_others
 
 
@@ -162,7 +163,7 @@ class PGMExplainer(_BaseExplainer):
         return sample
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, num_hops: int = 3,
+                             edge_index: torch.Tensor, num_hops: int = None,
                              forward_kwargs: dict = {},
                              top_k_nodes: int = None, no_child: bool = True):
         """
@@ -286,10 +287,21 @@ class PGMExplainer(_BaseExplainer):
             pgm.fit(df_ex)
 
         pgm_nodes = [int(node) for node in pgm.nodes()]
+        print('pgm nodes', pgm_nodes)
         node_imp = torch.zeros(n)
         node_imp[pgm_nodes] = 1
 
-        return pgm, node_imp, khop_info
+        exp = Explanation(
+            node_imp = node_imp[subset],
+            node_idx = node_idx
+        )
+
+        exp.pgm = pgm
+
+        exp.set_enclosing_subgraph(khop_info)
+
+        #return pgm, node_imp, khop_info
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               forward_kwargs: dict = {},

@@ -2,7 +2,7 @@ import random
 import torch
 import matplotlib.pyplot as plt
 
-from graphxai.explainers import GNNExplainer
+from graphxai.explainers import PGMExplainer
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train 
 from graphxai.datasets.shape_graph import ShapeGraph
 
@@ -45,16 +45,17 @@ gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_h
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
-gnnexp = GNNExplainer(model)
-exp = gnnexp.get_explanation_node(
-                    node_idx = node_idx, 
-                    x = data.x,  
-                    edge_index = data.edge_index)
+pgm_exp = PGMExplainer(model, explain_graph=False, p_threshold=0.1)
+exp = pgm_exp.get_explanation_node(
+                    node_idx,
+                    data.x,  
+                    edge_index = data.edge_index, 
+                    top_k_nodes = 10)
 # ------------------------------------------------------------------------
 
 # Grad-CAM plot:
 exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
-ax2.set_title('GNNExplainer')
+ax2.set_title('PGM Explainer')
 
 # More plotting details:
 ymin, ymax = ax1.get_ylim()

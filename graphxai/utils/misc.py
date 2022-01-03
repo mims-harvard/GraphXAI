@@ -17,8 +17,6 @@ def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor
 
     unique_nodes = torch.unique(mask_eidx)
 
-    print('unique_nodes', unique_nodes)
-
     node_mask = torch.tensor([node_subset[i] in unique_nodes for i in range(node_subset.shape[0])])
     
     return node_mask.float()
