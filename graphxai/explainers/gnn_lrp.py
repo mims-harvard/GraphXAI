@@ -27,6 +27,8 @@ class GraphSequential(nn.Sequential):
             #print(input)
             #print(module)
             if isinstance(input, tuple):
+                print('input', input)
+                print(type(module))
                 input = module(*input)
             else:
                 input = module(input)
@@ -161,11 +163,13 @@ class GNN_LRP(_BaseDecomposition):
             ori_gnn_weights = []
             gnn_gamma_modules = []
             clear_probe = x
+            print('walkstep', [walk_steps[i]['module'] for i in range(len(walk_steps))])
+            print('fcstep', [fc_steps[i]['module'] for i in range(len(fc_steps))])
             for i, walk_step in enumerate(walk_steps):
                 modules = walk_step['module']
                 gamma_ = gamma[i] if i <= 1 else 1
                 if hasattr(modules[0], 'nn'):
-                    clear_probe = modules[0](clear_probe, edge_index, probe=False)
+                    clear_probe = modules[0](clear_probe, edge_index) #probe=False)
                     # clear nodes that are not created by user
 
                 gamma_module = copy.deepcopy(modules[0])
@@ -177,13 +181,18 @@ class GNN_LRP(_BaseDecomposition):
                         if hasattr(fc_modules[0], 'weight'):
                             ori_fc_weight = fc_modules[0].weight.data
                             fc_modules[0].weight.data = ori_fc_weight + gamma_ * ori_fc_weight
+                
                 elif isinstance(modules[0], GCNConv):
                     ori_gnn_weights.append(modules[0].lin.weight.data)
+                    # (.)^ = (.) + \gamma * \rho(.)
+                    gamma_module.lin.weight.data = ori_gnn_weights[i] + gamma_ * ori_gnn_weights[i].relu()
                 else: # Should be Linear layer
                     ori_gnn_weights.append(modules[0].weight.data)
-
                     # (.)^ = (.) + \gamma * \rho(.)
                     gamma_module.weight.data = ori_gnn_weights[i] + gamma_ * ori_gnn_weights[i].relu()
+
+                    
+                    #gamma_module.weight.data = ori_gnn_weights[i] + gamma_ * ori_gnn_weights[i].relu()
                 gnn_gamma_modules.append(gamma_module)
 
             # --- record original weights of fc layer ---
@@ -246,6 +255,8 @@ class GNN_LRP(_BaseDecomposition):
                         # --- LRP-gamma ---
                         p = gnn_gamma_modules[i](h, edge_index)
                         print('Layer {}'.format(i))
+                        print('size p', p.shape)
+                        print('size std_h', std_h.shape)
                         q = (p + epsilon) * (std_h / (p + epsilon)).detach()
 
                     # --- pick a path ---
@@ -268,10 +279,10 @@ class GNN_LRP(_BaseDecomposition):
                     ht = (s + epsilon) * (std_h / (s + epsilon)).detach()
                     h = ht
 
-                if not self.explain_graph:
-                    f = h[node_idx, label]
-                else:
-                    f = h[0, label]
+                # if not self.explain_graph:
+                #     f = h[node_idx, label]
+                
+                f = h[0, label]
 
                 # Compute relevance score:
                 x_grads = torch.autograd.grad(outputs=f, inputs=x)[0]
@@ -305,7 +316,7 @@ class GNN_LRP(_BaseDecomposition):
         # exp.edge_imp = edge_scores
         # exp.node_idx = node_idx
         exp.set_enclosing_subgraph(khop_info)
-        exp.set_whole_graph(x, edge_index_with_loop)
+        #exp.set_whole_graph(x, edge_index_with_loop)
 
         # Method-specific attributes:
         exp._walk_ids = walks['ids']

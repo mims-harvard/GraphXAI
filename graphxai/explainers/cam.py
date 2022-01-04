@@ -7,7 +7,7 @@ from torch_geometric.nn import GCNConv, GINConv
 
 import numpy as np
 
-from ._decomp_base import _BaseDecomposition
+from ._decomp_base_old import _BaseDecomposition
 from graphxai.utils import Explanation
 
 class CAM(_BaseDecomposition):

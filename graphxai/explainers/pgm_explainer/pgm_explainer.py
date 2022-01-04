@@ -71,7 +71,14 @@ class PGMExplainer(_BaseExplainer):
         Search the Markov blanket of target_node inside nodes.
         """
         MB = nodes
+        i = 0
         while True:
+
+            i += 1
+            if i > 1000:
+                print('Over 100 iterations')
+                return MB
+
             count = 0
             for node in nodes:
                 evidence = MB.copy()
@@ -287,7 +294,7 @@ class PGMExplainer(_BaseExplainer):
             pgm.fit(df_ex)
 
         pgm_nodes = [int(node) for node in pgm.nodes()]
-        print('pgm nodes', pgm_nodes)
+        #print('pgm nodes', pgm_nodes)
         node_imp = torch.zeros(n)
         node_imp[pgm_nodes] = 1
 
@@ -296,11 +303,11 @@ class PGMExplainer(_BaseExplainer):
             node_idx = node_idx
         )
 
+        # Store PGM in the Explanation
         exp.pgm = pgm
 
         exp.set_enclosing_subgraph(khop_info)
 
-        #return pgm, node_imp, khop_info
         return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,

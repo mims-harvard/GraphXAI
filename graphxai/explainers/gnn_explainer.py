@@ -111,9 +111,6 @@ class GNNExplainer(_BaseExplainer):
                     h = sub_x * mask.view(1, -1).sigmoid()
                 else:
                     h = sub_x
-                # print('h shape', h.shape)
-                # print('h', h)
-                # print('sub edge index shape', sub_edge_index.shape)
                 log_prob = self._predict(h, sub_edge_index, return_type='log_prob')
                 loss = loss_fn(log_prob, mask, mask_type)
                 loss.backward()

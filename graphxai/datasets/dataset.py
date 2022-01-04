@@ -1,9 +1,10 @@
 import pickle, random
 import torch
 from copy import deepcopy
-
+from typing import Tuple
 
 import pandas as pd
+from torch_geometric.utils.convert import to_networkx
 from graphxai.utils import Explanation#, WholeGraph
 
 from torch_geometric.data import Dataset, Data
@@ -13,6 +14,8 @@ from sklearn.model_selection import train_test_split
 from typing import List, Optional, Callable, Union, Any, Tuple
 
 from graphxai.utils.explanation import EnclosingSubgraph
+from graphxai.utils import to_networkx_conv
+from graphxai.datasets.real_world.MUTAG import MUTAG
 
 def get_dataset(dataset, download = False):
     '''
@@ -24,7 +27,7 @@ def get_dataset(dataset, download = False):
 
     if dataset == 'MUTAG':
         # Get MUTAG dataset
-        return MUTAG_Dataset()
+        return MUTAG()
     else:
         raise NameError("Cannot find dataset '{}'.".format(dataset))
 
@@ -108,7 +111,7 @@ class NodeDataset:
         '''
         return (self.graph.y == label).nonzero(as_tuple=True)[0]
 
-    def choose_node_with_label(self, label = 0) -> tuple[int, Explanation]:
+    def choose_node_with_label(self, label = 0) -> Tuple[int, Explanation]:
         '''
         Choose a random node with a given label
         Args:
@@ -143,7 +146,7 @@ class NodeDataset:
         else:
             return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] == 0]).long()
 
-    def choose_node_in_shape(self, inshape = True) -> tuple[int, Explanation]:
+    def choose_node_in_shape(self, inshape = True) -> Tuple[int, Explanation]:
         '''
         Gets a random node by shape membership.
 
@@ -153,7 +156,7 @@ class NodeDataset:
                 :obj:`False` means that the node is not in a shape.
 
         Returns:
-            tuple[int, Explanation]
+            Tuple[int, Explanation]
                 int: Node index found
                 Explanation: Explanation corresponding to that node index
         '''
@@ -286,19 +289,16 @@ class GraphDataset:
         else:
             pass
 
+    def get_graph_as_networkx(self, graph_idx):
+        '''
+        Get a given graph as networkx graph
+        '''
+
+        g = self.graphs[graph_idx]
+        return to_networkx_conv(g, node_attrs = ['x'], to_undirected=True)
+
     def download(self):
         pass
 
     def __getitem__(self, idx):
         return self.dataset[idx], self.explanation_list[idx]
-
-class MUTAG_Dataset(GraphDataset):
-    def __init__(self):
-
-        # Processing
-
-        super().__init__(name = 'MUTAG', x = [], y = [])
-
-        self.graphs = None
-
-        # Load graphs here

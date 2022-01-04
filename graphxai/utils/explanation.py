@@ -8,6 +8,7 @@ from torch_geometric.data import Data
 
 import graphxai.utils as gxai_utils
 from graphxai.utils.nx_conversion import match_torch_to_nx_edges, remove_duplicate_edges
+from graphxai.utils.misc import top_k_mask, threshold_mask
 
 from typing import Optional
 
@@ -316,6 +317,103 @@ class Explanation:
 
         return G
 
+    def top_k_node_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the node importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+
+        if inplace:
+            self.node_imp = top_k_mask(self.node_imp, top_k)
+        else:
+            return top_k_mask(self.node_imp, top_k)
+
+    def top_k_edge_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the edge importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.edge_imp = top_k_mask(self.edge_imp, top_k)
+        else:
+            return top_k_mask(self.edge_imp, top_k)
+
+    def top_k_feature_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the feature importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.feature_imp = top_k_mask(self.feature_imp, top_k)
+        else:
+            return top_k_mask(self.feature_imp, top_k)
+
+    def thresh_node_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the node importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.node_imp = threshold_mask(self.node_imp, threshold)
+        else:
+            return threshold_mask(self.node_imp, threshold)
+
+    def thresh_edge_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the edge importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.edge_imp = threshold_mask(self.edge_imp, threshold)
+        else:
+            return threshold_mask(self.edge_imp, threshold)
+
+    def thresh_feature_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the feature importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.feature_imp = threshold_mask(self.feature_imp, threshold)
+        else:
+            return threshold_mask(self.feature_imp, threshold)
+
     def context_draw(self, 
             num_hops,
             graph_data,
@@ -333,6 +431,8 @@ class Explanation:
                 node importance scores (i.e. across features, such as GuidedBP or Vanilla Gradient).
                 Options: :obj:`'sum'` and :obj:`'max'`. (:default: :obj:`'sum'`)
         '''
+
+        assert self.node_idx is not None, "context_draw only for node-level explanations, but node_idx is None" 
 
         #data_G = self.graph.get_Data()
         wholeG = gxai_utils.to_networkx_conv(graph_data, to_undirected=True)
@@ -400,7 +500,7 @@ class Explanation:
                     edge_heat[edge_matcher[e]] = 1
 
                 draw_args['edge_color'] = edge_heat.tolist()
-                #coolwarm
+                #coolwarm cmap:
                 draw_args['edge_cmap'] = plt.cm.coolwarm
 
             # Heat edge explanations if given
@@ -416,7 +516,21 @@ class Explanation:
         if show:
             plt.show()
 
-    def show_feature_imp(self, ax = None, show = False):
+    def graph_draw(self):
+        pass
+
+    def show_feature_imp(self, ax = None, show: bool = False):
+        '''
+        Show feature importance on a heatmap
+        Args:
+            ax (matplotlib axis, optional): Axis on which to draw the heatmap. 
+                If :obj:`None`, heatmap is drawn on plt.gca(). 
+                (:default: :obj:`None`)
+            show (bool, optional): Whether to show the heatmap (:obj:`True`) 
+                or not. (:default: :obj:`False`)
+        
+        No return
+        '''
 
         ax = ax if ax is not None else plt.gca()
 
