@@ -7,9 +7,11 @@ import time
 from typing import Optional
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
+from torch_geometric.nn import GCNConv, GINConv
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
 class PGExplainer(_BaseExplainer):
@@ -54,10 +56,15 @@ class PGExplainer(_BaseExplainer):
         self.num_hops = self.L if num_hops is None else num_hops
 
         # Explanation model in PGExplainer
-        if self.explain_graph:
-            in_channels = 2 * self.emb_layer.out_channels
-        else:
-            in_channels = 3 * self.emb_layer.out_channels
+
+        mult = 2 if self.explain_graph else 3
+
+        if isinstance(self.emb_layer, GCNConv):
+            in_channels = mult * self.emb_layer.out_channels
+        elif isinstance(self.emb_layer, GINConv):
+            in_channels = mult * self.emb_layer.nn.out_features
+        elif isinstance(self.emb_layer, torch.nn.Linear):
+            in_channels = mult * self.emb_layer.out_features
 
         self.elayers = nn.ModuleList(
             [nn.Sequential(
@@ -123,9 +130,13 @@ class PGExplainer(_BaseExplainer):
             # Undirected graph
             sym_mask = (self.mask_sigmoid + self.mask_sigmoid.transpose(0, 1)) / 2
             edge_mask = sym_mask[edge_index[0], edge_index[1]]
+            #print('edge_mask', edge_mask)
             self._set_masks(x, edge_index, edge_mask)
 
         # Compute the model prediction with edge mask
+        # with torch.no_grad():
+        #     tester = self.model(x, edge_index)
+        #     print(tester)
         prob_with_mask = self._predict(x, edge_index,
                                        forward_kwargs=forward_kwargs,
                                        return_type='prob')
@@ -226,10 +237,17 @@ class PGExplainer(_BaseExplainer):
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
                     new_node_index = int(torch.where(subset == node_idx)[0])
+                    # print('data.x', data.x)
+                    # print('data.edge_index', data.edge_index)
+                    # print('forward_kwargs', forward_kwargs)
                     prob_with_mask, _ = self.__emb_to_edge_mask(
-                        emb, data.x, data.edge_index, node_idx,
+                        emb, 
+                        x = data.x, 
+                        edge_index = data.edge_index, 
+                        node_idx = node_idx,
                         forward_kwargs=forward_kwargs,
-                        tmp=tmp, training=True)
+                        tmp=tmp, 
+                        training=True)
                     loss_tmp = loss_fn(prob_with_mask[new_node_index],
                                        pred_dict[node_idx])
                     loss_tmp.backward()
@@ -278,14 +296,22 @@ class PGExplainer(_BaseExplainer):
         exp = {k: None for k in EXP_TYPES}
         khop_info = _, _, _, sub_edge_mask = \
             k_hop_subgraph(node_idx, self.num_hops, edge_index,
-                           relabel_nodes=True, num_nodes=x.shape[0])
+                           relabel_nodes=False, num_nodes=x.shape[0])
         emb = self._get_embedding(x, edge_index, forward_kwargs=forward_kwargs)
         _, edge_mask = self.__emb_to_edge_mask(
             emb, x, edge_index, node_idx, forward_kwargs=forward_kwargs,
             tmp=2, training=False)
-        exp['edge_imp'] = edge_mask[sub_edge_mask]
+        edge_imp = edge_mask[sub_edge_mask]
 
-        return exp, khop_info
+        exp = Explanation(
+            node_imp = node_mask_from_edge_mask(khop_info[0], khop_info[1], edge_imp.bool()),
+            edge_imp = edge_imp,
+            node_idx = node_idx
+        )
+
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               label: Optional[torch.Tensor] = None,

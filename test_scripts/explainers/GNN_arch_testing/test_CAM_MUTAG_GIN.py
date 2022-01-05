@@ -3,7 +3,7 @@ import sys
 import torch
 from torch_geometric.datasets import TUDataset
 
-from graphxai.explainers import CAM, Grad_CAM
+from graphxai.explainers import CAM, GradCAM
 from graphxai.explainers.utils.visualizations import visualize_mol_explanation
 from graphxai.gnn_models.graph_classification import GIN, load_data, train, test
 
@@ -34,7 +34,7 @@ atoms = []
 for i in range(mol.x.shape[0]):
     atoms.append(atom_map[mol.x[i,:].tolist().index(1)])
 
-cam = Grad_CAM(model, criterion = criterion)
+cam = GradCAM(model, criterion = criterion)
 
 model.eval()
 pred = model(mol.x, mol.edge_index, torch.zeros(1).type(torch.int64))

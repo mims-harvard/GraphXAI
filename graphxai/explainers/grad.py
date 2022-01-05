@@ -4,7 +4,8 @@ from typing import Optional
 from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation
+#from graphxai.utils.constants import EXP_TYPES
 
 
 class GradExplainer(_BaseExplainer):
@@ -56,7 +57,7 @@ class GradExplainer(_BaseExplainer):
                               forward_kwargs=forward_kwargs) if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
@@ -69,9 +70,17 @@ class GradExplainer(_BaseExplainer):
         loss = self.criterion(output[mapping], label[mapping])
         loss.backward()
 
-        exp['feature_imp'] = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
+        feature_imp = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
 
-        return exp, khop_info
+        exp = Explanation(
+            feature_imp = feature_imp,
+            node_imp = sub_x.grad,
+            node_idx = node_idx
+        )
+
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               label: torch.Tensor, forward_kwargs: dict = {}):
@@ -91,7 +100,7 @@ class GradExplainer(_BaseExplainer):
                 exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
                 exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
         self.model.eval()
         x.requires_grad = True
@@ -99,7 +108,13 @@ class GradExplainer(_BaseExplainer):
         loss = self.criterion(output, label)
         loss.backward()
 
-        exp['feature_imp'] = x.grad
+        #exp['feature_imp'] = x.grad
+
+        exp = Explanation(
+            node_imp = x.grad
+        )
+
+        exp.set_whole_graph(x, edge_index)
 
         return exp
 

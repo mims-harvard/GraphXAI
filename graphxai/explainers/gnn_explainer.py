@@ -4,6 +4,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
 class GNNExplainer(_BaseExplainer):
@@ -33,7 +34,7 @@ class GNNExplainer(_BaseExplainer):
                              edge_index: torch.Tensor,
                              label: torch.Tensor = None,
                              num_hops: int = None,
-                             explain_feature: bool = False,
+                             explain_feature: bool = True,
                              forward_kwargs: dict = {}):
         """
         Explain a node prediction.
@@ -47,6 +48,7 @@ class GNNExplainer(_BaseExplainer):
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
             explain_feature (bool): whether to compute the feature mask or not
+                (:default: :obj:`True`)
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
 
@@ -61,15 +63,24 @@ class GNNExplainer(_BaseExplainer):
                 3. the `edge_index` mask indicating which edges were preserved
         """
         label = self._predict(x, edge_index,
-                              forward_kwargs=forward_kwargs) if label is None else label
+                              forward_kwargs=forward_kwargs)# if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
-        khop_info = subset, sub_edge_index, mapping, _ = \
+        print('IN GNNEXPLAINER')
+        print('node_idx', node_idx)
+        print('edge_index', edge_index)
+
+        org_eidx = edge_index.clone()
+
+        khop_info = subset, sub_edge_index, mapping, hard_edge_mask = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
-                           relabel_nodes=True, num_nodes=x.shape[0])
+                           relabel_nodes=True) #num_nodes=x.shape[0])
         sub_x = x[subset]
+
+        print('sub_x shape', sub_x.shape)
+        print('sub edge index shape', sub_edge_index.shape)
 
         self._set_masks(sub_x, sub_edge_index, explain_feature=explain_feature)
 
@@ -105,16 +116,33 @@ class GNNExplainer(_BaseExplainer):
                 loss.backward()
                 optimizer.step()
 
-        if explain_feature:
+        feat_imp = None
+        if explain_feature: # Get a feature mask
             train(self.feature_mask, 'feature')
-            exp['feature_imp'] = self.feature_mask.data.sigmoid()
+            feat_imp = self.feature_mask.data.sigmoid()
 
         train(self.edge_mask, 'edge')
-        exp['edge_imp'] = self.edge_mask.data.sigmoid()
+        edge_imp = self.edge_mask.data.sigmoid()
+
+        # print('IN GNNEXPLAINER')
+        # print('edge imp shape', edge_imp.shape)
 
         self._clear_masks()
 
-        return exp, khop_info
+        discrete_edge_mask = (edge_imp > 0.5) # Turn into bool activation because of sigmoid
+
+        khop_info = (subset, org_eidx[:,hard_edge_mask], mapping, hard_edge_mask)
+
+        exp = Explanation(
+            feature_imp = feat_imp,
+            node_imp = node_mask_from_edge_mask(khop_info[0], khop_info[1], edge_mask = discrete_edge_mask),
+            edge_imp = discrete_edge_mask.float(),
+            node_idx = node_idx
+        )
+
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               label: torch.Tensor = None,

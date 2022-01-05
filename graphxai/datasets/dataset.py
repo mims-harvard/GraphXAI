@@ -1,7 +1,10 @@
-from graphxai.utils.explanation import EnclosingSubgraph
+import pickle, random
 import torch
+from copy import deepcopy
+from typing import Tuple
 
 import pandas as pd
+from torch_geometric.utils.convert import to_networkx
 from graphxai.utils import Explanation#, WholeGraph
 
 from torch_geometric.data import Dataset, Data
@@ -9,6 +12,10 @@ from torch_geometric.utils import k_hop_subgraph
 from sklearn.model_selection import train_test_split
 
 from typing import List, Optional, Callable, Union, Any, Tuple
+
+from graphxai.utils.explanation import EnclosingSubgraph
+from graphxai.utils import to_networkx_conv
+from graphxai.datasets.real_world.MUTAG import MUTAG
 
 def get_dataset(dataset, download = False):
     '''
@@ -20,7 +27,7 @@ def get_dataset(dataset, download = False):
 
     if dataset == 'MUTAG':
         # Get MUTAG dataset
-        return MUTAG_Dataset()
+        return MUTAG()
     else:
         raise NameError("Cannot find dataset '{}'.".format(dataset))
 
@@ -48,7 +55,8 @@ class NodeDataset:
         Args:
             use_static_split (bool, optional): (:default: True)
         '''
-        import ipdb
+        #import ipdb
+
         # ipdb.set_trace()
         if use_fixed_split:
             # Set train, test, val static masks:
@@ -62,7 +70,7 @@ class NodeDataset:
             # Create a split for user (based on seed, etc.)
             train_mask, test_mask = train_test_split(list(range(self.graph.num_nodes)), 
                                 test_size = split_sizes[1] + split_sizes[2], 
-                                random_state = seed)  # , stratify = self.graph.y.tolist() if stratify else None)
+                                random_state = seed, stratify = self.graph.y.tolist() if stratify else None)
             # print(self.graph.y.tolist())
             # print(train_mask)
             # exit(0)
@@ -91,9 +99,115 @@ class NodeDataset:
             edge_index = self.graph.edge_index)
         return EnclosingSubgraph(*k_hop_tuple)
 
+    def nodes_with_label(self, label = 0) -> torch.Tensor:
+        '''
+        Get all nodes that are a certain label
+        Args:
+            label (int, optional): Label for which to find nodes.
+                (:default: :obj:`0`)
+
+        Returns:
+            torch.Tensor: Indices of nodes that are of the label
+        '''
+        return (self.graph.y == label).nonzero(as_tuple=True)[0]
+
+    def choose_node_with_label(self, label = 0) -> Tuple[int, Explanation]:
+        '''
+        Choose a random node with a given label
+        Args:
+            label (int, optional): Label for which to find node.
+                (:default: :obj:`0`)
+
+        Returns:
+            tuple(int, Explanation):
+                int: Node index found
+                Explanation: explanation corresponding to that node index
+        '''
+        nodes = self.nodes_with_label(label = label)
+        node_idx = random.choice(nodes).item()
+
+        return node_idx, self.explanations[node_idx]
+
+    def nodes_in_shape(self, inshape = True):
+        '''
+        Get a group of nodes by shape membership.
+
+        Args:
+            inshape (bool, optional): If the nodes are in a shape.
+                :obj:`True` means that the nodes returned are in a shape.
+                :obj:`False` means that the nodes are not in a shape.
+
+        Returns:
+            torch.Tensor: All node indices for nodes in or not in a shape.
+        '''
+        # Get all nodes in a shape
+        if inshape:
+            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] > 0]).long()
+        else:
+            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] == 0]).long()
+
+    def choose_node_in_shape(self, inshape = True) -> Tuple[int, Explanation]:
+        '''
+        Gets a random node by shape membership.
+
+        Args:
+            inshape (bool, optional): If the node is in a shape.
+                :obj:`True` means that the node returned is in a shape.
+                :obj:`False` means that the node is not in a shape.
+
+        Returns:
+            Tuple[int, Explanation]
+                int: Node index found
+                Explanation: Explanation corresponding to that node index
+        '''
+        nodes = self.nodes_in_shape(inshape = inshape)
+        node_idx = random.choice(nodes).item()
+
+        return node_idx, self.explanations[node_idx]
+
+
+    def choose_node(self, inshape = None, label = None):
+        '''
+        Chooses random nodes in the graph. Has support for multiple logical
+            indexing.
+
+        Args:
+            inshape (bool, optional): If the node is in a shape.
+                :obj:`True` means that the node returned is in a shape.
+                :obj:`False` means that the node is not in a shape.
+            label (int, optional): Label for which to find node.
+                (:default: :obj:`0`)
+        
+        Returns:
+        '''
+        if inshape is None:
+            if label is None:
+                to_choose = torch.arange(end = self.num_nodes)
+            else:
+                to_choose = self.nodes_with_label(label = label)
+        
+        elif label is None:
+            to_choose = self.nodes_in_shape(inshape = inshape)
+
+        else:
+            t_inshape = self.nodes_in_shape(inshape = inshape)
+            t_label = self.nodes_with_label(label = label)
+
+            # Joint masking over shapes and labels:
+            to_choose = torch.as_tensor([n.item() for n in t_label if n in t_inshape]).long()
+
+        assert_fmt = 'Could not find a node in {} with inshape={}, label={}'
+        assert to_choose.nelement() > 0, assert_fmt.format(self.name, inshape, label)
+
+        node_idx = random.choice(to_choose).item()
+        return node_idx, self.explanations[node_idx]
+
     def __len__(self) -> int:
         return 1 # There is always just one graph
 
+    def dump(self, fname = None):
+        fname = self.name + '.pickle' if fname is None else fname
+        torch.save(self, open(fname, 'wb'))
     @property
     def x(self):
         return self.graph.x
@@ -175,19 +289,16 @@ class GraphDataset:
         else:
             pass
 
+    def get_graph_as_networkx(self, graph_idx):
+        '''
+        Get a given graph as networkx graph
+        '''
+
+        g = self.graphs[graph_idx]
+        return to_networkx_conv(g, node_attrs = ['x'], to_undirected=True)
+
     def download(self):
         pass
 
     def __getitem__(self, idx):
         return self.dataset[idx], self.explanation_list[idx]
-
-class MUTAG_Dataset(GraphDataset):
-    def __init__(self):
-
-        # Processing
-
-        super().__init__(name = 'MUTAG', x = [], y = [])
-
-        self.graphs = None
-
-        # Load graphs here

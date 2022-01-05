@@ -2,7 +2,7 @@ import ipdb
 import torch
 import numpy as np
 import scipy.stats as st
-
+import sklearn.metrics as metrics
 from tqdm import trange
 from sklearn.model_selection import KFold
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
@@ -33,19 +33,37 @@ def test_on_split(
         criterion,
         data, 
         split,
-        num_classes=2
-    ):
+        num_classes = 2,
+        get_auc = False
+        ):
     model.eval()
     out = model(data.x, data.edge_index)
     loss = criterion(out[split], data.y[split])
-    pred = out.argmax(dim=1)  # Use the class with highest probability.
 
-    acc = accuracy_score(data.y[split].tolist(), pred[split].tolist())
+    pred = out.argmax(dim=1)  # Use the class with highest probability.
+    probas = out.softmax(dim=1)[split,1].numpy()
+
+    true_Y = data.y[split].numpy()
+
+    acc = accuracy_score(true_Y, pred[split].tolist())
+    
     if num_classes == 2:
-        test_score = f1_score(data.y[split].tolist(), pred[split].tolist())
-        precision = precision_score(data.y[split].tolist(), pred[split].tolist())
-        recall = recall_score(data.y[split].tolist(), pred[split].tolist())
-        return test_score, acc, precision, recall, loss
+        test_score = f1_score(true_Y, pred[split].tolist())
+        precision = precision_score(true_Y, pred[split].tolist())
+        recall = recall_score(true_Y, pred[split].tolist())
+
+        # AUROC and AUPRC
+        if get_auc:
+            auprc = metrics.average_precision_score(true_Y, probas, pos_label = 1)
+            auroc = metrics.roc_auc_score(true_Y, probas)
+
+            # Get AUC's:
+            # auprc = metrics.auc(pre, rec)
+            # auroc = metrics.auc(fpr, tpr)
+
+            return test_score, acc, precision, recall, auprc, auroc
+
+        return test_score, acc, precision, recall
     
     return acc
 
@@ -57,6 +75,8 @@ def test_model_on_ShapeGraph(model, epochs_per_run=200, num_cvs=10):
     acc_cv = []
     prec_cv = []
     rec_cv = []
+    auprc_cv = []
+    auroc_cv = []
 
     for i in trange(num_cvs):
         # Gen dataset:
@@ -72,6 +92,8 @@ def test_model_on_ShapeGraph(model, epochs_per_run=200, num_cvs=10):
         acc_cvi = []
         prec_cvi = []
         rec_cvi = []
+        auprc_cvi = []
+        auroc_cvi = []
 
         for train_index, test_index in kf.split(nodes):
 
@@ -81,24 +103,37 @@ def test_model_on_ShapeGraph(model, epochs_per_run=200, num_cvs=10):
             criterion = torch.nn.CrossEntropyLoss()
             tr_loss, te_loss = [], []
             for epoch in range(epochs_per_run):
-                train_loss = train_on_split(modeli, optimizer, criterion, data, train_index)
-                _, _, _, _, test_loss = test_on_split(modeli, criterion, data, test_index, num_classes=2)
-                tr_loss.append(train_loss)
-                te_loss.append(test_loss)
-                # print(f'Train loss: {train_loss:.5f} || Test loss: {test_loss:.5f}')
-            f1, acc, precision, recall, _ = test_on_split(modeli, criterion, data, test_index, num_classes=2)
-            # ipdb.set_trace()
+                loss = train_on_split(modeli, optimizer, criterion, data, train_index)
+
+                # Get validation loss:
+                # val_losses.append(test_on_split(modeli, data, val_idx, num_classes = 2)[0])
+
+                # if len(val_losses) > 5:
+                #     improvement = [int(val_losses[i] >= val_losses[i+1]) for i in range(-5, -1)]
+
+                #     if sum(improvement) == 0:
+                #         break
+
+            #print(epoch)
+                
+            #f1, acc, precision, recall = test_on_split(modeli, data, test_index, num_classes = 2)
+
+            f1, acc, precision, recall, auprc, auroc = test_on_split(modeli, data, test_index, num_classes = 2, get_auc = True)
+
             f1_cvi.append(f1); acc_cvi.append(acc); prec_cvi.append(precision); rec_cvi.append(recall)
+            auprc_cvi.append(auprc); auroc_cvi.append(auroc)
 
         # Append all means:
         f1_cv.append(np.mean(f1_cvi))
         acc_cv.append(np.mean(acc_cvi))
         prec_cv.append(np.mean(prec_cvi))
         rec_cv.append(np.mean(rec_cvi))
+        auprc_cv.append(np.mean(auprc_cvi))
+        auroc_cv.append(np.mean(auroc_cvi))
 
-    metrics = ['F1', 'Accuracy', 'Precision', 'Recall']
-    results = [f1_cv, acc_cv, prec_cv, rec_cv]
-    for i in range(4):
+    metrics = ['F1', 'Accuracy', 'Precision', 'Recall', 'AUPRC', 'AUROC']
+    results = [f1_cv, acc_cv, prec_cv, rec_cv, auprc_cv, auroc_cv]
+    for i in range(len(results)):
         l = results[i]
 
         # Get confidence interval:
@@ -120,7 +155,7 @@ if __name__ == '__main__':
     test_model_on_ShapeGraph(model, epochs_per_run=200)
     print('Graph: n=100, p=0.09, sn=13')
 
-    test_model_on_ShapeGraph(model, epochs_per_run=100, num_cvs = 10)
+    test_model_on_ShapeGraph(model, epochs_per_run=100, num_cvs = 5)
 
 
 

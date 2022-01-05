@@ -1,4 +1,4 @@
-import random
+import random, itertools, tqdm
 import numpy as np
 import networkx as nx
 from functools import partial
@@ -140,75 +140,80 @@ def build_bound_graph(
 
     G = G.to_undirected()
 
+    # Make list of possible connections between subgraphs:
+    connections = np.array(list(itertools.combinations(np.arange(len(subgraphs)), r = 2)))
+    sample_mask = np.random.binomial(n=2, p = prob_connection, size = len(connections)).astype(bool)
+    iter_edges = connections[sample_mask]
+
     # Join subgraphs via inner-subgraph connections
-    for i in range(len(subgraphs)):
-        for j in range(i + 1, len(subgraphs)):
+    # for i in range(len(subgraphs)):
+    #     for j in range(i + 1, len(subgraphs)):
+    for i, j in tqdm.tqdm(iter_edges):
 
-            s = subgraphs[i]
-            # Try to make connections between subgraphs i, j:
+        #s = subgraphs[i]
+        # Try to make connections between subgraphs i, j:
 
-            # Screen whether to try to make a connection:
-            if np.random.rand() > prob_connection:
+        x, y = np.meshgrid(list(subgraphs[i].nodes), list(subgraphs[j].nodes))
+        possible_edges = list(zip(x.flatten(), y.flatten()))
+
+        # Create preferential attachment distribution: -------------------
+        deg_dist = np.array([(subgraphs[i].degree(ni) + subgraphs[j].degree(nj)) for ni, nj in possible_edges])
+        running_mask = np.ones(deg_dist.shape[0])
+        indices_to_choose = np.arange(len(possible_edges))
+        # ----------------------------------------------------------------
+
+        rand_edge = None
+
+        #tempG = G.copy()
+
+        while np.sum(running_mask) > 0:
+
+            # -----------
+            rand_i = np.random.choice(indices_to_choose, p = deg_dist / np.sum(deg_dist))
+            rand_edge = possible_edges[rand_i]
+            old_deg = deg_dist[rand_i]
+            running_mask[rand_i] = 0
+
+            if np.sum(running_mask) > 0:
+                deg_dist = (deg_dist + old_deg/np.sum(running_mask) * running_mask) * running_mask
+            # -----------
+
+            # Make edge between the two:
+            # tempG.add_edge(rand_edge[0], rand_edge[1])
+            # tempG.add_edge(rand_edge[1], rand_edge[0])
+            G.add_edge(rand_edge[0], rand_edge[1])
+            #print('rand_edge 1', rand_edge)
+
+            khop_union = set()
+
+            # Constant number of t's for each (10)
+            for t in list(original_shapes[i].nodes) + list(original_shapes[j].nodes):
+                khop_union = khop_union.union(set(khop_subgraph_nx(node_idx = t, num_hops = 1, G = G)))
+
+            incr_ret = incr_on_unique_houses(
+                nodes_to_search = list(khop_union),   
+                G = G, 
+                num_hops = 1, 
+                attr_measure = 'shapes_in_khop', 
+                lower_bound = 1, 
+                upper_bound = 2)
+
+            if incr_ret is None:
+                #print('rand_edge 2', rand_edge)
+                #empG.remove_edge(rand_edge[0], rand_edge[1])
+                G.remove_edge(rand_edge[0], rand_edge[1])
+                #tempG.remove_edge(rand_edge[1], rand_edge[0])
+
+                rand_edge = None
                 continue
+            else:
+                #tempG = incr_ret
+                G = incr_ret
+                break
 
-            x, y = np.meshgrid(list(subgraphs[i].nodes), list(subgraphs[j].nodes))
-            possible_edges = list(zip(x.flatten(), y.flatten()))
-
-            # Create preferential attachment distribution: -------------------
-            deg_dist = np.array([(subgraphs[i].degree(ni) + subgraphs[j].degree(nj)) for ni, nj in possible_edges])
-            running_mask = np.ones(deg_dist.shape[0])
-            indices_to_choose = list(range(len(possible_edges)))
-            # ----------------------------------------------------------------
-
-            rand_edge = None
-
-            tempG = G.copy()
-
-            while np.sum(running_mask) > 0:
-
-                # -----------
-                rand_i = np.random.choice(indices_to_choose, p = deg_dist / np.sum(deg_dist))
-                rand_edge = possible_edges[rand_i]
-                old_deg = deg_dist[rand_i]
-                running_mask[rand_i] = 0
-
-                if np.sum(running_mask) > 0:
-                    deg_dist = (deg_dist + old_deg/np.sum(running_mask) * running_mask) * running_mask
-                # -----------
-
-                # Make edge between the two:
-                tempG.add_edge(rand_edge[0], rand_edge[1])
-                tempG.add_edge(rand_edge[1], rand_edge[0])
-                #print('rand_edge 1', rand_edge)
-
-                khop_union = set()
-
-                # Constant number of t's for each (10)
-                for t in list(original_shapes[i].nodes) + list(original_shapes[j].nodes):
-                    khop_union = khop_union.union(set(khop_subgraph_nx(node_idx = t, num_hops = 1, G = tempG)))
-
-                incr_ret = incr_on_unique_houses(
-                    nodes_to_search = list(khop_union),   
-                    G = tempG, 
-                    num_hops = 1, 
-                    attr_measure = 'shapes_in_khop', 
-                    lower_bound = 1, 
-                    upper_bound = 2)
-
-                if incr_ret is None:
-                    #print('rand_edge 2', rand_edge)
-                    tempG.remove_edge(rand_edge[0], rand_edge[1])
-                    #tempG.remove_edge(rand_edge[1], rand_edge[0])
-
-                    rand_edge = None
-                    continue
-                else:
-                    tempG = incr_ret
-                    break
-
-            if rand_edge is not None: # If we found a valid edge
-                #print('Made change')
-                G = tempG.copy()
+        # if rand_edge is not None: # If we found a valid edge
+        #     #print('Made change')
+        #     G = tempG.copy()
 
     # Ensure that G is connected
     G = G.subgraph(sorted(nx.connected_components(G), key = len, reverse = True)[0])

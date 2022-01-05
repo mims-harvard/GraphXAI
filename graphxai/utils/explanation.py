@@ -8,6 +8,7 @@ from torch_geometric.data import Data
 
 import graphxai.utils as gxai_utils
 from graphxai.utils.nx_conversion import match_torch_to_nx_edges, remove_duplicate_edges
+from graphxai.utils.misc import top_k_mask, threshold_mask
 
 from typing import Optional
 
@@ -316,19 +317,122 @@ class Explanation:
 
         return G
 
+    def top_k_node_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the node importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+
+        if inplace:
+            self.node_imp = top_k_mask(self.node_imp, top_k)
+        else:
+            return top_k_mask(self.node_imp, top_k)
+
+    def top_k_edge_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the edge importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.edge_imp = top_k_mask(self.edge_imp, top_k)
+        else:
+            return top_k_mask(self.edge_imp, top_k)
+
+    def top_k_feature_imp(self, top_k: int, inplace = False):
+        '''
+        Top-k masking of the feature importance for this Explanation.
+
+        Args:
+            top_k (int): How many highest scores to include in the mask.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.feature_imp = top_k_mask(self.feature_imp, top_k)
+        else:
+            return top_k_mask(self.feature_imp, top_k)
+
+    def thresh_node_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the node importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.node_imp = threshold_mask(self.node_imp, threshold)
+        else:
+            return threshold_mask(self.node_imp, threshold)
+
+    def thresh_edge_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the edge importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.edge_imp = threshold_mask(self.edge_imp, threshold)
+        else:
+            return threshold_mask(self.edge_imp, threshold)
+
+    def thresh_feature_imp(self, threshold: float, inplace = False):
+        '''
+        Threshold mask the feature importance
+
+        Args:
+            threshold (float): Select all values greater than this value.
+            inplace (bool, optional): If True, masks the node_imp member 
+                of the class.
+
+        :rtype: :obj:`torch.Tensor`
+        '''
+        if inplace:
+            self.feature_imp = threshold_mask(self.feature_imp, threshold)
+        else:
+            return threshold_mask(self.feature_imp, threshold)
+
     def context_draw(self, 
             num_hops,
             graph_data,
             additional_hops = 1, 
             heat_by_prescence = False, 
             heat_by_exp = True, 
+            node_agg_method = 'sum',
             ax = None,
             show=False
         ):
         '''
         Shows the explanation in context of a few more hops out than its k-hop neighborhood
         Args:
+            node_agg_method (str, optional): Aggregation method to use for showing multi-dimensional
+                node importance scores (i.e. across features, such as GuidedBP or Vanilla Gradient).
+                Options: :obj:`'sum'` and :obj:`'max'`. (:default: :obj:`'sum'`)
         '''
+
+        assert self.node_idx is not None, "context_draw only for node-level explanations, but node_idx is None" 
 
         #data_G = self.graph.get_Data()
         wholeG = gxai_utils.to_networkx_conv(graph_data, to_undirected=True)
@@ -339,6 +443,8 @@ class Explanation:
             )
 
         subG = wholeG.subgraph(kadd_hop_neighborhood)
+
+        node_agg = torch.sum if node_agg_method == 'sum' else torch.max
 
         # Identify highlighting nodes:
         exp_nodes = self.enc_subgraph.nodes
@@ -355,9 +461,17 @@ class Explanation:
                 node_c = []
                 for i in subG.nodes:
                     if i in self.enc_subgraph.nodes:
-                        node_c.append(self.node_imp[self.node_reference[i]])
+                        if isinstance(self.node_imp[self.node_reference[i]], torch.Tensor):
+                            if self.node_imp[self.node_reference[i]].dim() > 0:
+                                c = node_agg(self.node_imp[self.node_reference[i]]).item()
+                            else:
+                                c = self.node_imp[self.node_reference[i]].item()
+                        else:
+                            c = self.node_imp[self.node_reference[i]]
                     else:
-                        node_c.append(0)
+                        c = 0
+
+                    node_c.append(c)
 
                 draw_args['node_color'] = node_c
 
@@ -367,8 +481,6 @@ class Explanation:
                 # Need to match edge indices across edge_index and edges in graph
                 tuple_edge_index = [(whole_edge_index[0,i].item(), whole_edge_index[1,i].item()) \
                     for i in range(whole_edge_index.shape[1])]
-
-                print(len(tuple_edge_index), self.edge_imp.shape)
 
                 trimmed_enc_subg_edge_index, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
                 positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
@@ -388,7 +500,7 @@ class Explanation:
                     edge_heat[edge_matcher[e]] = 1
 
                 draw_args['edge_color'] = edge_heat.tolist()
-                #coolwarm
+                #coolwarm cmap:
                 draw_args['edge_cmap'] = plt.cm.coolwarm
 
             # Heat edge explanations if given
@@ -400,6 +512,32 @@ class Explanation:
         # Highlight the node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 
                 node_size = 400, ax = ax)
+
+        if show:
+            plt.show()
+
+    def graph_draw(self):
+        pass
+
+    def show_feature_imp(self, ax = None, show: bool = False):
+        '''
+        Show feature importance on a heatmap
+        Args:
+            ax (matplotlib axis, optional): Axis on which to draw the heatmap. 
+                If :obj:`None`, heatmap is drawn on plt.gca(). 
+                (:default: :obj:`None`)
+            show (bool, optional): Whether to show the heatmap (:obj:`True`) 
+                or not. (:default: :obj:`False`)
+        
+        No return
+        '''
+
+        ax = ax if ax is not None else plt.gca()
+
+        # Draw a heatmap on the axis:
+        feat_imp = self.feature_imp.numpy()
+
+        ax.imshow(feat_imp.reshape((-1, 1)))
 
         if show:
             plt.show()

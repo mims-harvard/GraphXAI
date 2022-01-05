@@ -5,7 +5,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
 from graphxai.utils import Explanation
-from ._decomp_base import _BaseDecomposition
+from ._decomp_base_old import _BaseDecomposition
 
 def clip_hook(grad):
     # Apply ReLU activation to gradient

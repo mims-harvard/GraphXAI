@@ -1,4 +1,4 @@
-import sys
+import sys, time, pickle
 import torch
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -24,7 +24,11 @@ def parse_args():
 
 args = parse_args()
 
-bah = ShapeGraph(**args, model_layers=3)
+start_time = time.time()
+bah = ShapeGraph(**args, model_layers=3, verify = False)
+bah.dump('large_graph.pickle')
+#pickle.dump(bah, open('ShapeGraph_large_graph.pickle', 'wb'), pickle.HIGHEST_PROTOCOL)
+print('Time to make:', time.time() - start_time)
 data = bah.get_graph()
 G = bah.G
 

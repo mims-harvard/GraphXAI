@@ -68,11 +68,14 @@ class _BaseExplainer:
         if explain_feature:
             self.feature_mask = torch.nn.Parameter(torch.randn(d) * 0.1)
 
+        self.loop_mask = edge_index[0] != edge_index[1]
+
         # Tell pytorch geometric to apply edge masks
         for module in self.model.modules():
             if isinstance(module, MessagePassing):
                 module.__explain__ = True
                 module.__edge_mask__ = self.edge_mask
+                module.__loop_mask__ = self.loop_mask
 
     def _clear_masks(self):
         for module in self.model.modules():

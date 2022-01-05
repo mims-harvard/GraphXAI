@@ -1,8 +1,111 @@
 import torch
+import networkx as nx
 
+from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph, subgraph
+from torch_geometric.utils.convert import to_networkx
 
-def match_NO2(data):
+# MUTAG notation: [C, N, O, ...]
+#   No hydrogens
+
+C_vec = torch.zeros(7); C_vec[0] = 1
+N_vec = torch.zeros(7); N_vec[1] = 1
+O_vec = torch.zeros(7); O_vec[2] = 1 
+
+def make_NO2():
+    no2 = nx.Graph()
+
+    nodes = [0, 1, 2]
+    atom = ['N', 'O', 'O']
+    vecs = [N_vec, O_vec, O_vec]
+
+    node_data = [(n, {'atom': a, 'x': v.clone()}) for n, a, v in zip(nodes, atom, vecs)]
+
+    no2.add_nodes_from(node_data)
+
+    # Edges like: O -- N -- O
+    edges = [(0, 1), (0, 2)]
+
+    no2.add_edges_from(edges)
+
+    return no2
+
+MUTAG_NO2 = make_NO2()
+
+def match_NH2(G: nx.Graph, node: int):
+    '''Determines if a node in a Networkx graph is a match for NH2 group'''
+
+    if G.degree[node] != 1: # If degree not 1, isn't NH2
+        return None
+
+    # See if their vectors are equal:
+    node_vec = torch.as_tensor(G.nodes[node]['x'])
+    return (torch.norm(node_vec - N_vec).item() == 0)
+
+    # if (torch.norm(node_vec - gt_vec).item() == 0):
+    #     # Highlight the node
+    #     pass
+
+    # return None
+
+def match_substruct(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2):
+
+    # Isomorphic match graph structure:
+    matcher = nx.algorithms.isomorphism.ISMAGS(graph = G, subgraph = substructure)
+
+    matches = []
+
+    for iso in matcher.find_isomorphisms():
+        #i += 1
+
+        # iso is a dictionary (G nodes -> sub nodes)
+
+        bad_iso_flag = False
+        
+        # Find matching to 0
+        # Ensure the subgraph matches attributes (i.e. N's, O's, H's, etc.)
+        for k, v in iso.items():
+            if v != 0: continue
+            
+            # Make sure k is N:
+            if G.degree[k] != 3:
+                bad_iso_flag = True
+                break
+        
+            # If this node is not N:
+            node_vec = torch.as_tensor(G.nodes[k]['x'])
+            if torch.norm(node_vec - N_vec).item() != 0:
+                bad_iso_flag = True
+                break
+
+            # Get all oxygen nodes:
+            O_nodes = [ki for ki, _ in iso.items() if ki != k]
+
+            # Check if they're both Oxygens and if O_nodes only have degree 1
+            for o in O_nodes:
+
+                if G.degree[o] != 1:
+                    bad_iso_flag = True
+                    break
+
+                O_vec_i = torch.as_tensor(G.nodes[o]['x'])
+
+                if torch.norm(O_vec_i - O_vec).item() != 0:
+                    bad_iso_flag = True
+                    break
+            
+            # Break no matter what here
+            break
+
+        if bad_iso_flag:
+            continue
+        
+        # Mark each of the nodes:
+        matches.append(torch.as_tensor(iso.keys()))
+
+    return matches
+
+def match_NO2_old(data):
     '''
     Identifies edges and nodes in a graph that correspond to NO2 groups
 

@@ -17,7 +17,10 @@ from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic
-# from graphxai.datasets import BAShapes
+
+from graphxai.gnn_models.node_classification import GCN, train, test
+from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
+
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges
@@ -326,7 +329,7 @@ if __name__ == '__main__':
         gt_exp = bah.explanations[node_idx]
 
         # Compute Grad-CAM explanation
-        gcam = Grad_CAM(model, criterion=criterion)
+        gcam = GradCAM(model, criterion=criterion)
         # print('node_idx', node_idx)
         gcam_exp = gcam.get_explanation_node(
             data.x,

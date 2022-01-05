@@ -6,6 +6,7 @@ from torch_geometric.utils.num_nodes import maybe_num_nodes
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
+from graphxai.utils import Explanation
 
 
 class RandomExplainer(_BaseExplainer):
@@ -39,11 +40,19 @@ class RandomExplainer(_BaseExplainer):
         num_hops = self.L if num_hops is None else num_hops
         khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
 
-        exp = {k: None for k in EXP_TYPES}
-        exp['feature_imp'] = torch.randn(x[0, :].shape)
-        exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
+        # exp = {k: None for k in EXP_TYPES}
+        # exp['feature_imp'] = torch.randn(x[0, :].shape)
+        # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
+        
+        exp = Explanation(
+            feature_imp = torch.randn(x[0, :].shape),
+            node_imp = torch.randn(edge_index[0, :].shape),
+            node_idx = node_idx
+        )
 
-        return exp, khop_info
+        exp.set_enclosing_subgraph(khop_info)
+
+        return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
                               num_nodes : int = None):
@@ -61,13 +70,18 @@ class RandomExplainer(_BaseExplainer):
                 exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
                 exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
         """
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
         n = maybe_num_nodes(edge_index, None) if num_nodes is None else num_nodes
         rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1))
-        exp['feature_imp'] = rand_mask * torch.randn_like(x)
+        # exp['feature_imp'] = rand_mask * torch.randn_like(x)
 
-        exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
+        # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
+
+        exp = Explanation(
+            node_imp = rand_mask * torch.randn_like(x),
+            edge_imp = torch.randn(edge_index[0, :].shape)
+        )
 
         return exp
 
