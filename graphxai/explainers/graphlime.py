@@ -120,7 +120,7 @@ class GraphLIME(_BaseExplainer):
 
         feat_imp = torch.from_numpy(solver.coef_)
 
-        exp = Explanation(feature_imp=feat_imp)
+        exp = Explanation(feature_imp=feat_imp, node_idx = node_idx)
         exp.set_enclosing_subgraph(khop_info)
 
         return exp

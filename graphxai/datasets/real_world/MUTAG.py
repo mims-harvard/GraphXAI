@@ -50,7 +50,7 @@ class MUTAG(GraphDataset):
 
             molG = self.get_graph_as_networkx(i)
 
-            node_imp = torch.zeros()
+            node_imp = torch.zeros(molG.number_of_nodes())
 
             #print(molG.nodes(data=True))
 
@@ -76,6 +76,6 @@ class MUTAG(GraphDataset):
                 node_imp = node_imp
             )
 
-            exp.set_whole_graph(self.graphs[i])
+            exp.set_whole_graph(self.graphs[i].x, self.graphs[i].edge_index)
 
             self.explanations.append(exp)

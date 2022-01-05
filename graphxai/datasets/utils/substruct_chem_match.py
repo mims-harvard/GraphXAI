@@ -101,7 +101,7 @@ def match_substruct(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2):
             continue
         
         # Mark each of the nodes:
-        matches.append(torch.as_tensor(iso.keys()))
+        matches.append(torch.as_tensor(list(iso.keys()), dtype = int))
 
     return matches
 
