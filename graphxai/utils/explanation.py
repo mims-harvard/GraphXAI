@@ -197,6 +197,9 @@ class Explanation:
     def set_whole_graph(self, x, edge_index):
         self.graph = WholeGraph(x, edge_index)
 
+        # if self.node_reference is None:
+        #     self.node_reference = gxai_utils.make_node_ref(self.graph.nodes)
+
     def graph_to_networkx(self, 
         to_undirected=False, 
         remove_self_loops: Optional[bool]=False,
@@ -484,6 +487,9 @@ class Explanation:
 
                 trimmed_enc_subg_edge_index, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
                 positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
+
+                # TODO: fix edge imp vis. to handle continuous edge importance scores
+
                 positive_edges = [(trimmed_enc_subg_edge_index[0,e].item(), trimmed_enc_subg_edge_index[1,e].item()) \
                     for e in positive_edge_indices]
 
@@ -509,15 +515,54 @@ class Explanation:
         pos = nx.spring_layout(subG, seed = 1234)
         nx.draw(subG, pos, ax = ax, **draw_args)
 
-        # Highlight the node index:
+        # Highlight the center node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 
                 node_size = 400, ax = ax)
 
         if show:
             plt.show()
 
-    def graph_draw(self):
-        pass
+    def graph_draw(self, ax = None, show = False):
+
+        if ax is None:
+            ax = plt.gca()
+        
+        G = gxai_utils.to_networkx_conv(self.graph.get_Data(), to_undirected=True)
+
+        draw_args = dict()
+
+        # Node weights defined by node_imp:
+        if self.node_imp is not None:
+            # Get node weights
+            if isinstance(self.node_imp, torch.Tensor):
+                node_imp_heat = [self.node_imp[n].item() for n in G.nodes()]
+                #node_imp_map = {i:self.node_imp[i].item() for i in range(G.number_of_nodes())}
+            else:
+                node_imp_heat = [self.node_imp[n] for n in G.nodes()]
+                #node_imp_map = {i:self.node_imp[i] for i in range(G.number_of_nodes())}
+
+            draw_args['node_color'] = node_imp_heat
+                
+        if self.edge_imp is not None:
+            edge_matcher = match_torch_to_nx_edges(G, self.graph.edge_index)
+
+            edge_heat = torch.zeros(G.number_of_edges())
+
+            for i in range(self.graph.edge_index.shape[1]):
+                e = (self.graph.edge_index[0,i].item(), self.graph.edge_index[1,i].item())
+                edge_heat[edge_matcher[e]] = self.edge_imp[i].item()
+
+            draw_args['edge_color'] = edge_heat.tolist()
+            draw_args['edge_cmap'] = plt.cm.coolwarm
+
+        # Don't do anything for feature imp
+
+        pos = nx.kamada_kawai_layout(G)
+        nx.draw(G, pos, ax = ax, **draw_args)
+
+        if show:
+            plt.show()
+
 
     def show_feature_imp(self, ax = None, show: bool = False):
         '''
