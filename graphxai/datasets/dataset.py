@@ -15,7 +15,7 @@ from typing import List, Optional, Callable, Union, Any, Tuple
 
 from graphxai.utils.explanation import EnclosingSubgraph
 from graphxai.utils import to_networkx_conv
-from graphxai.datasets.real_world.MUTAG import MUTAG
+import graphxai.datasets as gxai_data
 
 def get_dataset(dataset, download = False):
     '''
@@ -27,7 +27,7 @@ def get_dataset(dataset, download = False):
 
     if dataset == 'MUTAG':
         # Get MUTAG dataset
-        return MUTAG()
+        return gxai_data.real_world.MUTAG.MUTAG()
     else:
         raise NameError("Cannot find dataset '{}'.".format(dataset))
 
@@ -301,4 +301,7 @@ class GraphDataset:
         pass
 
     def __getitem__(self, idx):
-        return self.dataset[idx], self.explanation_list[idx]
+        return self.graphs[idx], self.explanations[idx]
+
+    def __len__(self):
+        return len(self.graphs)

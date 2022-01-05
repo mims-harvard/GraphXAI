@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from numpy import ndarray
 from torch_geometric.utils import to_networkx
 
-from graphxai.explainers import CAM, Grad_CAM, GNNExplainer
+from graphxai.explainers import CAM, GradCAM, GNNExplainer
 # from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
