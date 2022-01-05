@@ -79,7 +79,7 @@ class ShapeGraph(NodeDataset):
         self.model_layers = model_layers
 
         # Parse kwargs:
-        self.variant = 0 if 'variant' not in kwargs else kwargs['variant']
+        self.variant = 1 if 'variant' not in kwargs else kwargs['variant']
             # 0 is old, 1 is preferential attachment one
         self.num_subgraphs = 10 if 'num_subgraphs' not in kwargs else kwargs['num_subgraphs']
         self.prob_connection = 1 if 'prob_connection' not in kwargs else kwargs['prob_connection']
@@ -88,7 +88,6 @@ class ShapeGraph(NodeDataset):
         self.verify = True if 'verify' not in kwargs else kwargs['verify']
         self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
 
-        # Barabasi-Albert parameters (will generalize later)
         self.seed = seed
 
         # Get shape:
@@ -130,6 +129,7 @@ class ShapeGraph(NodeDataset):
                         subgraph_size = self.subgraph_size,
                         num_hops = 1,
                         base_graph = self.base_graph,
+                        seed = self.seed,
                         )
 
                 elif self.variant == 1:
@@ -139,7 +139,8 @@ class ShapeGraph(NodeDataset):
                         inter_sg_connections = 1,
                         prob_connection = self.prob_connection,
                         subgraph_size = self.subgraph_size,
-                        num_hops = 1
+                        num_hops = 1,
+                        seed = self.seed
                         )
 
                 if verify_motifs(self.G, self.insert_shape):
@@ -160,6 +161,7 @@ class ShapeGraph(NodeDataset):
                         subgraph_size = self.subgraph_size,
                         num_hops = 1,
                         base_graph = self.base_graph,
+                        seed = self.seed,
                         )
             elif self.variant == 1:
                 self.G = BBG_PA(
@@ -168,7 +170,8 @@ class ShapeGraph(NodeDataset):
                     inter_sg_connections = 1,
                     prob_connection = self.prob_connection,
                     subgraph_size = self.subgraph_size,
-                    num_hops = 1
+                    num_hops = 1,
+                    seed = self.seed
                     )
 
 
@@ -266,13 +269,15 @@ class ShapeGraph(NodeDataset):
         return exp
 
 
-    def visualize(self, shape_label = False):
+    def visualize(self, shape_label = False, ax = None, show = False):
         '''
         Args:
             shape_label (bool, optional): If `True`, labels each node according to whether
             it is a member of an inserted motif or not. If `False`, labels each node 
             according to its y-value. (:default: :obj:`True`)
         '''
+
+        ax = ax if ax is not None else plt.gca()
 
         Gitems = list(self.G.nodes.items())
         node_map = {Gitems[i][0]:i for i in range(self.G.number_of_nodes())}
@@ -285,9 +290,12 @@ class ShapeGraph(NodeDataset):
 
         node_weights = {i:node_map[i] for i in self.G.nodes}
 
-        pos = nx.kamada_kawai_layout(self.G)
-        _, ax = plt.subplots()
+        #pos = nx.kamada_kawai_layout(self.G)
+        pos = nx.spring_layout(self.G, seed = 1234) # Seed to always be consistent in output
+        #_, ax = plt.subplots()
         nx.draw(self.G, pos, node_color = y, labels = node_weights, ax=ax)
-        ax.set_title('BA Houses')
-        plt.tight_layout()
-        plt.show()
+        #ax.set_title('ShapeGraph')
+        #plt.tight_layout()
+
+        if show:
+            plt.show()
