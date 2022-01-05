@@ -69,7 +69,7 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
     return JAC
 
 
-def graph_exp_faith(generated_exp: Explanation, top_k=0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -87,17 +87,17 @@ def graph_exp_faith(generated_exp: Explanation, top_k=0.25) -> float:
         node_map = [k for k, v in generated_exp.node_reference.items() if v == generated_exp.node_idx][0]
 
         # Getting the softmax vector for the original graph
-        org_vec = model(generated_exp.graph.x, generated_exp.graph.edge_index)[generated_exp.node_idx]
+        org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         org_softmax = F.softmax(org_vec, dim=-1)
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = generated_exp.graph.x.clone()
+        pert_x = shape_graph.get_graph().x.clone()
 
         # Perturbing the unimportant node feature indices using gaussian noise
         rem_features = torch.Tensor(
-            [i for i in range(generated_exp.graph.x.shape[1]) if i not in top_k_features]).long()
+            [i for i in range(shape_graph.get_graph().x.shape[1]) if i not in top_k_features]).long()
         pert_x[node_map, rem_features] = torch.normal(0, 0.1, pert_x[node_map, rem_features].shape)
-        pert_vec = model(pert_x, generated_exp.graph.edge_index)[generated_exp.node_idx]
+        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
 
     if generated_exp.node_imp is not None:
@@ -110,15 +110,15 @@ def graph_exp_faith(generated_exp: Explanation, top_k=0.25) -> float:
                 rem_nodes.append([k for k, v in generated_exp.node_reference.items() if v == node][0])
 
         # Getting the softmax vector for the original graph
-        org_vec = model(generated_exp.graph.x, generated_exp.graph.edge_index)[generated_exp.node_idx]
+        org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         org_softmax = F.softmax(org_vec, dim=-1)
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = generated_exp.graph.x.clone()
+        pert_x = shape_graph.get_graph().x.clone()
 
         # Removing the unimportant nodes by masking
         pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes])  # torch.normal(0, 0.1, pert_x[rem_nodes].shape)
-        pert_vec = model(pert_x, generated_exp.graph.edge_index)
+        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)
 
         # check if the graph is disconnected!!
         pert_softmax = F.softmax(pert_vec, dim=-1)
@@ -344,7 +344,8 @@ if __name__ == '__main__':
 
         # Compute Scores
         cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
-        cam_gef_score = graph_exp_faith(cam_exp)
+        ipdb.set_trace()
+        cam_gef_score = graph_exp_faith(cam_exp, bah)
         delta = calculate_delta(gcam_exp, torch.where(data.train_mask == True)[0], label=data.y)
         cam_ges_score = graph_exp_stability(cam_exp, node_id=node_idx, model=model, delta=delta)
 
