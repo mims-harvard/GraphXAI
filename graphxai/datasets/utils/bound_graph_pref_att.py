@@ -75,13 +75,12 @@ def ba_around_shape(shape: nx.Graph, add_size: int, show_subgraphs: bool = False
 
     return shape
 
-
-
 def build_bound_graph(
         shape: Optional[nx.Graph] = house, 
         num_subgraphs: Optional[int] = 5, 
         prob_connection: Optional[float] = 1,
         subgraph_size: int = 13,
+        seed: int = None,
         **kwargs,
         ) -> nx.Graph:
     '''
@@ -109,6 +108,10 @@ def build_bound_graph(
     show_subgraphs = False if ('show_subgraphs' not in kwargs) or num_subgraphs > 10 else kwargs['show_subgraphs']
 
     nodes_in_shape = shape.number_of_nodes()
+
+    np.random.seed(seed)
+    random.seed(seed)
+    #torch.seed(seed)
 
     for i in range(num_subgraphs):
         current_shape = shape.copy()
