@@ -1,7 +1,7 @@
 import ipdb
 import torch
 from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge, GATConv
-from torch_geometric.nn import Sequential
+# from torch_geometric.nn import Sequential
 
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
@@ -137,10 +137,10 @@ class GIN_3layer_basic(torch.nn.Module):
         super(GIN_3layer_basic, self).__init__()
         self.mlp_gin1 = torch.nn.Linear(input_feat, hidden_channels)
         self.gin1 = GINConv(self.mlp_gin1)
-        self.batchnorm1 = BatchNorm(hidden_channels)
+        # self.batchnorm1 = BatchNorm(hidden_channels)
         self.mlp_gin2 = torch.nn.Linear(hidden_channels, hidden_channels)
         self.gin2 = GINConv(self.mlp_gin2)
-        self.batchnorm2 = BatchNorm(hidden_channels)
+        # self.batchnorm2 = BatchNorm(hidden_channels)
         self.mlp_gin3 = torch.nn.Linear(hidden_channels, classes)
         self.gin3 = GINConv(self.mlp_gin3)
 

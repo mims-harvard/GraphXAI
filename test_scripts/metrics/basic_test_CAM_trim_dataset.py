@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from numpy import ndarray
 from torch_geometric.utils import to_networkx
 
-from graphxai.explainers import CAM, Grad_CAM
+from graphxai.explainers import CAM, Grad_CAM, GNNExplainer
 # from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
@@ -120,11 +120,10 @@ def graph_exp_faith(generated_exp: Explanation, top_k=0.25) -> float:
         # check if the graph is disconnected!!
         pert_softmax = F.softmax(pert_vec, dim=-1)
 
-    ipdb.set_trace()
     if generated_exp.edge_imp is not None:
         # Identifying the top_k edges in the explanation subgraph
         edge_imp = torch.Tensor([0.1, 0.4, 0.3, 0.25, 0.9])
-        top_k_nodes = edge_imp.topk(int(edge_imp.shape[0] * top_k))[1]
+        top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * top_k))[1]
         # TODO: After using an explanation method that generates edge-level explanation
 
     GEF = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
@@ -206,12 +205,15 @@ def check_delta(generated_exp: Explanation, rep, pert_x, pert_edge_index, n_id, 
 
 def graph_exp_stability(generated_exp: Explanation, node_id, model, delta, top_k=0.25, rep='final') -> float:
     GES = []
-    num_run = 10
-    for _ in range(num_run):
+    num_run = 100
+    for run in range(num_run):
         # Generate perturbed counterpart
-        pert_edge_index = rewire_edges(generated_exp.graph.edge_index, node_idx=node_id, num_nodes=1)
+        try:
+            pert_edge_index = rewire_edges(generated_exp.graph.edge_index, node_idx=node_id, num_nodes=1)
+        except:
+            continue
         pert_x = generated_exp.graph.x.clone()
-        pert_x[node_id] += torch.normal(0, 0.1, pert_x[node_id].shape)
+        pert_x[node_id] += torch.normal(0, 0.001, pert_x[node_id].shape)
         if check_delta(generated_exp, rep, pert_x, pert_edge_index, node_id, delta):
             # Compute CAM explanation
             preds = model(pert_x, pert_edge_index)
@@ -227,13 +229,23 @@ def graph_exp_stability(generated_exp: Explanation, node_id, model, delta, top_k
 
             # Normalize the explanations to 0-1 range:
             cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
-
+            top_feat = int(generated_exp.node_imp.shape[0] * top_k)
             ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
-            ori_exp_mask[generated_exp.node_imp.topk(int(generated_exp.node_imp.shape[0] * top_k))[1]] = 1
+            ori_exp_mask[generated_exp.node_imp.topk(top_feat)[1]] = 1
             pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
-            pert_exp_mask[cam_pert_exp.node_imp.topk(int(cam_pert_exp.node_imp.shape[0] * top_k))[1]] = 1
-            GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+            pert_exp_mask[cam_pert_exp.node_imp.topk(top_feat)[1]] = 1
+            try:
+                GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+            except:
+                continue
     return max(GES)
+
+
+def get_exp(explainer, node_idx, data):
+    exp, khop_info = explainer.get_explanation_node(
+        node_idx, data.x, data.edge_index, label=data.y,
+        num_hops=2, explain_feature=True)
+    return exp['feature_imp'], exp['edge_imp'], khop_info[0], khop_info[1], khop_info[3]
 
 
 if __name__ == '__main__':
@@ -301,7 +313,6 @@ if __name__ == '__main__':
 
         # if data.y[node_idx].item() == pred.argmax(dim=0).item():
         # Compute CAM explanation
-        ipdb.set_trace()
         act = lambda x: torch.argmax(x, dim=1)
         cam = CAM(model, activation=act)
         cam_exp = cam.get_explanation_node(
@@ -333,10 +344,22 @@ if __name__ == '__main__':
         cam_gef_score = graph_exp_faith(cam_exp)
         delta = calculate_delta(gcam_exp, torch.where(data.train_mask == True)[0], label=data.y)
         cam_ges_score = graph_exp_stability(cam_exp, node_id=node_idx, model=model, delta=delta)
+
         print('### CAM ###')
         print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
         print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
         print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
+        print(f'Delta: {delta:.3f}')
+
+        # Test for GNN Explainers
+        gnnexpr = GNNExplainer(model)
+        feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx, data)
+        top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * 0.25))[1]
+        rem_edges = torch.Tensor([i for i in range(edge_imp.shape[1]) if i not in top_k_edges]).long()
+        subset_edges = data.edge_index[:, edge_subset_mask]
+        sub_edge_index = sub_edge_index[:, top_k_edges]
+        ipdb.set_trace()
+
         # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
         # gcam_gef_score = graph_exp_faith(gcam_exp)
         # gcam_ges_score = graph_exp_stability(gcam_exp, node_id=node_idx, model=model, delta=delta)
