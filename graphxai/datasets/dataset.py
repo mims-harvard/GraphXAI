@@ -7,7 +7,8 @@ import pandas as pd
 from torch_geometric.utils.convert import to_networkx
 from graphxai.utils import Explanation#, WholeGraph
 
-from torch_geometric.data import Dataset, Data
+from torch_geometric.data import Dataset, data
+from torch_geometric.loader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 from sklearn.model_selection import train_test_split
 
@@ -226,68 +227,91 @@ class NodeDataset:
 
 
 class GraphDataset:
-    def __init__(self, name):
+    def __init__(self, name, split_sizes = (0.7, 0.2, 0.1), seed = None):
 
         self.name = name
 
-        self.dataset = []
-        self.explanations = []
+        self.seed = seed
         # explanation_list - list of explanations for each graph
 
-    def get_train_loader(
-        self, 
-        use_static_split = True, 
-        train_size = 0.7, 
-        seed = None, 
-        **kwargs):
-        if self.use_static_split:
-            pass
-        elif seed:
-            self.sampled = set()
-            pass
+        if split_sizes[1] > 0:
+            self.train_index, self.test_index = train_test_split(torch.arange(start = 0, end = len(self.graphs)), 
+                test_size = split_sizes[1] + split_sizes[2], random_state=self.seed, shuffle = False)
         else:
-            pass
+            self.test_index = None
+            self.train_index = torch.arange(start = 0, end = len(self.graphs))
 
-    def get_test_loader(
-        self,  
-        test_size = 0.2, 
-        seed = None, 
-        **kwargs):
-        if self.use_static_split:
-            # Inherited class must have all splits stored
-            pass
-        elif seed:
-            self.sampled = set()
-            pass
+        if split_sizes[2] > 0:
+            self.test_index, self.val_index = train_test_split(self.test_index, 
+                test_size = split_sizes[2] / (split_sizes[1] + split_sizes[2]),
+                random_state = self.seed, shuffle = False)
+
         else:
-            pass
+            self.val_index = None
 
-    def split_dataset(
+        self.Y = torch.tensor([self.graphs[i].y for i in range(len(self.graphs))])
+
+    def get_data_list(
             self,
-            val_size: float,
-            test_size: float,
-            use_fixed_split: float = False
+            index,
+        ):
+        data_list = [self.graphs[i] for i in index]
+        exp_list = [self.explanations[i] for i in index]
+
+        return data_list, exp_list
+
+    def get_loader(
+            self, 
+            index,
+            batch_size = 16,
+            **kwargs
         ):
 
-        if use_fixed_split:
-            pass
+        data_list, exp_list = self.get_data_list(index)
 
-        else:
-            pass
+        for i in range(len(data_list)):
+            data_list[i].exp_key = i
 
-    def get_val_loader(
-        self, 
-        use_static_split = True, 
-        val_size = 0.2,
-        seed = None, 
-        **kwargs):
-        if use_static_split:
-            pass
-        elif seed:
-            self.sampled = set()
-            pass
-        else:
-            pass
+        loader = DataLoader(data_list, batch_size = batch_size, shuffle = True)
+
+        return loader, exp_list
+
+    def get_train_loader(self, batch_size = 16):
+        return self.get_loader(index=self.train_index, batch_size = batch_size)
+
+    def get_train_list(self):
+        return self.get_list(index = self.train_index)
+
+    def get_test_loader(self):
+        assert self.test_index is not None, 'test_index is None'
+        return self.get_loader(index=self.test_index, batch_size = 1)
+
+    def get_test_list(self):
+        assert self.test_index is not None, 'test_index is None'
+        return self.get_list(index = self.test_index)
+
+    def get_val_loader(self):
+        assert self.test_index is not None, 'val_index is None'
+        return self.get_loader(index=self.val_index, batch_size = 1)
+
+    def get_val_list(self):
+        assert self.val_index is not None, 'val_index is None'
+        return self.get_list(index = self.val_index)
+
+    def get_train_w_label(self, label):
+        inds_to_choose = (self.Y[self.train_index] == label).nonzero(as_tuple=True)[0]
+        in_train_idx = inds_to_choose[torch.randint(low = 0, high = inds_to_choose.shape[0], size = (1,))]
+        chosen = self.train_index[in_train_idx.item()]
+
+        return self.graphs[chosen], self.explanations[chosen]
+
+    def get_test_w_label(self, label):
+        assert self.test_index is not None, 'test_index is None'
+        inds_to_choose = (self.Y[self.test_index] == label).nonzero(as_tuple=True)[0]
+        in_test_idx = inds_to_choose[torch.randint(low = 0, high = inds_to_choose.shape[0], size = (1,))]
+        chosen = self.test_index[in_test_idx.item()]
+
+        return self.graphs[chosen], self.explanations[chosen]
 
     def get_graph_as_networkx(self, graph_idx):
         '''

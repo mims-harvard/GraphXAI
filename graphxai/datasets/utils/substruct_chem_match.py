@@ -40,7 +40,11 @@ def match_NH2(G: nx.Graph, node: int):
 
     # See if their vectors are equal:
     node_vec = torch.as_tensor(G.nodes[node]['x'])
-    return (torch.norm(node_vec - N_vec).item() == 0)
+    if (torch.norm(node_vec - N_vec).item() == 0):
+        return node
+    else:
+        return None
+    #return (torch.norm(node_vec - N_vec).item() == 0)
 
     # if (torch.norm(node_vec - gt_vec).item() == 0):
     #     # Highlight the node

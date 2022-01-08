@@ -530,7 +530,7 @@ class Explanation:
         if ax is None:
             ax = plt.gca()
         
-        G = gxai_utils.to_networkx_conv(self.graph.get_Data(), to_undirected=True)
+        G = gxai_utils.to_networkx_conv(self.graph, to_undirected=True)
 
         draw_args = dict()
 
