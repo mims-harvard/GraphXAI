@@ -127,8 +127,15 @@ def make_structured_feature(y: torch.Tensor, n_features=5, n_informative=2,
     make_blobs : Simplified variant.
     make_multilabel_classification : Unrelated rng for multilabel tasks.
     """
+
+    # print('class sep', class_sep)
+    # print('n_informative', n_informative)
+
+    Yorg = y.clone().numpy()
+
     if isinstance(y, torch.Tensor):
-        y = y.numpy()
+        y = y.clone().numpy()
+
     n_samples = y.shape[0]
     labels, n_samples_per_class = np.unique(y, return_counts=True)
     n_classes = len(labels)
@@ -169,6 +176,11 @@ def make_structured_feature(y: torch.Tensor, n_features=5, n_informative=2,
     # Build the polytope whose vertices become cluster centroids
     centroids = _generate_hypercube(n_clusters, n_informative,
                                     rng).astype(float, copy=False)
+
+    # print('centroids', centroids)
+    # print('n_clusters', n_clusters)
+    # print('n_classes', n_classes)
+
     centroids *= 2 * class_sep
     centroids -= class_sep
     if not hypercube:
@@ -189,6 +201,7 @@ def make_structured_feature(y: torch.Tensor, n_features=5, n_informative=2,
         X_k[...] = np.dot(X_k, A)  # introduce random covariance
 
         X_k += centroid  # shift the cluster to a vertex
+        #print('k', k)
 
     # Create redundant features
     if n_redundant > 0:
@@ -225,19 +238,46 @@ def make_structured_feature(y: torch.Tensor, n_features=5, n_informative=2,
         feature_mask = np.zeros(n_features, dtype=bool)
         feature_mask[:n_informative] = True
 
+    #print('y before shuffle', y)
+
     if shuffle:
         # Randomly permute features
         indices = np.arange(n_features)
         rng.shuffle(indices)
         X[:, :] = X[:, indices]
+        #y = np.array([y[i] for i in indices])
         if unique_explanation:
             feature_mask[:] = feature_mask[indices]
 
+    #print('y', list(y))
+    # Sort y and then assign to each spot in the tensor y
+    #unique_y = torch.sort(torch.unique(Yorg))
+
+    unique_y = np.sort(np.unique(Yorg))
+
+    #print('y', y)
+
+    #print(unique_y)
+    #ysort = np.sort(y)
+
+    Xnew = np.zeros_like(X)
+    
+    for yval in unique_y:
+        ingenerated = np.argwhere(y == yval).flatten()
+        #print('ingenerated', ingenerated)
+        inorg = np.argwhere(Yorg == yval).flatten()
+        #print('inorg', inorg)
+
+        for gen, org in zip(ingenerated, inorg): # Move 
+            Xnew[org, :] = X[gen, :]
+
+    #print(Xnew[:10, :])
+
     # Convert to tensor
-    X = torch.from_numpy(X).float()
+    Xnew = torch.from_numpy(Xnew).float()
     feature_mask = torch.from_numpy(feature_mask)
 
     if unique_explanation:
-        return X, feature_mask
+        return Xnew, feature_mask
     else:
-        return X
+        return Xnew

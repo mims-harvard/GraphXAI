@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from typing import Tuple
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
 from graphxai.utils import Explanation
 from ._decomp_base_old import _BaseDecomposition
@@ -90,7 +91,7 @@ class GuidedBP(_BaseDecomposition):
         # Get only those explanations for nodes in the subgraph:
         # exp.node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes])
         # exp.node_idx = node_idx
-        exp.set_whole_graph(x, edge_index)
+        #exp.set_whole_graph(x, edge_index)
         exp.set_enclosing_subgraph(khop_info)
         return exp
 
@@ -141,7 +142,7 @@ class GuidedBP(_BaseDecomposition):
             node_imp = x.grad
         )
         #exp.node_imp = x.grad
-        exp.set_whole_graph(x, edge_index)
+        exp.set_whole_graph(Data(x, edge_index))
 
         #return {'feature': x.grad, 'edge': None}
         return exp

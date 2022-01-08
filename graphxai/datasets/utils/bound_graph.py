@@ -43,6 +43,7 @@ def build_bound_graph(
         prob_connection: Optional[float] = 1,
         num_hops: Optional[int] = 2,
         base_graph: Optional[str] = 'ba',
+        seed = None,
         **kwargs,
         ) -> nx.Graph:
     '''
@@ -62,6 +63,9 @@ def build_bound_graph(
         base_graph (str, optional): Base graph algorithm used to generate each subgraph.
             Options are `'ba'` (Barabasi-Albert) (:default: :obj:`'ba'`)
     '''
+
+    np.random.seed(seed)
+    random.seed(seed)
 
     # Create graph:
     if base_graph == 'ba':

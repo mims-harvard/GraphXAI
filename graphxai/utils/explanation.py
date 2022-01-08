@@ -1,5 +1,6 @@
 from networkx.classes import graph
 import torch
+import torch_geometric
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -194,8 +195,8 @@ class Explanation:
         if mask_node:
             self.node_imp = self.node_imp[self.enc_subgraph.nodes]
 
-    def set_whole_graph(self, x, edge_index):
-        self.graph = WholeGraph(x, edge_index)
+    def set_whole_graph(self, data):
+        self.graph = data
 
         # if self.node_reference is None:
         #     self.node_reference = gxai_utils.make_node_ref(self.graph.nodes)
@@ -489,6 +490,7 @@ class Explanation:
                 positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
 
                 # TODO: fix edge imp vis. to handle continuous edge importance scores
+                mask_edge_imp = self.edge_imp[positive_edge_indices]
 
                 positive_edges = [(trimmed_enc_subg_edge_index[0,e].item(), trimmed_enc_subg_edge_index[1,e].item()) \
                     for e in positive_edge_indices]
@@ -502,8 +504,9 @@ class Explanation:
                 edge_heat = torch.zeros(len(edge_list))
 
                 for e in positive_edges:
+                    #e = positive_edges[i]
                     # Must find index, which is not very efficient
-                    edge_heat[edge_matcher[e]] = 1
+                    edge_heat[edge_matcher[e]] = 1#mask_edge_imp[i].item()
 
                 draw_args['edge_color'] = edge_heat.tolist()
                 #coolwarm cmap:

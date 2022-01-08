@@ -6,6 +6,7 @@ from typing import Callable, Optional, Tuple
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.nn import MessagePassing
+from torch_geometric.data import Data
 
 #from .subgraphx_utils.shapley import GnnNets_GC2value_func, GnnNets_NC2value_func
 from .subgraphx_utils.subgraphx_fns import find_closest_node_result, reward_func, MCTS
@@ -261,7 +262,7 @@ class SubgraphX(_BaseExplainer):
         )
         # exp.node_imp = node_mask
         # exp.edge_imp = edge_mask
-        exp.set_whole_graph(x, edge_index)
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
 
         #return {'feature_imp': None, 'node_imp': node_mask, 'edge_imp': edge_mask}
         return exp

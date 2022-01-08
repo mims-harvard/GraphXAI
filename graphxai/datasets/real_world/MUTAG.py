@@ -76,6 +76,6 @@ class MUTAG(GraphDataset):
                 node_imp = node_imp
             )
 
-            exp.set_whole_graph(self.graphs[i].x, self.graphs[i].edge_index)
+            exp.set_whole_graph(self.graphs[i])
 
             self.explanations.append(exp)

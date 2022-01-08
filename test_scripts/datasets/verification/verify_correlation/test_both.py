@@ -1,0 +1,58 @@
+import os
+import torch
+from tqdm import trange
+import numpy as np
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+
+from graphxai.gnn_models.node_classification.testing import train, test
+from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, GCN_4layer_basic, GAT_3layer_basic
+from graphxai.datasets import load_ShapeGraph, ShapeGraph
+
+root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
+#SG = load_ShapeGraph(number=1, root = root_data)
+SG = ShapeGraph(
+    model_layers = 3,
+    make_explanations=False,
+    num_subgraphs = 1200,
+    prob_connection = 0.0075,
+    subgraph_size = 12,
+    class_sep = 0.5,
+    n_informative = 6,
+    verify = False
+)
+
+data = SG.get_graph()
+
+X = data.x.numpy()
+Y = data.y.numpy()
+
+print(f'Num (0): {np.sum(Y == 0)}')
+print(f'Num (1): {np.sum(Y == 1)}')
+
+# LR --------------------------------------------
+parameters = {
+    'C': list(np.arange(0.25, 1.5, step=0.25)),
+}
+
+lr = LogisticRegression(C = 0.25)
+clf = GridSearchCV(lr, parameters, scoring='auroc', verbose = 1)
+clf.fit(X, Y)
+
+print('LR Best AUROC', clf.best_score_)
+print('LR Best params', clf.best_params_)
+
+# -----------------------------------------------
+model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay = 5e-5)
+criterion = torch.nn.CrossEntropyLoss()
+
+for epoch in trange(1, 1001):
+    loss = train(model, optimizer, criterion, data)
+    #acc = test(model, data)
+    f1, acc, prec, rec, auprc, auroc = test(model, data, get_auc = True)
+    #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
+    #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
+
+print(f'Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')

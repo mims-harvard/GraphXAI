@@ -9,14 +9,14 @@ from graphxai.datasets.shape_graph import ShapeGraph
 # Load dataset:
 # Smaller graph is shown to work well with model accuracy, graph properties
 bah = ShapeGraph(model_layers = 3, 
-    num_subgraphs = 100, 
+    num_subgraphs = 75, 
     prob_connection = 0.08, 
-    subgraph_size = 13)
+    subgraph_size = 8)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
 # Test on 3-layer basic GCN, 16 hidden dim:
-model = GIN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
 
 # Train the model:
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -45,7 +45,7 @@ gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_h
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
-explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'conv3', 
+explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', 
     max_epochs=10, lr=0.1)
 explainer.train_explanation_model(data)
 exp = explainer.get_explanation_node(

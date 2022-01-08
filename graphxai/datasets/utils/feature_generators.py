@@ -47,7 +47,14 @@ def random_onehot_generator(len_vector):
         return feature
     return get_feature
 
-def gaussian_lv_generator(G, yvals, seed = None):
+def gaussian_lv_generator(
+        G: nx.Graph, 
+        yvals: torch.Tensor,  
+        n_features: int = 10,       
+        flip_y: float = 0.01,
+        class_sep: float = 1.0,
+        n_informative: int = 4,
+        seed = None):
     '''
     Args:
         G (nx.Graph): 
@@ -55,8 +62,13 @@ def gaussian_lv_generator(G, yvals, seed = None):
         seed (seed): (:default: :obj:`None`)
     '''
 
-    x, feature_imp_true = make_structured_feature(yvals, n_features = 10,
-        n_informative = (torch.unique(yvals).shape[0]) * 2, seed = seed)
+    x, feature_imp_true = make_structured_feature(
+            yvals, 
+            n_features = n_features,
+            n_informative = n_informative, 
+            flip_y = flip_y,
+            class_sep=class_sep,
+            seed = seed)
 
     Gitems = list(G.nodes.items())
     node_map = {Gitems[i][0]:i for i in range(G.number_of_nodes())}

@@ -43,7 +43,7 @@ def number_motif_equal_label(G, num_hops, equal_number=1):
 
     return get_label
 
-def bound_graph_label(G):
+def bound_graph_label(G: nx.Graph):
     '''
     Args:
         G (nx.Graph): Graph on which the labels are based on

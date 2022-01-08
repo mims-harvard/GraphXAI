@@ -341,7 +341,7 @@ class GNNExplainer(torch.nn.Module):
         exp = Explanation(
             feature_imp = node_feat_mask,
             node_imp = node_mask_from_edge_mask(subset, org_eidx[:,hard_edge_mask], discrete_edge_mask),
-            edge_imp = discrete_edge_mask.float(),
+            edge_imp = edge_mask[hard_edge_mask],
             node_idx = node_idx
         )
 

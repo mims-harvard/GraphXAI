@@ -2,6 +2,7 @@ import torch
 
 from typing import Optional
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
@@ -114,7 +115,7 @@ class GradExplainer(_BaseExplainer):
             node_imp = x.grad
         )
 
-        exp.set_whole_graph(x, edge_index)
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
 
         return exp
 

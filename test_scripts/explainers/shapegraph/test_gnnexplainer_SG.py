@@ -9,9 +9,9 @@ from graphxai.datasets.shape_graph import ShapeGraph
 # Load dataset:
 # Smaller graph is shown to work well with model accuracy, graph properties
 bah = ShapeGraph(model_layers = 3, 
-    num_subgraphs = 100, 
+    num_subgraphs = 75, 
     prob_connection = 0.08, 
-    subgraph_size = 13)
+    subgraph_size = 10)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
@@ -53,6 +53,8 @@ exp = gnnexp.get_explanation_node(
 # ------------------------------------------------------------------------
 
 # Grad-CAM plot:
+exp.top_k_node_imp(top_k = 11, inplace=True)
+exp.top_k_edge_imp(top_k = 12, inplace = True)
 exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
 ax2.set_title('GNNExplainer')
 

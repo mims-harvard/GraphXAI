@@ -6,6 +6,7 @@ from typing import Callable, Tuple
 from torch_geometric.nn import GCNConv
 from torch_geometric.utils.loop import add_self_loops
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
 from ._decomp_base import _BaseDecomposition
 from graphxai.utils import Explanation
@@ -526,7 +527,7 @@ class GNN_LRP(_BaseDecomposition):
             edge_imp = edge_scores
         )
         #exp.edge_imp = edge_scores
-        exp.set_whole_graph(x, edge_index_with_loop) # Make graph with self-loops
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index_with_loop)) # Make graph with self-loops
         exp._walk_ids = walks['ids']
         exp._walk_scores = walks['score']
 

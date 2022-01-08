@@ -70,6 +70,7 @@ class ShapeGraph(NodeDataset):
         model_layers: int = 3,
         shape: Union[str, nx.Graph] = 'house',
         seed: Optional[int] = None,
+        make_explanations: Optional[bool] = True,
         **kwargs): # TODO: turn the last three arguments into kwargs
 
         super().__init__(name = 'ShapeGraph', num_hops = model_layers)
@@ -77,6 +78,7 @@ class ShapeGraph(NodeDataset):
         self.in_shape = []
         self.graph = None
         self.model_layers = model_layers
+        self.make_explanations = make_explanations
 
         # Parse kwargs:
         self.variant = 1 if 'variant' not in kwargs else kwargs['variant']
@@ -87,6 +89,11 @@ class ShapeGraph(NodeDataset):
         self.base_graph = 'ba' if 'base_graph' not in kwargs else kwargs['base_graph']
         self.verify = True if 'verify' not in kwargs else kwargs['verify']
         self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
+
+        self.flip_y = 0.01 if 'flip_y' not in kwargs else kwargs['flip_y']
+        self.n_informative = 4 if 'n_informative' not in kwargs else kwargs['n_informative']
+        self.class_sep = 1.0 if 'class_sep' not in kwargs else kwargs['class_sep']
+        self.n_features = 10 if 'n_features' not in kwargs else kwargs['n_features']
 
         self.seed = seed
 
@@ -202,7 +209,12 @@ class ShapeGraph(NodeDataset):
         y = torch.tensor([gen_labels(i) for i in self.G.nodes], dtype=torch.long)
         self.yvals = y.detach().clone() # MUST COPY TO AVOID MAJOR BUGS
 
-        gen_features, self.feature_imp_true = gaussian_lv_generator(self.G, self.yvals, seed = self.seed)
+        gen_features, self.feature_imp_true = gaussian_lv_generator(
+            self.G, self.yvals, seed = self.seed,
+            n_features = self.n_features,
+            flip_y = self.flip_y,
+            class_sep = self.class_sep,
+            n_informative = self.n_informative)
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         for i in self.G.nodes:
@@ -218,7 +230,10 @@ class ShapeGraph(NodeDataset):
         )
 
         # Generate explanations:
-        self.explanations = [self.explanation_generator(n) for n in self.G.nodes]
+        if self.make_explanations:
+            self.explanations = [self.explanation_generator(n) for n in self.G.nodes]
+        else:
+            self.explanations = None
 
     def explanation_generator(self, node_idx):
 

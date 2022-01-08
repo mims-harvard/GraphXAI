@@ -4,6 +4,7 @@ from typing import Tuple
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils import k_hop_subgraph, to_undirected
 from torch_geometric.nn import GCNConv, GINConv
+from torch_geometric.data import Data
 
 import numpy as np
 
@@ -156,7 +157,7 @@ class CAM(_BaseDecomposition):
         exp = Explanation(
             node_imp = torch.tensor(node_explanations)
         )
-        exp.set_whole_graph(x, edge_index)
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
 
         return exp
 
@@ -356,7 +357,7 @@ class GradCAM(_BaseDecomposition):
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
 
         exp = Explanation()
-        exp.set_whole_graph(x, edge_index)
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
         
         # Generate explanation for every node in graph
         if average_variant:
