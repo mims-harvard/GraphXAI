@@ -2,7 +2,7 @@ import sys
 import torch
 from torch_geometric.datasets import TUDataset
 
-from graphxai.explainers import CAM, GradCAM
+from graphxai.explainers import RandomExplainer
 #from graphxai.explainers.utils.visualizations import visualize_mol_explanation
 from graphxai.gnn_models.graph_classification import train, test
 from graphxai.gnn_models.graph_classification.gcn import GCN_2layer, GCN_3layer
@@ -22,7 +22,7 @@ train_loader, _ = dataset.get_train_loader(batch_size = 16)
 test_loader, _ = dataset.get_test_loader()
 
 # Train GNN model -------------------------------------
-model = GIN_3layer(7, 32, 2)
+model = GCN_3layer(7, 32, 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -52,12 +52,10 @@ gt_exp.graph_draw(ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Call Explainer: --------------------------------------
-gcam = GradCAM(model, criterion = criterion)
+gcam = RandomExplainer(model)
 exp = gcam.get_explanation_graph(
     x = test_data.x,
-    edge_index = test_data.edge_index,
-    label = test_data.y,
-    forward_kwargs = forward_kwargs,
+    edge_index = test_data.edge_index
 )
 # ------------------------------------------------------
 

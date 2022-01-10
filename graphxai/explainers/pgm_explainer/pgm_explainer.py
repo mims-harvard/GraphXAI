@@ -4,6 +4,7 @@ import torch
 
 from typing import List
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 from pgmpy.estimators.CITests import chi_square
 from pgmpy.estimators import HillClimbSearch, BicScore
 from pgmpy.models import BayesianModel
@@ -375,7 +376,12 @@ class PGMExplainer(_BaseExplainer):
         node_imp = torch.zeros(n)
         node_imp[ind_top_k] = 1
 
-        return node_imp
+        exp = Explanation(
+            node_imp = node_imp
+        )
+    
+        exp.set_whole_graph(Data(x=x, edge_index = edge_index))
+        return exp
 
     def get_explanation_link(self):
         """

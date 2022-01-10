@@ -525,7 +525,7 @@ class Explanation:
         if show:
             plt.show()
 
-    def graph_draw(self, ax = None, show = False):
+    def graph_draw(self, ax = None, show = False, agg_nodes = torch.mean):
 
         if ax is None:
             ax = plt.gca()
@@ -538,10 +538,10 @@ class Explanation:
         if self.node_imp is not None:
             # Get node weights
             if isinstance(self.node_imp, torch.Tensor):
-                node_imp_heat = [self.node_imp[n].item() for n in G.nodes()]
+                node_imp_heat = [agg_nodes(self.node_imp[n]).item() for n in G.nodes()]
                 #node_imp_map = {i:self.node_imp[i].item() for i in range(G.number_of_nodes())}
             else:
-                node_imp_heat = [self.node_imp[n] for n in G.nodes()]
+                node_imp_heat = [agg_nodes(self.node_imp[n]) for n in G.nodes()]
                 #node_imp_map = {i:self.node_imp[i] for i in range(G.number_of_nodes())}
 
             draw_args['node_color'] = node_imp_heat
@@ -552,9 +552,13 @@ class Explanation:
             edge_heat = torch.zeros(G.number_of_edges())
 
             for i in range(self.graph.edge_index.shape[1]):
-                e = (self.graph.edge_index[0,i].item(), self.graph.edge_index[1,i].item())
-                edge_heat[edge_matcher[e]] = self.edge_imp[i].item()
-
+                try:
+                    e1 = (self.graph.edge_index[0,i].item(), self.graph.edge_index[1,i].item())
+                    edge_heat[edge_matcher[e1]] = self.edge_imp[i].item()
+                except KeyError:
+                    e2 = (self.graph.edge_index[1,i].item(), self.graph.edge_index[0,i].item())
+                    edge_heat[edge_matcher[e2]] = self.edge_imp[i].item()
+                    
             draw_args['edge_color'] = edge_heat.tolist()
             draw_args['edge_cmap'] = plt.cm.coolwarm
 

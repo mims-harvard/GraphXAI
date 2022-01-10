@@ -2,7 +2,7 @@ import sys
 import torch
 from torch_geometric.datasets import TUDataset
 
-from graphxai.explainers import CAM, GradCAM
+from graphxai.explainers import GuidedBP
 #from graphxai.explainers.utils.visualizations import visualize_mol_explanation
 from graphxai.gnn_models.graph_classification import train, test
 from graphxai.gnn_models.graph_classification.gcn import GCN_2layer, GCN_3layer
@@ -52,18 +52,18 @@ gt_exp.graph_draw(ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Call Explainer: --------------------------------------
-gcam = GradCAM(model, criterion = criterion)
+gcam = GuidedBP(model, criterion = criterion)
 exp = gcam.get_explanation_graph(
     x = test_data.x,
     edge_index = test_data.edge_index,
-    label = test_data.y,
+    y = test_data.y,
     forward_kwargs = forward_kwargs,
 )
 # ------------------------------------------------------
 
 # Draw rest of explanations:
 exp.graph_draw(ax = ax2)
-ax2.set_title('Grad-CAM')
+ax2.set_title('Guided-BP')
 
 # Draw label on the plot
 ymin, ymax = ax1.get_ylim()

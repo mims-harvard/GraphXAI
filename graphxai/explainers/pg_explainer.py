@@ -342,7 +342,7 @@ class PGExplainer(_BaseExplainer):
         label = self._predict(x, edge_index,
                               forward_kwargs=forward_kwargs) if label is None else label
 
-        exp = {k: None for k in EXP_TYPES}
+        #exp = {k: None for k in EXP_TYPES}
 
         with torch.no_grad():
             emb = self._get_embedding(x, edge_index,
@@ -351,7 +351,11 @@ class PGExplainer(_BaseExplainer):
                 emb, x, edge_index, forward_kwargs=forward_kwargs,
                 tmp=1.0, training=False)
 
-        exp['edge_imp'] = edge_mask
+        #exp['edge_imp'] = edge_mask
+
+        exp = Explanation(
+            edge_imp = edge_mask
+        )
 
         return exp
 

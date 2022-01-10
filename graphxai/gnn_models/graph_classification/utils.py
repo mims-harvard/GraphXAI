@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 
 import sklearn.metrics as metrics
 from sklearn.metrics import f1_score, precision_score, recall_score

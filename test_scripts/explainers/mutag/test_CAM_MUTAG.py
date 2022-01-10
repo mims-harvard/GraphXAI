@@ -22,7 +22,7 @@ train_loader, _ = dataset.get_train_loader(batch_size = 16)
 test_loader, _ = dataset.get_test_loader()
 
 # Train GNN model -------------------------------------
-model = GCN_3layer(7, 32, 2)
+model = GIN_3layer(7, 32, 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 

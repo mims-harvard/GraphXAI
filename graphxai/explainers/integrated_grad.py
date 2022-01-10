@@ -1,5 +1,6 @@
 import torch
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
@@ -86,7 +87,7 @@ class IntegratedGradExplainer(_BaseExplainer):
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, label: torch.Tensor,
-                              forward_args=None):
+                              forward_kwargs={}):
         """
         Explain a whole-graph prediction.
 
@@ -114,10 +115,10 @@ class IntegratedGradExplainer(_BaseExplainer):
             with torch.no_grad():
                 temp_x = baseline + (float(i)/steps) * (x.clone()-baseline)
             temp_x.requires_grad = True
-            if forward_args is None:
+            if forward_kwargs is None:
                 output = self.model(temp_x, edge_index)
             else:
-                output = self.model(temp_x, edge_index, *forward_args)
+                output = self.model(temp_x, edge_index, **forward_kwargs)
             loss = self.criterion(output, label)
             loss.backward()
             grad = temp_x.grad
@@ -126,7 +127,13 @@ class IntegratedGradExplainer(_BaseExplainer):
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
         integrated_gradients = (x - baseline) * avg_grads
-        exp['feature_imp'] = integrated_gradients
+        #exp['feature_imp'] = integrated_gradients
+
+        exp = Explanation(
+            node_imp = integrated_gradients,
+        )
+
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
 
         return exp
 

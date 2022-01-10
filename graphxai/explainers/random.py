@@ -2,6 +2,7 @@ from typing import Optional
 
 import torch
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
 from graphxai.explainers._base import _BaseExplainer
@@ -82,6 +83,8 @@ class RandomExplainer(_BaseExplainer):
             node_imp = rand_mask * torch.randn_like(x),
             edge_imp = torch.randn(edge_index[0, :].shape)
         )
+
+        exp.set_whole_graph(Data(x=x, edge_index = edge_index))
 
         return exp
 
