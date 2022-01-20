@@ -26,10 +26,10 @@ class CAM(_BaseDecomposition):
 
         Args:
             model (torch.nn.Module): model on which to make predictions
-            activation (method): activation funciton for final layer in network. If `activation = None`,
+            activation (method, optional): activation funciton for final layer in network. If `activation = None`,
                 explainer assumes linear activation. Use `activation = None` if the activation is applied
                 within the `forward` method of `model`, only set this parameter if another activation is
-                applied in the training procedure outside of model. 
+                applied in the training procedure outside of model. (:default: :obj:`None`)
         '''
         super().__init__(model=model)
         self.model = model
@@ -44,8 +44,8 @@ class CAM(_BaseDecomposition):
                 edge_index: torch.Tensor, 
                 label: int = None,  
                 forward_kwargs: dict = {},
-                directed = False
-            ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+                directed: bool = False
+            ) -> Explanation:
         '''
         Explain one node prediction by the model
 
@@ -59,21 +59,17 @@ class CAM(_BaseDecomposition):
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
+            directed (bool, optional): 
 
-        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+        :rtype: :class:`graphxai.Explanation`
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] is `None` because no feature mask is generated.
-                exp['node_imp'] (torch.Tensor, (s,)): Explanations for each node, 
-                    size `(s,)` where `s` is number of nodes in the computational
-                    graph around node `node_idx`.
-                exp['edge_imp'] is `None` since there is no edge explanation generated.
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved 
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
+                `edge_imp`: :obj:`None`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         '''
 
         if not directed:
@@ -116,28 +112,30 @@ class CAM(_BaseDecomposition):
                 label: int = None, 
                 num_nodes: int = None, 
                 forward_kwargs: dict = {}
-        ) -> dict:
+        ) -> Explanation:
         '''
-        Explain a whole-graph prediction.
+        Explain one graph prediction by the model.
 
         Args:
-            x (torch.tensor): tensor of node features from the entire graph
-            edge_index (torch.tensor): edge_index of entire graph
+            x (torch.Tensor): Tensor of node features from the graph.
+            edge_index (torch.Tensor): Edge_index of graph.
             label (int, optional): Label on which to compute the explanation for
-                this graph. If `None`, the predicted label from the model will be
+                this node. If `None`, the predicted label from the model will be
                 used. (default: :obj:`None`)
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
-            forward_kwargs (dict, optional): Additional arguments to model.forward beyond x and edge_index. 
-                Must be keyed on argument name. (default: :obj:`{}`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
 
-        :rtype: :class:`dict`
+        :rtype: :class:`graphxai.Explanation`
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] is `None` because no feature mask is generated.
-                exp['node_imp'] (torch.Tensor, (n,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the graph.
-                exp['edge_imp'] is `None` since there is no edge explanation generated. 
+            exp (:class:`Explanation`): Explanation output from the method. 
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [num_nodes,]`
+                `edge_imp`: :obj:`None`
+                `graph`: :obj:`torch_geometric.data.Data`
         '''
 
         N = maybe_num_nodes(edge_index, num_nodes)
@@ -222,11 +220,11 @@ class GradCAM(_BaseDecomposition):
             x (torch.Tensor, (n,)): Tensor of node features from the entire graph, with n nodes.
             y (torch.Tensor, (n,)): Ground-truth labels for all n nodes in the graph.
             node_idx (int): node index for which to explain a prediction around
-            edge_index (torch.Tensor): edge_index of entire graph
+            edge_index (torch.Tensor): Edge_index of entire graph.
             label (int, optional): Label for which to compute Grad-CAM against. If None, computes
                 the Grad-CAM with respect to the model's predicted class for this node.
                 (default :obj:`None`)
-            forward_kwargs (dict, optional): additional arguments to model.forward 
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. (default: :obj:`None`)
             average_variant (bool, optional): If True, computes the average Grad-CAM across all convolutional
                 layers in the model. If False, computes Grad-CAM for `layer`. (default: :obj:`True`)
@@ -234,20 +232,15 @@ class GradCAM(_BaseDecomposition):
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
 
-        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+        :rtype: :class:`graphxai.Explanation`
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] is `None` because no feature mask is generated.
-                exp['node_imp'] (torch.Tensor, (s,)): Explanations for each node, 
-                    size `(s,)` where `s` is number of nodes in computational graph
-                    around node `node_idx`.
-                exp['edge_imp'] is `None` since there is no edge explanation generated.
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved 
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
+                `edge_imp`: :obj:`None`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         '''
 
         x = x.detach().clone()
@@ -320,8 +313,8 @@ class GradCAM(_BaseDecomposition):
         Explain a whole-graph prediction.
 
         Args:
-            x (torch.tensor): tensor of node features from the entire graph
-            edge_index (torch.tensor): edge_index of entire graph
+            x (torch.tensor): Tensor of node features from the entire graph.
+            edge_index (torch.tensor): Edge_index of entire graph.
             label (int, optional): Label for which to compute Grad-CAM against. If None, computes the 
                 Grad-CAM with respect to the model's predicted class for this node. (default :obj:`None`)
             num_nodes (int, optional): number of nodes in graph (default: :obj:`None`)
@@ -333,14 +326,15 @@ class GradCAM(_BaseDecomposition):
                 `average_variant == True`. Must be less-than the total number of convolutional layers
                 in the model. (default: :obj:`0`)
 
-        :rtype: :class:`dict`
-        
+        :rtype: :class:`graphxai.Explanation`
+
         Returns:
-            exp (dict):
-                exp['feature_imp'] is `None` because no feature mask is generated.
-                exp['node_imp'] (torch.Tensor, (n,)): Explanations for each node, 
-                    size `(n,)` where `n` is number of nodes in the graph.
-                exp['edge_imp'] is `None` since there is no edge explanation generated.
+            exp (:class:`Explanation`): Explanation output from the method. 
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [num_nodes,]`
+                `edge_imp`: :obj:`None`
+                `graph`: :obj:`torch_geometric.data.Data`
         '''
 
         self.N = maybe_num_nodes(edge_index, num_nodes)

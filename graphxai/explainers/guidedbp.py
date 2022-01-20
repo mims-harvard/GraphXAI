@@ -10,7 +10,7 @@ from ._decomp_base_old import _BaseDecomposition
 
 def clip_hook(grad):
     # Apply ReLU activation to gradient
-    return torch.clamp(grad, min=0)#F.relu(grad)
+    return torch.clamp(grad, min=0)
 
 class GuidedBP(_BaseDecomposition):
 
@@ -35,33 +35,29 @@ class GuidedBP(_BaseDecomposition):
                 edge_index: torch.Tensor,  
                 node_idx: int, 
                 forward_kwargs: dict = {}
-            ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+            ) -> Explanation:
         '''
         Get Guided Backpropagation explanation for one node in the graph
         Args:
             x (torch.tensor): tensor of node features from the entire graph
-            node_idx (int): node index for which to explain a prediction around
             y (torch.Tensor): Ground truth labels correspond to each node's 
                 classification. This argument is input to the `criterion` 
                 function provided in `__init__()`.
             edge_index (torch.tensor): Edge_index of entire graph.
+            node_idx (int): node index for which to explain a prediction around
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
 
-        :rtype: (:class:`dict`, (:class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`, :class:`torch.Tensor`))
+        :rtype: :class:`graphxai.Explanation`
 
         Returns:
-            exp (dict):
-                exp['feature'] (torch.Tensor, (s,k)): Explanations for each node, 
-                    size `(s,k)` where `s` is number of nodes in the computational graph 
-                    described around node `node_idx` and `k` is number of node input features. 
-                exp['edge'] is `None` since there is no edge explanation generated.
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved  
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop, features]`
+                `edge_imp`: :obj:`None`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         '''
 
         # Run whole-graph prediction:
@@ -84,14 +80,12 @@ class GuidedBP(_BaseDecomposition):
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
 
+        # Get only those explanations for nodes in the subgraph:
         exp = Explanation(
             node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes]),
             node_idx = node_idx
         )
-        # Get only those explanations for nodes in the subgraph:
-        # exp.node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes])
-        # exp.node_idx = node_idx
-        #exp.set_whole_graph(x, edge_index)
+
         exp.set_enclosing_subgraph(khop_info)
         return exp
 
@@ -100,7 +94,7 @@ class GuidedBP(_BaseDecomposition):
                 y: torch.Tensor, 
                 edge_index: torch.Tensor, 
                 forward_kwargs: dict = {}
-        ) -> dict:
+        ) -> Explanation:
         '''
         Explain a whole-graph prediction with Guided Backpropagation
 
@@ -111,16 +105,17 @@ class GuidedBP(_BaseDecomposition):
             edge_index (torch.tensor): Edge_index of entire graph.
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
-                (default: :obj:`{}`)     
+                (default: :obj:`{}`)   
 
-        :rtype: :class:`dict`
-        
+        :rtype: :class:`graphxai.Explanation`
+
         Returns:
-            exp (dict):
-                exp['feature'] (torch.Tensor, (n,k)): Explanations for each node, 
-                    size `(n,k)` where `n` is number of nodes in the entire graph 
-                    described by `edge_index` and `k` is number of node input features. 
-                exp['edge'] is `None` since there is no edge explanation generated.
+            exp (:class:`Explanation`): Explanation output from the method. 
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [num_nodes, features]`
+                `edge_imp`: :obj:`None`
+                `graph`: :obj:`torch_geometric.data.Data`
         '''
 
         # Run whole-graph prediction:
@@ -141,10 +136,9 @@ class GuidedBP(_BaseDecomposition):
         exp = Explanation(
             node_imp = x.grad
         )
-        #exp.node_imp = x.grad
+    
         exp.set_whole_graph(Data(x, edge_index))
 
-        #return {'feature': x.grad, 'edge': None}
         return exp
 
     def __apply_hooks(self):
@@ -159,7 +153,6 @@ class GuidedBP(_BaseDecomposition):
         self.registered_hooks = []
     
     def __forward_pass(self, x, edge_index, forward_kwargs):
-        #@torch.enable_grad()
         # Forward pass:
         self.model.eval()
         self.__apply_hooks()

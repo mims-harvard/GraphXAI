@@ -1,85 +1,111 @@
-import os
+import os, random
 import torch
 import numpy as np
 import torch.nn.functional as F
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 from torch_geometric.utils import sort_edge_index, to_undirected
 from graphxai.datasets import ShapeGraph
 from graphxai.datasets.load_synthetic import load_ShapeGraph
 
-def are_neighbors(edge_index, node1, node2):
-    '''
-    Determine if the nodes are neighbors in the graph
-    '''
+def if_edge_exists(edge_index, node1, node2):
+    
+    p1 = torch.sum((edge_index[0,:] == node1) & (edge_index[1,:] == node2)).bool()
+    p2 = torch.sum((edge_index[1,:] == node1) & (edge_index[0,:] == node2)).bool()
 
-    edge12 = torch.any((edge_index[0,:] == node1) | (edge_index[1,:] == node2))
-    edge21 = torch.any((edge_index[0,:] == node2) | (edge_index[1,:] == node1))
+    return (p1 or p2).item()
 
-    return (edge12.item() or edge21.item())
-
-def homophily_test(SG: ShapeGraph):
-
-    #F.cosine_similarity()
-
+def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
+    
     data = SG.get_graph()
+    k = min(data.edge_index.shape[1], k_sample)
 
-    sim_samelabel = []
-    sim_difflabel = []
+    label_mask = (data.y == label)
+    #x = data.x[label_mask]
 
-    eidx = data.edge_index.clone()
-    eidx = to_undirected(eidx) # Ensure we're completely undirected
-    eidx = sort_edge_index(eidx)
+    nonzero_nodes = label_mask.nonzero(as_tuple = True)[0]
 
-    for i in range(eidx.shape[1]):
+    eidx_mask0 = torch.as_tensor([label_mask[n] for n in data.edge_index[0,:]]).bool()
+    eidx_mask1 = torch.as_tensor([label_mask[n] for n in data.edge_index[1,:]]).bool()
 
-        e = eidx[:,i]
+    #eidx_mask1 = torch.as_tensor([torch.sum(data.edge_index[1,:] == n).bool() for n in nonzero_nodes])
 
-        if e[0] > e[1]:
-            # We know we've already seen this edge
-            continue
 
-        sim = F.cosine_similarity(data.x[e[0], :], data.x[e[1],:], dim = 0)
+    #eidx_mask = torch.as_tensor([(torch.sum(data.edge_index[0,:] == n).bool() and torch.sum(data.edge_index[1,:] == n)) for n in label_mask.nonzero(as_tuple = True)[0]])
 
-        if data.y[e[0]] == data.y[e[1]]:
-            sim_samelabel.append(sim.item())
-        else:
-            sim_difflabel.append(sim.item())
+    eidx_mask = eidx_mask0 & eidx_mask1
 
-    # for i in trange(data.x.shape[0]):
-    #     for j in range(i + 1, data.x.shape[0]):
+    edge_index = data.edge_index[:,eidx_mask]
 
-    #         # Determine if they're neighbors:
-    #         if not are_neighbors(data.edge_index, i, j):
-    #             continue
+    connected_cosine = []
+    not_connected_cosine = []
 
-    #         sim = F.cosine_similarity(data.x[i, :], data.x[j,:])
+    # Get nodes that are connected
+    c_inds = torch.randperm(edge_index.shape[1])[:k]
 
-    #         if data.y[i] == data.y[j]:
-    #             sim_samelabel.append(sim.item())
-    #         else:
-    #             sim_difflabel.append(sim.item())
+    # Compute similarities for all edges in the c_inds:
+    for n1, n2 in edge_index.t()[c_inds]:
+        #print('Label 1 and 2: {}, {}'.format(data.y[n1], data.y[n2]))
+        cos = F.cosine_similarity(data.x[n1,:], data.x[n2,:], dim = 0)
+        connected_cosine.append(cos.item())
 
-    return sim_samelabel, sim_difflabel
+    # Get random set of combinations 
+    #nc_inds = torch.randperm(data.x.shape[0])[:k]
+    #combs = torch.combinations(torch.arange(data.x.shape[0]), r = 2, with_replacement = True)
+
+    combs = torch.combinations(label_mask.nonzero(as_tuple=True)[0], r = 2, with_replacement=True)
+
+    #possible_inds = set(range(combs.shape[0]))
+
+    chosen_inds = []
+
+    for i in range(k):
+
+        pi = random.choice(torch.arange(combs.shape[0]))
+
+        random_pair = combs[pi]
+        
+        # Go until we get one:
+        while if_edge_exists(data.edge_index, random_pair[0], random_pair[1]) and (pi in chosen_inds):
+            pi = random.choice(torch.arange(combs.shape[0]))
+            random_pair = combs[pi]
+
+        chosen_inds.append(pi)
+
+    for pi in chosen_inds:
+
+        random_pair = combs[pi]
+
+        n1, n2 = random_pair[0], random_pair[1]
+        #print('Label 1 and 2: {}, {}'.format(data.y[n1], data.y[n2]))
+        cos = F.cosine_similarity(data.x[n1,:], data.x[n2,:], dim = 0)
+
+        not_connected_cosine.append(cos.item())
+
+    return connected_cosine, not_connected_cosine
+
 
 if __name__ == '__main__':
+    SG = ShapeGraph(
+        model_layers = 3,
+        num_subgraphs = 100,
+        prob_connection = 0.08,
+        subgraph_size = 10,
+        class_sep = 5,
+        n_informative = 6,
+        n_clusters_per_class = 1,
+        verify = False,
+        make_explanations=False
+    )
 
-    root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
+    con, ncon = homophily_test(SG, k_sample = 1000)
 
-    SG = load_ShapeGraph(number=2, root = root_data)
+    print('Mean cosine similarity of connected nodes:', np.mean(con))
+    print('Mean cosine similarity of disconnected nodes:', np.mean(ncon))
 
-    # SG = ShapeGraph(
-    #     model_layers = 3,
-    #     num_subgraphs = 100,
-    #     prob_connection = 0.08,
-    #     subgraph_size = 10,
-    #     class_sep = 1,
-    #     n_informative = 4,
-    #     flip_y = 0,
-    #     verify = False
-    # )
-
-    same, diff = homophily_test(SG)
-
-    print('Mean cosine similarity of Same Label:', np.mean(same))
-    print('Mean cosine similarity of Different Label:', np.mean(diff))
+    plt.boxplot([con, ncon])
+    plt.xticks(ticks = [1, 2], labels = ['Connected', 'Not Connected'])
+    plt.ylabel('Cosine similarity')
+    plt.title('Homophily test, separation = 5')
+    plt.show()

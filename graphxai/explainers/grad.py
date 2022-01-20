@@ -28,7 +28,7 @@ class GradExplainer(_BaseExplainer):
                              edge_index: torch.Tensor,
                              label: Optional[torch.Tensor] = None,
                              num_hops: Optional[int] = None,
-                             forward_kwargs: dict = {}, **_):
+                             forward_kwargs: dict = {}, **_) -> Explanation:
         """
         Explain a node prediction.
 
@@ -38,27 +38,27 @@ class GradExplainer(_BaseExplainer):
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
             label (torch.Tensor, optional, [n x ...]): labels to explain
                 If not provided, we use the output of the model.
+                (:default: :obj:`None`)
             num_hops (int, optional): number of hops to consider
                 If not provided, we use the number of graph layers of the GNN.
-            forward_kwargs (dict, optional): additional arguments to model.forward
-                beyond x and edge_index
+                (:default: :obj:`None`)
+            forward_kwargs (dict, optional): Additional arguments to model.forward 
+                beyond x and edge_index. Must be keyed on argument name. 
+                (default: :obj:`{}`)
+
+        :rtype: :class:`graphxai.Explanation`
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`torch.Tensor, [features,]`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop, features]`
+                `edge_imp`: :obj:`None`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         """
         label = self._predict(x, edge_index,
                               forward_kwargs=forward_kwargs) if label is None else label
         num_hops = self.L if num_hops is None else num_hops
-
-        #exp = {k: None for k in EXP_TYPES}
 
         khop_info = subset, sub_edge_index, mapping, _ = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
@@ -84,7 +84,7 @@ class GradExplainer(_BaseExplainer):
         return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
-                              label: torch.Tensor, forward_kwargs: dict = {}):
+                              label: torch.Tensor, forward_kwargs: dict = {}) -> Explanation:
         """
         Explain a whole-graph prediction.
 
@@ -95,11 +95,16 @@ class GradExplainer(_BaseExplainer):
             forward_kwargs (dict, optional): additional arguments to model.forward
                 beyond x and edge_index
 
+        :rtype: :class:`graphxai.Explanation`
+
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+            exp (:class:`Explanation`): Explanation output from the method. 
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [num_nodes, features]`
+                `edge_imp`: :obj:`None`
+                `graph`: :obj:`torch_geometric.data.Data`
+
         """
         #exp = {k: None for k in EXP_TYPES}
 
@@ -108,8 +113,6 @@ class GradExplainer(_BaseExplainer):
         output = self.model(x, edge_index, **forward_kwargs)
         loss = self.criterion(output, label)
         loss.backward()
-
-        #exp['feature_imp'] = x.grad
 
         exp = Explanation(
             node_imp = x.grad
