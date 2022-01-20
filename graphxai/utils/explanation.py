@@ -44,62 +44,62 @@ class EnclosingSubgraph:
         if show:
             plt.show()
 
-class WholeGraph:
+# class WholeGraph:
 
-    def __init__(self, x = None, edge_index = None, y = None, directed = False):
-        self.setup(x, edge_index, y, directed)
+#     def __init__(self, x = None, edge_index = None, y = None, directed = False):
+#         self.setup(x, edge_index, y, directed)
 
-    def setup(self, x, edge_index, y = None, directed = False):
-        '''
-        Post-instantiation function to set member variables.
-        '''
-        # post-init function to set up class variables
-        self.x = x
-        self.edge_index = edge_index
-        self.y = y
-        self.directed = directed
+#     def setup(self, x, edge_index, y = None, directed = False):
+#         '''
+#         Post-instantiation function to set member variables.
+#         '''
+#         # post-init function to set up class variables
+#         self.x = x
+#         self.edge_index = edge_index
+#         self.y = y
+#         self.directed = directed
 
-    def get_Data(self):
-        return Data(x=self.x, edge_index=self.edge_index, y=self.y)
+#     def get_Data(self):
+#         return Data(x=self.x, edge_index=self.edge_index, y=self.y)
 
-    def to_networkx_conv(self, 
-        to_undirected=False, 
-        remove_self_loops: Optional[bool]=False,
-        get_map: Optional[bool] = False):
+#     def to_networkx_conv(self, 
+#         to_undirected=False, 
+#         remove_self_loops: Optional[bool]=False,
+#         get_map: Optional[bool] = False):
 
-        if to_undirected:
-            G = nx.Graph()
-        else:
-            G = nx.DiGraph()
+#         if to_undirected:
+#             G = nx.Graph()
+#         else:
+#             G = nx.DiGraph()
 
-        node_list = sorted(torch.unique(self.edge_index).tolist())
-        map_norm =  {node_list[i]:i for i in range(len(node_list))}
+#         node_list = sorted(torch.unique(self.edge_index).tolist())
+#         map_norm =  {node_list[i]:i for i in range(len(node_list))}
 
-        G.add_nodes_from([map_norm[n] for n in node_list])
+#         G.add_nodes_from([map_norm[n] for n in node_list])
 
-        # Assign values to each node:
-        # Skipping for now
+#         # Assign values to each node:
+#         # Skipping for now
 
-        for i, (u, v) in enumerate(self.edge_index.t().tolist()):
-            u = map_norm[u]
-            v = map_norm[v]
+#         for i, (u, v) in enumerate(self.edge_index.t().tolist()):
+#             u = map_norm[u]
+#             v = map_norm[v]
 
-            if to_undirected and v > u:
-                continue
+#             if to_undirected and v > u:
+#                 continue
 
-            if remove_self_loops and u == v:
-                continue
+#             if remove_self_loops and u == v:
+#                 continue
 
-            G.add_edge(u, v)
+#             G.add_edge(u, v)
 
-            # No edge_attr additions added now
-            # for key in edge_attrs if edge_attrs is not None else []:
-            #     G[u][v][key] = values[key][i]
+#             # No edge_attr additions added now
+#             # for key in edge_attrs if edge_attrs is not None else []:
+#             #     G[u][v][key] = values[key][i]
 
-        if get_map:
-            return G, map_norm
+#         if get_map:
+#             return G, map_norm
 
-        return G
+#         return G
 
 class Explanation:
     '''
@@ -569,6 +569,8 @@ class Explanation:
 
         if show:
             plt.show()
+
+        return G, pos
 
 
     def show_feature_imp(self, ax = None, show: bool = False):

@@ -18,8 +18,9 @@ SG = ShapeGraph(
     num_subgraphs = 1200,
     prob_connection = 0.0075,
     subgraph_size = 12,
-    class_sep = 0.5,
+    class_sep = 0.25,
     n_informative = 6,
+    n_clusters_per_class = 1,
     verify = False
 )
 
@@ -37,7 +38,7 @@ parameters = {
 }
 
 lr = LogisticRegression(C = 0.25)
-clf = GridSearchCV(lr, parameters, scoring='auroc', verbose = 1)
+clf = GridSearchCV(lr, parameters, scoring='roc_auc', verbose = 1)
 clf.fit(X, Y)
 
 print('LR Best AUROC', clf.best_score_)
@@ -48,7 +49,7 @@ model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay = 5e-5)
 criterion = torch.nn.CrossEntropyLoss()
 
-for epoch in trange(1, 1001):
+for epoch in trange(1, 501):
     loss = train(model, optimizer, criterion, data)
     #acc = test(model, data)
     f1, acc, prec, rec, auprc, auroc = test(model, data, get_auc = True)

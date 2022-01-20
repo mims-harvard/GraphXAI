@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from torch_geometric.datasets import TUDataset
 
 from graphxai.datasets.dataset import GraphDataset
-from graphxai.utils import Explanation
+from graphxai.utils import Explanation, match_edge_presence
 from graphxai.datasets.utils.substruct_chem_match import match_NH2, match_substruct, MUTAG_NO2
 
 
@@ -62,17 +62,29 @@ class MUTAG(GraphDataset):
 
             # Screen for NO2:
             no2_matches = match_substruct(molG, MUTAG_NO2)
+
+            eidx = self.graphs[i].edge_index
+            cumulative_edge_mask = torch.zeros(eidx.shape[1]).bool()
             
             for m in no2_matches:
                 node_imp[m] = 1 # Mask-in those values
 
+                # Update edge mask:
+                
+                cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
+
             for m in nh2_matches:
                 node_imp[m] = 1
+
+                # Update edge_mask:
+            
+                cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
 
             # TODO: mask-in edge importance
 
             exp = Explanation(
-                node_imp = node_imp
+                node_imp = node_imp,
+                edge_imp = cumulative_edge_mask.float(),
             )
 
             exp.set_whole_graph(self.graphs[i])

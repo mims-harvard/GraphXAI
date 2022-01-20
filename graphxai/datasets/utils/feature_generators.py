@@ -54,6 +54,7 @@ def gaussian_lv_generator(
         flip_y: float = 0.01,
         class_sep: float = 1.0,
         n_informative: int = 4,
+        n_clusters_per_class: int = 2,
         seed = None):
     '''
     Args:
@@ -68,6 +69,7 @@ def gaussian_lv_generator(
             n_informative = n_informative, 
             flip_y = flip_y,
             class_sep=class_sep,
+            n_clusters_per_class=n_clusters_per_class,
             seed = seed)
 
     Gitems = list(G.nodes.items())

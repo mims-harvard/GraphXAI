@@ -72,6 +72,23 @@ def distance(emb_1: torch.tensor, emb_2: torch.tensor, p=2) -> float:
     else:
         print('Invalid choice! Exiting..')
 
+def match_edge_presence(edge_index, node_idx):
+    '''
+    Returns edge mask with the spots containing node_idx highlighted
+    '''
+
+    emask = torch.zeros(edge_index.shape[1]).bool()
+
+    if isinstance(node_idx, torch.Tensor):
+        if node_idx.shape[0] > 1:
+            for ni in node_idx:
+                emask = emask | ((edge_index[0,:] == ni) | (edge_index[1,:] == ni))
+        else:
+            emask = ((edge_index[0,:] == node_idx) | (edge_index[1,:] == node_idx))
+    else:
+        emask = ((edge_index[0,:] == node_idx) | (edge_index[1,:] == node_idx))
+
+    return emask
 
 # def make_edge_ref():
 #     pass

@@ -90,10 +90,13 @@ class ShapeGraph(NodeDataset):
         self.verify = True if 'verify' not in kwargs else kwargs['verify']
         self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
 
-        self.flip_y = 0.01 if 'flip_y' not in kwargs else kwargs['flip_y']
+        #self.flip_y = 0.01 if 'flip_y' not in kwargs else kwargs['flip_y']
         self.n_informative = 4 if 'n_informative' not in kwargs else kwargs['n_informative']
         self.class_sep = 1.0 if 'class_sep' not in kwargs else kwargs['class_sep']
         self.n_features = 10 if 'n_features' not in kwargs else kwargs['n_features']
+        self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
+
+        self.add_sensitive_feature = True if 'add_sensitive_feature' not in kwargs else kwargs['add_sensitive_feature']
 
         self.seed = seed
 
@@ -212,10 +215,30 @@ class ShapeGraph(NodeDataset):
         gen_features, self.feature_imp_true = gaussian_lv_generator(
             self.G, self.yvals, seed = self.seed,
             n_features = self.n_features,
-            flip_y = self.flip_y,
             class_sep = self.class_sep,
-            n_informative = self.n_informative)
+            n_informative = self.n_informative,
+            n_clusters_per_class=self.n_clusters_per_class,
+        )
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
+
+        if self.add_sensitive_feature:
+            sensitive = torch.randint(low=0, high=2, size = (x.shape[0],)).float()
+
+            # Add sensitive attribute to last dimension on x
+            x = torch.cat([x, sensitive.unsqueeze(1)], dim = 1)
+            # Expand feature importance and mark last dimension as negative
+            self.feature_imp_true = torch.cat([self.feature_imp_true, torch.zeros((1,))])
+
+            # Shuffle to mix in x:
+            shuffle_ind = torch.randperm(x.shape[1])
+            x[:,shuffle_ind] = x.clone()
+            self.feature_imp_true[shuffle_ind] = self.feature_imp_true.clone()
+
+            # Sensitive feature is in the location where the last index was:
+            self.sensitive_feature = shuffle_ind[-1].item()
+
+        else:
+            self.sensitive_feature = None
 
         for i in self.G.nodes:
             self.G.nodes[i]['x'] = gen_features(i)
