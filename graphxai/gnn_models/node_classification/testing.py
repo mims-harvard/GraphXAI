@@ -292,4 +292,4 @@ def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
             return test_score, acc, precision, recall, auprc, auroc
 
     
-    return acc
+    return acc, f1_score(true_Y, pred[data.test_mask].tolist())

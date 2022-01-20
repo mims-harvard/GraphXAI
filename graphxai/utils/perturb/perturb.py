@@ -11,7 +11,7 @@ from .nx_modified import swap
 
 def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
                  node_idx: int = None, num_hops: int = 3,
-                 rewire_prob: float = 0.01, seed: int = 0):
+                 rewire_prob: float = 0.001, seed: int = 912):
     """
     Rewire edges in the graph.
 
@@ -27,8 +27,10 @@ def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
         subset, sub_edge_index, _, _ = k_hop_subgraph(node_idx, num_hops, edge_index)
         m = sub_edge_index.shape[1]
         nswap = round(m*rewire_prob)
+        nswap = nswap if nswap else 1 
 
     # Convert to networkx graph for rewiring edges
+    # import ipdb; ipdb.set_trace()
     data = Data(edge_index=edge_index, num_nodes=num_nodes)
     G = convert.to_networkx(data, to_undirected=True)
     rewired_G = swap(G, subset, nswap=nswap, max_tries=1000*nswap, seed=seed)

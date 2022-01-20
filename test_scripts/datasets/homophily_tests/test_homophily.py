@@ -63,8 +63,8 @@ def homophily_test(SG: ShapeGraph):
     return sim_samelabel, sim_difflabel
 
 if __name__ == '__main__':
-
-    root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
+    path = '/home/cha567/GraphXAI/data/'
+    root_data = os.path.join(path, 'ShapeGraph')
 
     SG = load_ShapeGraph(number=2, root = root_data)
 

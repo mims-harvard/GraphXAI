@@ -1,6 +1,6 @@
 import random, sys
 from typing import Union, List
-
+import os
 from networkx.classes.function import to_undirected
 import networkx as nx
 import ipdb
@@ -134,17 +134,18 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
     return GEF
 
 
-def calculate_delta(generated_exp: Explanation, train_set, label, rep='final', dist_norm=2):
+def calculate_delta(shape_graph: ShapeGraph, train_set, label, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
-    for n_id in train_set:
+    for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
         try:
-            pert_edge_index = rewire_edges(generated_exp.graph.edge_index, node_idx=n_id.item(), num_nodes=1)
+            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=n_id.item(), num_nodes=1)
         except:
             continue
-        pert_x = generated_exp.graph.x.clone()
-        pert_x[n_id] += torch.normal(0, 0.1, pert_x[n_id].shape)
-        org_vec = F.softmax(model(generated_exp.graph.x, generated_exp.graph.edge_index)[n_id], dim=-1)
+        pert_x = shape_graph.get_graph().x.clone()
+        pert_x[n_id] += torch.normal(0, 0.01, pert_x[n_id].shape)
+        # ipdb.set_trace()
+        org_vec = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
         pert_vec = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
         pert_pred = torch.argmax(pert_vec)
@@ -154,70 +155,71 @@ def calculate_delta(generated_exp: Explanation, train_set, label, rep='final', d
                 # Softmax differences
                 L_softmax = torch.dist(org_vec, pert_vec, p=dist_norm)
                 delta_softmax.append(L_softmax.item())
-            elif rep == 'intermediate':
-                # Layer 1 differences
-                org_layer1 = F.relu(model.gin1(generated_exp.graph.x, generated_exp.graph.edge_index))
-                pert_layer1 = F.relu(model.gin1(pert_x, pert_edge_index))
-                L1 = torch.dist(org_layer1[n_id], pert_layer1[n_id], p=dist_norm)
 
-                # Layer 2 differences
-                org_layer2 = F.relu(model.gin2(org_layer1, generated_exp.graph.edge_index))
-                pert_layer2 = F.relu(model.gin2(pert_layer1, pert_edge_index))
-                L2 = torch.dist(org_layer2[n_id], pert_layer2[n_id], p=dist_norm)
-                delta_L1.append(L1.item())
-                delta_L2.append(L2.item())
+            elif rep == 'intermediate':
+                raise NotImplementedError('Intermediate model check will be implemented in the future version!')
+
             elif rep == 'final':
-                # Layer 3 differences
-                org_layer3 = model(generated_exp.graph.x, generated_exp.graph.edge_index)
-                # model.gin3(org_layer2, generated_exp.graph.edge_index)
-                pert_layer3 = model(pert_x, pert_edge_index)
-                # model.gin3(pert_layer2, pert_edge_index)
-                Lfinal = torch.dist(org_layer3[n_id], pert_layer3[n_id], p=dist_norm)
-                delta_Lfinal.append(Lfinal.item())
+                raise NotImplementedError('Final embedding check will be implemented in the future version!')
+
             else:
                 print('Invalid choice! Exiting..')
 
     if rep == 'softmax':
+        # print(delta_softmax)
         return np.mean(delta_softmax)
+
     elif rep == 'intermediate':
-        return [np.mean(delta_L1), np.mean(delta_L2)]
+        raise NotImplementedError('Intermediate model check will be implemented in the future version!')
+        # return [np.mean(delta_L1), np.mean(delta_L2)]
+
     elif rep == 'final':
-        return np.mean(delta_Lfinal)
+        raise NotImplementedError('Final embedding check will be implemented in the future version!')
+        # return np.mean(delta_Lfinal)
+
     else:
         print('Invalid choice! Exiting...')
         exit(0)
 
 
-def check_delta(generated_exp: Explanation, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
+def check_delta(shape_graph: ShapeGraph, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
     if rep == 'softmax':
         # Softmax differences
-        org_softmax = F.relu(model(generated_exp.graph.x, generated_exp.graph.edge_index))
-        pert_softmax = F.relu(model(pert_x, pert_edge_index))
-        return torch.dist(org_softmax[n_id], pert_softmax[n_id], p=dist_norm).item() <= delta
+        org_softmax = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
+        org_pred = torch.argmax(org_softmax)
+        pert_softmax = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
+        pert_pred = torch.argmax(pert_softmax)
+        return torch.dist(org_softmax, pert_softmax, p=dist_norm).item() <= delta
+
     elif rep == 'final':
-        # Final embedding differences
-        org_layer3 = model(generated_exp.graph.x, generated_exp.graph.edge_index)
-        pert_layer3 = model(pert_x, pert_edge_index)
-        return torch.dist(org_layer3[n_id], pert_layer3[n_id], p=dist_norm).item() <= delta
-    # elif rep == 'intermediate':
-    #
+        raise NotImplementedError('Final embedding check will be implemented in the future version!')
+
+    elif rep == 'intermediate':
+        raise NotImplementedError('Intermediate model check will be implemented in the future version!')
     else:
         print('Invalid choice! Exiting..')
         exit(0)
 
 
-def graph_exp_stability(generated_exp: Explanation, node_id, model, delta, top_k=0.25, rep='final') -> float:
+def intersection(lst1, lst2):
+    return set(lst1).union(lst2)
+
+
+def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, top_k=0.25, rep='softmax') -> float:
     GES = []
-    num_run = 100
+    num_run = 25
     for run in range(num_run):
         # Generate perturbed counterpart
+        ipdb.set_trace()
         try:
-            pert_edge_index = rewire_edges(generated_exp.graph.edge_index, node_idx=node_id, num_nodes=1)
+            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=node_id.item(), num_nodes=1, seed=run)
         except:
+            print('I am here')
             continue
-        pert_x = generated_exp.graph.x.clone()
-        pert_x[node_id] += torch.normal(0, 0.001, pert_x[node_id].shape)
-        if check_delta(generated_exp, rep, pert_x, pert_edge_index, node_id, delta):
+        pert_x = shape_graph.get_graph().x.clone()
+        pert_x[node_id] += torch.normal(0, 0.01, pert_x[node_id].shape)
+        print(run)
+        if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
             # Compute CAM explanation
             preds = model(pert_x, pert_edge_index)
             pred = preds[node_id, :].reshape(-1, 1)
@@ -233,14 +235,33 @@ def graph_exp_stability(generated_exp: Explanation, node_id, model, delta, top_k
             # Normalize the explanations to 0-1 range:
             cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
             top_feat = int(generated_exp.node_imp.shape[0] * top_k)
-            ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
-            ori_exp_mask[generated_exp.node_imp.topk(top_feat)[1]] = 1
-            pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
-            pert_exp_mask[cam_pert_exp.node_imp.topk(top_feat)[1]] = 1
+            # print(ori_exp_mask.reshape(1, -1).shape, pert_exp_mask.reshape(1, -1).shape)
             try:
-                GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                if generated_exp.node_imp.shape == cam_pert_exp.node_imp.shape:
+                    ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
+                    ori_exp_mask[generated_exp.node_imp.topk(top_feat)[1]] = 1
+                    pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
+                    pert_exp_mask[cam_pert_exp.node_imp.topk(top_feat)[1]] = 1
+                    GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                else:
+                    all_nodes = [*intersection([*generated_exp.node_reference], [*cam_pert_exp.node_reference])]
+                    ori_exp_mask = torch.zeros([len(all_nodes)])
+                    pert_exp_mask = torch.zeros([len(all_nodes)])
+                    for i, n_id in enumerate(all_nodes):
+                        if n_id in [*generated_exp.node_reference]:
+                            ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
+                        if n_id in [*cam_pert_exp.node_reference]:
+                            pert_exp_mask[i] = cam_pert_exp.node_imp[cam_pert_exp.node_reference[n_id]].item()
+                    topk, indices = torch.topk(ori_exp_mask, top_feat)
+                    ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
+                    ori_exp_mask[ori_exp_mask.topk(top_feat)[1]] = 1
+                    topk, indices = torch.topk(pert_exp_mask, top_feat)
+                    pert_exp_mask = torch.zeros_like(pert_exp_mask).scatter_(0, indices, topk)
+                    pert_exp_mask[pert_exp_mask.topk(top_feat)[1]] = 1
+                    GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
             except:
                 continue
+            print(GES)
     return max(GES)
 
 
@@ -271,42 +292,54 @@ if __name__ == '__main__':
 
     train_flag = False
     # bah = BAShapes(**hyp)
-    bah = ShapeGraph(model_layers=3)
+    bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+    # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
+    # bah = torch.load(open('./ShapeGraph_2.pickle', 'rb'))
     # Fix the seed for reproducibility
-    np.random.seed(912)
-    torch.manual_seed(912)
-    torch.cuda.manual_seed(912)
+#    np.random.seed(912)
+#    torch.manual_seed(912)
+#    torch.cuda.manual_seed(912)
     # ipdb.set_trace()
-    data = bah.get_graph(seed=912)
 
+    data = bah.get_graph(seed=912)   
+    # ipdb.set_trace()
     model = GIN_3layer_basic(64, input_feat=10, classes=2)
     # print(model)
-    # print('Samples in Class 0', torch.sum(data.y == 0).item())
-    # print('Samples in Class 1', torch.sum(data.y == 1).item())
+    print('Samples in Class 0', torch.sum(data.y == 0).item())
+    print('Samples in Class 1', torch.sum(data.y == 1).item())
     criterion = torch.nn.CrossEntropyLoss()
 
     if train_flag:
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
         # Train the model for 200 epochs:
-        for epoch in range(1, 201):
+        best_f1 = 0
+        for epoch in range(1, 1001):
             loss = train(model, optimizer, criterion, data)
-            acc = test(model, data)
-            print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
-
-        torch.save(model.state_dict(), 'model.pth')
+            acc, f1 = test(model, data)
+            if f1 > best_f1:
+                best_epoch = [loss, acc, f1]
+                best_f1 = f1
+                torch.save(model.state_dict(), 'model.pth')
+            if epoch%50==0:
+                print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}, F1-score: {f1:.3f}')
+       
+        print(f'Best Performance: Loss: {best_epoch[0]:.4f}, Test Acc: {best_epoch[1]:.4f}, F1-score: {best_epoch[2]:.3f}')
     else:
-
         model.load_state_dict(torch.load('model.pth'))
         model.eval()
-        test_acc = test(model, data)
-        print(f'Testing Acuracy: {test_acc}')
+        test_acc, f1 = test(model, data)
+        print(f'Testing Acuracy: {test_acc} | F1-score: {f1:.3f}')
         preds = model(data.x, data.edge_index)
 
         # Choose a node that's in class 1 (connected to 2 houses)
         class1 = (data.y == 1).nonzero(as_tuple=True)[0]
-        node_idx = random.choice(class1).item()
+        test_idx = torch.where(data.test_mask == True)[0]
+        node_idx = test_idx[torch.randperm(test_idx.shape[0])[0]]
+        # ipdb.set_trace()
+        # node_idx = random.choice(class1).item()
+        # node_idx = 9
 
         pred = preds[node_idx, :].reshape(-1, 1)
         pred_class = pred.argmax(dim=0).item()
@@ -342,18 +375,20 @@ if __name__ == '__main__':
         cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
         gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
 
-        # Compute Scores
+	# Compute Score
         cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
-        ipdb.set_trace()
         cam_gef_score = graph_exp_faith(cam_exp, bah)
-        delta = calculate_delta(gcam_exp, torch.where(data.train_mask == True)[0], label=data.y)
-        cam_ges_score = graph_exp_stability(cam_exp, node_id=node_idx, model=model, delta=delta)
+        delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y)
+        # ipdb.set_trace()
+        cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
 
         print('### CAM ###')
         print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
         print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
         print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
         print(f'Delta: {delta:.3f}')
+       
+        exit(0)
 
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
@@ -397,3 +432,32 @@ if __name__ == '__main__':
         # ax1.text(xmin, ymax - 0.15 * (ymax - ymin), 'Pred  = {:d}'.format(pred.argmax(dim=0).item()))
         #
         # plt.savefig('demo.pdf', bbox_inches='tight')
+
+
+
+
+                # # Layer 1 differences
+                # org_layer1 = F.relu(model.gin1(shape_graph.get_graph().x, shape_graph.get_graph().edge_index))
+                # pert_layer1 = F.relu(model.gin1(pert_x, pert_edge_index))
+                # L1 = torch.dist(org_layer1[n_id], pert_layer1[n_id], p=dist_norm)
+                #
+                # # Layer 2 differences
+                # org_layer2 = F.relu(model.gin2(org_layer1, generated_exp.graph.edge_index))
+                # pert_layer2 = F.relu(model.gin2(pert_layer1, pert_edge_index))
+                # L2 = torch.dist(org_layer2[n_id], pert_layer2[n_id], p=dist_norm)
+                # delta_L1.append(L1.item())
+                # delta_L2.append(L2.item())
+
+                # # Layer 3 differences
+                # org_layer3 = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)
+                # # model.gin3(org_layer2, generated_exp.graph.edge_index)
+                # pert_layer3 = model(pert_x, pert_edge_index)
+                # # model.gin3(pert_layer2, pert_edge_index)
+                # Lfinal = torch.dist(org_layer3[n_id], pert_layer3[n_id], p=dist_norm)
+                # delta_Lfinal.append(Lfinal.item())
+
+        # Final embedding differences
+        # org_layer3 = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)
+        # pert_layer3 = model(pert_x, pert_edge_index)
+        # return torch.dist(org_layer3[n_id], pert_layer3[n_id], p=dist_norm).item() <= delta
+
