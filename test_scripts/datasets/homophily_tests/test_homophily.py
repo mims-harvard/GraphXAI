@@ -60,10 +60,6 @@ def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
 
     chosen_inds = []
 
-if __name__ == '__main__':
-    path = '/home/cha567/GraphXAI/data/'
-    root_data = os.path.join(path, 'ShapeGraph')
-
     for i in range(k):
         pi = random.choice(torch.arange(combs.shape[0]))
         random_pair = combs[pi]
@@ -81,9 +77,6 @@ if __name__ == '__main__':
         n1, n2 = random_pair[0], random_pair[1]
         #print('Label 1 and 2: {}, {}'.format(data.y[n1], data.y[n2]))
         cos = F.cosine_similarity(data.x[n1,:], data.x[n2,:], dim = 0)
-
-        print('Mean cosine similarity of Same Label:', np.mean(same))
-        print('Mean cosine similarity of Different Label:', np.mean(diff))
         not_connected_cosine.append(cos.item())
 
     return connected_cosine, not_connected_cosine

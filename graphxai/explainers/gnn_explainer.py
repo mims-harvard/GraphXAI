@@ -68,9 +68,9 @@ class GNNExplainer(_BaseExplainer):
 
         #exp = {k: None for k in EXP_TYPES}
 
-        print('IN GNNEXPLAINER')
-        print('node_idx', node_idx)
-        print('edge_index', edge_index)
+        # print('IN GNNEXPLAINER')
+        # print('node_idx', node_idx)
+        # print('edge_index', edge_index)
 
         org_eidx = edge_index.clone()
 
@@ -79,8 +79,8 @@ class GNNExplainer(_BaseExplainer):
                            relabel_nodes=True) #num_nodes=x.shape[0])
         sub_x = x[subset]
 
-        print('sub_x shape', sub_x.shape)
-        print('sub edge index shape', sub_edge_index.shape)
+        # print('sub_x shape', sub_x.shape)
+        # print('sub edge index shape', sub_edge_index.shape)
 
         self._set_masks(sub_x, sub_edge_index, explain_feature=explain_feature)
 
