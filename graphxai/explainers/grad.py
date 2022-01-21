@@ -74,8 +74,8 @@ class GradExplainer(_BaseExplainer):
         feature_imp = sub_x.grad[torch.where(subset == node_idx)].squeeze(0)
 
         exp = Explanation(
-            feature_imp = feature_imp,
-            node_imp = sub_x.grad,
+            feature_imp = feature_imp, #[score_1, ]
+            node_imp = sub_x.grad, #[score_1, score_2, ...] [[], []] NxF
             node_idx = node_idx
         )
 
