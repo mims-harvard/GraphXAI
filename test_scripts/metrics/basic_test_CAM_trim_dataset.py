@@ -84,6 +84,8 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
     if generated_exp.feature_imp is not None:
         # Identifying the top_k features in the node attribute feature vector
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
+
+        # CHANGE THIS PART!!!!!!
         node_map = [k for k, v in generated_exp.node_reference.items() if v == generated_exp.node_idx][0]
 
         # Getting the softmax vector for the original graph
@@ -144,7 +146,6 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, label, rep='softmax', di
             continue
         pert_x = shape_graph.get_graph().x.clone()
         pert_x[n_id] += torch.normal(0, 0.01, pert_x[n_id].shape)
-        # ipdb.set_trace()
         org_vec = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
         pert_vec = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
@@ -210,15 +211,13 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
     num_run = 25
     for run in range(num_run):
         # Generate perturbed counterpart
-        ipdb.set_trace()
         try:
-            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=node_id.item(), num_nodes=1, seed=run)
+            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=node_id.item(), num_nodes=1)  # , seed=run)
         except:
-            print('I am here')
             continue
         pert_x = shape_graph.get_graph().x.clone()
         pert_x[node_id] += torch.normal(0, 0.01, pert_x[node_id].shape)
-        print(run)
+
         if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
             # Compute CAM explanation
             preds = model(pert_x, pert_edge_index)
@@ -235,7 +234,6 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
             # Normalize the explanations to 0-1 range:
             cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
             top_feat = int(generated_exp.node_imp.shape[0] * top_k)
-            # print(ori_exp_mask.reshape(1, -1).shape, pert_exp_mask.reshape(1, -1).shape)
             try:
                 if generated_exp.node_imp.shape == cam_pert_exp.node_imp.shape:
                     ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
@@ -261,15 +259,15 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                     GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
             except:
                 continue
-            print(GES)
     return max(GES)
 
 
 def get_exp(explainer, node_idx, data):
-    exp, khop_info = explainer.get_explanation_node(
+    ipdb.set_trace()
+    exp = explainer.get_explanation_node(
         node_idx, data.x, data.edge_index, label=data.y,
         num_hops=2, explain_feature=True)
-    return exp['feature_imp'], exp['edge_imp'], khop_info[0], khop_info[1], khop_info[3]
+    return exp.feature_imp, exp.edge_imp, khop_info[0], khop_info[1], khop_info[3]
 
 
 if __name__ == '__main__':
@@ -290,9 +288,10 @@ if __name__ == '__main__':
     #     'feature_method': 'gaussian_lv'
     # }
 
-    train_flag = False
+    train_flag = True
     # bah = BAShapes(**hyp)
     bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+    ipdb.set_trace()
     # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
     # bah = torch.load(open('./ShapeGraph_2.pickle', 'rb'))
@@ -304,7 +303,7 @@ if __name__ == '__main__':
 
     data = bah.get_graph(seed=912)   
     # ipdb.set_trace()
-    model = GIN_3layer_basic(64, input_feat=10, classes=2)
+    model = GIN_3layer_basic(64, input_feat=11, classes=2)
     # print(model)
     print('Samples in Class 0', torch.sum(data.y == 0).item())
     print('Samples in Class 1', torch.sum(data.y == 1).item())
@@ -380,19 +379,17 @@ if __name__ == '__main__':
         cam_gef_score = graph_exp_faith(cam_exp, bah)
         delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y)
         # ipdb.set_trace()
-        cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
+        # cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
 
         print('### CAM ###')
         print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
         print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
-        print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
+        # print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
         print(f'Delta: {delta:.3f}')
-       
-        exit(0)
-
+     
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
-        feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx, data)
+        feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx.item(), data)
         top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * 0.25))[1]
         rem_edges = torch.Tensor([i for i in range(edge_imp.shape[1]) if i not in top_k_edges]).long()
         subset_edges = data.edge_index[:, edge_subset_mask]
