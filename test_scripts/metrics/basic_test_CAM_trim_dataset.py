@@ -33,40 +33,79 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
         generated_exp (Explanation): Explanation output by an explainer.
     '''
 
-    # TODO: 1) Check that subgraphs match
-    #       2) Have to implement the cases where we have multiple ground-truth explanations
+    # TODO: 1) Have to implement the cases where we have multiple ground-truth explanations
 
     EPS = 1e-09
     thresh = 0.8
-    relative_positives = (gt_exp.node_imp == 1).nonzero(as_tuple=True)[0]
-    true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
+    JAC_feat = JAC_node = JAC_edge = 0    
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
 
-    calc_node_imp = generated_exp.node_imp
-
-    TPs = []
-    FPs = []
-    FNs = []
-    for i, node in enumerate(exp_subgraph.nodes):
-        # Restore original node numbering
-        positive = calc_node_imp[i].item() > thresh
-        if positive:
-            if node in true_nodes:
-                TPs.append(node)
+    if generated_exp.feature_imp is not None:
+        TPs = []
+        FPs = []
+        FNs = []
+        true_feat = torch.where(gt_exp.feature_imp ==1)[0]
+        for i, feat in enumerate(gt_exp.feature_imp):
+            # Restore original feature numbering
+            positive = generated_exp.feature_imp[i].item() > thresh
+            if positive:
+                if i in true_feat:
+                    TPs.append(generated_exp.feature_imp[i])
+                else:
+                    FPs.append(generated_exp.feature_imp[i])
             else:
-                FPs.append(node)
-        else:
-            if node in true_nodes:
-                FNs.append(node)
-    TP = len(TPs)
-    FP = len(FPs)
-    FN = len(FNs)
-    JAC = TP / (TP + FP + FN + EPS)
-    # print(f'TP / (TP+FP+FN) edge score of gnn explainer is {edge_score}')
+                if i in true_feat:
+                    FNs.append(generated_exp.feature_imp[i])
+        TP = len(TPs)
+        FP = len(FPs)
+        FN = len(FNs)
+        JAC_feat = TP / (TP + FP + FN + EPS)
 
-    return JAC
+    if generated_exp.node_imp is not None:
+        TPs = []
+        FPs = []
+        FNs = []
+        relative_positives = (gt_exp.node_imp == 1).nonzero(as_tuple=True)[0]
+        true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
+
+        for i, node in enumerate(exp_subgraph.nodes):
+            # Restore original node numbering
+            positive = generated_exp.node_imp[i].item() > thresh
+            if positive:
+                if node in true_nodes:
+                    TPs.append(node)
+                else:
+                    FPs.append(node)
+            else:
+                if node in true_nodes:
+                    FNs.append(node)
+        TP = len(TPs)
+        FP = len(FPs)
+        FN = len(FNs)
+        JAC_node = TP / (TP + FP + FN + EPS)
+
+    if generated_exp.edge_imp is not None:
+        TPs = []
+        FPs = []
+        FNs = []
+        true_edges = torch.where(gt_exp.edge_imp == 1)[0]
+        for edge in range(gt_exp.edge_imp.shape[0]):
+            if generated_exp.edge_imp[edge]:
+                if edge in true_edges:
+                    TPs.append(edge)
+                else:
+                    FPs.append(edge)
+            else:
+                if edge in true_edges:
+                    FNs.append(edge)
+        TP = len(TPs)
+        FP = len(FPs)
+        FN = len(FNs)
+        JAC_edge = TP / (TP + FP + FN + EPS)
+    print(JAC_feat, JAC_node, JAC_edge)
+    return max(JAC_feat, JAC_node, JAC_edge)
 
 
 def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0.25) -> float:
@@ -86,6 +125,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
         # CHANGE THIS PART!!!!!!
+        ipdb.set_trace()
         node_map = [k for k, v in generated_exp.node_reference.items() if v == generated_exp.node_idx][0]
 
         # Getting the softmax vector for the original graph
@@ -263,11 +303,10 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
 
 
 def get_exp(explainer, node_idx, data):
-    ipdb.set_trace()
     exp = explainer.get_explanation_node(
         node_idx, data.x, data.edge_index, label=data.y,
         num_hops=2, explain_feature=True)
-    return exp.feature_imp, exp.edge_imp, khop_info[0], khop_info[1], khop_info[3]
+    return exp.feature_imp, exp.edge_imp, exp.enc_subgraph.nodes, exp.enc_subgraph.edge_index, exp.enc_subgraph.edge_mask
 
 
 if __name__ == '__main__':
@@ -275,23 +314,8 @@ if __name__ == '__main__':
     n = 300
     m = 1
     num_houses = 20
-
-    # hyp = {
-    #     'num_hops': 2,
-    #     'n': n,
-    #     'm': m,
-    #     'num_shapes': num_houses,
-    #     'model_layers': 3,
-    #     'shape_insert_strategy': 'bound_12',
-    #     'labeling_method': 'edge',
-    #     'shape_upper_bound': 1,
-    #     'feature_method': 'gaussian_lv'
-    # }
-
-    train_flag = True
-    # bah = BAShapes(**hyp)
+    train_flag = False
     bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
-    ipdb.set_trace()
     # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
     # bah = torch.load(open('./ShapeGraph_2.pickle', 'rb'))
@@ -389,12 +413,17 @@ if __name__ == '__main__':
      
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
-        feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx.item(), data)
-        top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * 0.25))[1]
-        rem_edges = torch.Tensor([i for i in range(edge_imp.shape[1]) if i not in top_k_edges]).long()
-        subset_edges = data.edge_index[:, edge_subset_mask]
-        sub_edge_index = sub_edge_index[:, top_k_edges]
-        ipdb.set_trace()
+        pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx),
+ edge_index=data.edge_index)
+        # feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx.item(), data)
+        # top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * 0.25))[1]
+        # rem_edges = torch.Tensor([i for i in range(edge_imp.shape[0]) if i not in top_k_edges]).long()
+        # subset_edges = data.edge_index[:, edge_subset_mask]
+        # sub_edge_index = sub_edge_index[:, top_k_edges]
+        # ipdb.set_trace()
+        gnnex_gea_score = graph_exp_acc(gt_exp, pred_exp)
+        print('### GNNExplainer ###')
+        print(f'Graph Explanation Accuracy using GNNExplainer={gnnex_gea_score:.3f}')
 
         # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
         # gcam_gef_score = graph_exp_faith(gcam_exp)
