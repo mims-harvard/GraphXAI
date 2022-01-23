@@ -17,6 +17,7 @@ from graphxai.datasets.feature import make_structured_feature
 from graphxai.datasets.utils.bound_graph import build_bound_graph as BBG_old
 from graphxai.datasets.utils.bound_graph_pref_att import build_bound_graph as BBG_PA
 from graphxai.datasets.utils.verify import verify_motifs
+from graphxai.datasets.utils.opt_homophily import optimize_homophily
 
 from graphxai.datasets.utils.feature_generators import gaussian_lv_generator
 from graphxai.datasets.utils.label_generators import bound_graph_label
@@ -97,6 +98,8 @@ class ShapeGraph(NodeDataset):
         self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
 
         self.add_sensitive_feature = True if 'add_sensitive_feature' not in kwargs else kwargs['add_sensitive_feature']
+
+        self.homophily_coef = None if 'homophily_coef' not in kwargs else kwargs['homophily_coef']
 
         self.seed = seed
 
@@ -222,6 +225,8 @@ class ShapeGraph(NodeDataset):
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         if self.add_sensitive_feature:
+            if self.seed is not None:
+                torch.manual_seed(self.seed)
             sensitive = torch.randint(low=0, high=2, size = (x.shape[0],)).float()
 
             # Add sensitive attribute to last dimension on x
@@ -241,9 +246,23 @@ class ShapeGraph(NodeDataset):
             self.sensitive_feature = None
 
         for i in self.G.nodes:
-            self.G.nodes[i]['x'] = gen_features(i)
+            self.G.nodes[i]['x'] = x[i,:].detach().clone() #gen_features(i)
 
         edge_index = to_undirected(torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous())
+
+        if self.homophily_coef is not None:
+            feat_mask = torch.logical_not(self.feature_imp_true)
+            feat_mask[self.sensitive_feature] = False
+
+            x = optimize_homophily(
+                x = x,
+                edge_index = edge_index,
+                label = y,
+                feature_mask = feat_mask,
+                homophily_coef = self.homophily_coef,
+                epochs = 1000,
+                batch_size = (edge_index.shape[1] // 2)
+            )
 
         self.graph = Data(
             x=x, 
