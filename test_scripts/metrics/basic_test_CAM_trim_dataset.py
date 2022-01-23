@@ -120,17 +120,15 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
 
+    # Getting the softmax vector for the original graph
+    org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
+    org_softmax = F.softmax(org_vec, dim=-1)
+
     if generated_exp.feature_imp is not None:
         # Identifying the top_k features in the node attribute feature vector
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
-        # CHANGE THIS PART!!!!!!
-        ipdb.set_trace()
-        node_map = [k for k, v in generated_exp.node_reference.items() if v == generated_exp.node_idx][0]
-
-        # Getting the softmax vector for the original graph
-        org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
-        org_softmax = F.softmax(org_vec, dim=-1)
+        # node_map = [v for k, v in generated_exp.node_reference.items() if k == generated_exp.node_idx][0]
 
         # Getting the softmax vector for the perturbed graph
         pert_x = shape_graph.get_graph().x.clone()
@@ -138,9 +136,10 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
         # Perturbing the unimportant node feature indices using gaussian noise
         rem_features = torch.Tensor(
             [i for i in range(shape_graph.get_graph().x.shape[1]) if i not in top_k_features]).long()
-        pert_x[node_map, rem_features] = torch.normal(0, 0.1, pert_x[node_map, rem_features].shape)
+        pert_x[generated_exp.node_idx, rem_features] = torch.normal(0, 0.1, pert_x[generated_exp.node_idx, rem_features].shape)
         pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
+        GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
     if generated_exp.node_imp is not None:
         # Identifying the top_k nodes in the explanation subgraph
@@ -151,29 +150,35 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
             if node not in top_k_nodes:
                 rem_nodes.append([k for k, v in generated_exp.node_reference.items() if v == node][0])
 
-        # Getting the softmax vector for the original graph
-        org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
-        org_softmax = F.softmax(org_vec, dim=-1)
-
         # Getting the softmax vector for the perturbed graph
         pert_x = shape_graph.get_graph().x.clone()
 
         # Removing the unimportant nodes by masking
-        pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes])  # torch.normal(0, 0.1, pert_x[rem_nodes].shape)
-        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)
-
-        # check if the graph is disconnected!!
+        pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes])
+        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
+        GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
     if generated_exp.edge_imp is not None:
-        # Identifying the top_k edges in the explanation subgraph
-        edge_imp = torch.Tensor([0.1, 0.4, 0.3, 0.25, 0.9])
-        top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * top_k))[1]
-        # TODO: After using an explanation method that generates edge-level explanation
+        subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
+        # Get the list of all edges that we need to keep
+        keep_edges = [] 
+        for i in range(shape_graph.get_graph().edge_index.shape[1]):
+            if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
+                continue
+            else:
+                keep_edges.append(i)
 
-    GEF = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
+        # Get new edge_index
+        edge_index = shape_graph.get_graph().edge_index
+        edge_index = edge_index[:, keep_edges]
+                    
+        # Getting the softmax vector for the perturbed graph
+        pert_vec = model(shape_graph.get_graph().x, edge_index)[generated_exp.node_idx]
+        pert_softmax = F.softmax(pert_vec, dim=-1)        
+        GEF_edge = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    return GEF
+    return max(GEF_feat, GEF_node, GEF_edge)
 
 
 def calculate_delta(shape_graph: ShapeGraph, train_set, label, rep='softmax', dist_norm=2):
@@ -402,26 +407,21 @@ if __name__ == '__main__':
         cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
         cam_gef_score = graph_exp_faith(cam_exp, bah)
         delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y)
-        # ipdb.set_trace()
-        # cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
+        cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
 
         print('### CAM ###')
         print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
         print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
-        # print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
+        print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
         print(f'Delta: {delta:.3f}')
      
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
         pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx),
  edge_index=data.edge_index)
-        # feature_imp, edge_imp, subset, sub_edge_index, edge_subset_mask = get_exp(gnnexpr, node_idx.item(), data)
-        # top_k_edges = edge_imp.topk(int(edge_imp.shape[0] * 0.25))[1]
-        # rem_edges = torch.Tensor([i for i in range(edge_imp.shape[0]) if i not in top_k_edges]).long()
-        # subset_edges = data.edge_index[:, edge_subset_mask]
-        # sub_edge_index = sub_edge_index[:, top_k_edges]
-        # ipdb.set_trace()
         gnnex_gea_score = graph_exp_acc(gt_exp, pred_exp)
+        gnnex_gef_score = graph_exp_faith(pred_exp, bah)
+        # gnnex_ges_score = graph_exp_stability(pred_exp, bah, node_id=node_idx, model=model, delta=delta)
         print('### GNNExplainer ###')
         print(f'Graph Explanation Accuracy using GNNExplainer={gnnex_gea_score:.3f}')
 
