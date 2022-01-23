@@ -39,8 +39,7 @@ def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
     return rewired_edge_index
 
 
-def perturb_node_features(x: torch.Tensor, perturb_prob: float = 0.5,
-                          bin_dims: List[int] = [], perturb_mode: str = 'scale'):
+def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 0.5, pert_feat: List[int] = [], bin_dims: List[int] = [], perturb_mode: str = 'gaussian'):
     """
     Pick nodes with probability perturb_prob and perturb their features.
 
@@ -61,46 +60,38 @@ def perturb_node_features(x: torch.Tensor, perturb_prob: float = 0.5,
         x_pert (torch.Tensor, [n x d]): perturbed feature matrix
         node_mask (torch.Tensor, [n]): Boolean mask of perturbed nodes
     """
-    n ,d = x.shape
-    cont_dims = [i for i in range(d) if i not in bin_dims]
-    c = len(cont_dims)
-    b = len(bin_dims)
-
-    # Select nodes to perturb
-    pert_mask = torch.bernoulli(perturb_prob * torch.ones(n)).bool()
-    nodes_pert = pert_mask.nonzero().flatten()
-    n_pert = nodes_pert.shape[0]
-    x_new = x.clone()
-    x_pert = x_new[nodes_pert]
+    
+    cont_dims = [i for i in pert_feat if i not in bin_dims]
+    len_cont = len(cont_dims)
+    len_bin = len(bin_dims)
+    scale_mul = 2
+    x_pert = x.clone()
 
     max_val, _ = torch.max(x[:, cont_dims], dim=0, keepdim=True)
 
     if perturb_mode == 'scale':
         # Scale the continuous dims randomly
-        x_pert[:, cont_dims] *= 2 * torch.rand(c)
+        x_pert[node_idx, cont_dims] *= scale_mul * torch.rand(cont_dims)
     elif perturb_mode == 'gaussian':
         # Add a Gaussian noise
-        sigma = torch.std(x[:, cont_dims], dim=0, keepdim=True)
-        x_pert[:, cont_dims] += sigma * torch.randn(size=(n_pert, c))
+        sigma = torch.std(x[:, cont_dims], dim=0, keepdim=True).squeeze(0)
+        x_pert[node_idx, cont_dims] += sigma * torch.randn(len(cont_dims))
     elif perturb_mode == 'uniform':
         # Add a uniform noise
-        epsilon = 0.05 * max_val
-        x_pert[:, cont_dims] += 2*epsilon * (torch.rand(size=(n_pert, c)) - 0.5)
+        epsilon = 0.05 * max_val.squeeze(0)
+        x_pert[node_idx, cont_dims] += 2*epsilon * (torch.rand(len(cont_dims)) - 0.5)
     elif perturb_mode == 'mean':
         # Set to mean values
-        mu = torch.mean(x[:, cont_dims], dim=0, keepdim=True)
-        x_pert[:, cont_dims] = mu
+        mu = torch.mean(x[:, cont_dims], dim=0, keepdim=True).squeeze(0)
+        x_pert[node_idx, cont_dims] = mu
     else:
         raise ValueError("perturb_mode must be one of ['scale', 'gaussian', 'uniform', 'mean']")
 
-    # Ensure feature value is between 0 and max_val
-    x_pert[:, cont_dims] = torch.clamp(x_pert[:, cont_dims],
-                                       min=torch.zeros(1, c), max=max_val)
+    # Ensure feature value is between min_val and max_val
+    min_val, _ = torch.min(x[:, cont_dims], dim=0, keepdim=True)
+    x_pert[node_idx, cont_dims] = torch.max(torch.min(x_pert[node_idx, cont_dims], max_val), min_val)
 
     # Randomly flip the binary dims
-    x_pert[:, bin_dims] = torch.randint(2, size=(n_pert, b)).float()
+    x_pert[node_idx, bin_dims] = torch.randint(2, size=(1, len_bin)).float()
 
-    # Copy x_pert to perturbed nodes in x_new
-    x_new[nodes_pert] = x_pert
-
-    return x, pert_mask
+    return x_pert[node_idx, pert_feat]

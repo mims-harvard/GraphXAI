@@ -23,7 +23,7 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, tr
 
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.utils import to_networkx_conv, Explanation, distance
-from graphxai.utils.perturb import rewire_edges
+from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 
 def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
@@ -108,7 +108,7 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
     return max(JAC_feat, JAC_node, JAC_edge)
 
 
-def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -116,6 +116,8 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
     '''
 
     # TODO: 1) Implement perturbations for continuous and discrete node attribute features
+
+    GEF_feat = GEF_node = GEF_edge = 0
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
@@ -136,7 +138,9 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
         # Perturbing the unimportant node feature indices using gaussian noise
         rem_features = torch.Tensor(
             [i for i in range(shape_graph.get_graph().x.shape[1]) if i not in top_k_features]).long()
-        pert_x[generated_exp.node_idx, rem_features] = torch.normal(0, 0.1, pert_x[generated_exp.node_idx, rem_features].shape)
+
+        pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx)
+        # torch.normal(0, 0.1, pert_x[generated_exp.node_idx, rem_features].shape)
         pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
@@ -181,7 +185,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, top_k=0
     return max(GEF_feat, GEF_node, GEF_edge)
 
 
-def calculate_delta(shape_graph: ShapeGraph, train_set, label, rep='softmax', dist_norm=2):
+def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
@@ -190,7 +194,8 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, label, rep='softmax', di
         except:
             continue
         pert_x = shape_graph.get_graph().x.clone()
-        pert_x[n_id] += torch.normal(0, 0.01, pert_x[n_id].shape)
+        pert_x[n_id] = perturb_node_features(x=pert_x, node_idx=n_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
+        # pert_x[n_id] += torch.normal(0, 0.01, pert_x[n_id].shape)
         org_vec = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
         pert_vec = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
@@ -251,7 +256,7 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, top_k=0.25, rep='softmax') -> float:
+def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
     GES = []
     num_run = 25
     for run in range(num_run):
@@ -261,7 +266,7 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
         except:
             continue
         pert_x = shape_graph.get_graph().x.clone()
-        pert_x[node_id] += torch.normal(0, 0.01, pert_x[node_id].shape)
+        pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
 
         if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
             # Compute CAM explanation
@@ -279,6 +284,7 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
             # Normalize the explanations to 0-1 range:
             cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
             top_feat = int(generated_exp.node_imp.shape[0] * top_k)
+            ipdb.set_trace()
             try:
                 if generated_exp.node_imp.shape == cam_pert_exp.node_imp.shape:
                     ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
@@ -321,6 +327,7 @@ if __name__ == '__main__':
     num_houses = 20
     train_flag = False
     bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+
     # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
     # bah = torch.load(open('./ShapeGraph_2.pickle', 'rb'))
@@ -405,25 +412,25 @@ if __name__ == '__main__':
 
 	# Compute Score
         cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
-        cam_gef_score = graph_exp_faith(cam_exp, bah)
-        delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y)
-        cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta)
+        cam_gef_score = graph_exp_faith(cam_exp, bah, sens_idx=[bah.sensitive_feature])
+        delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y, sens_idx=[bah.sensitive_feature])
+        # cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta, sens_idx=[bah.sensitive_feature])
 
         print('### CAM ###')
         print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
         print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
-        print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
+        # print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
         print(f'Delta: {delta:.3f}')
      
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
-        pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx),
- edge_index=data.edge_index)
+        pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx), edge_index=data.edge_index)
         gnnex_gea_score = graph_exp_acc(gt_exp, pred_exp)
-        gnnex_gef_score = graph_exp_faith(pred_exp, bah)
-        # gnnex_ges_score = graph_exp_stability(pred_exp, bah, node_id=node_idx, model=model, delta=delta)
+        gnnex_gef_score = graph_exp_faith(pred_exp, bah, sens_idx=[bah.sensitive_feature])
+        gnnex_ges_score = graph_exp_stability(pred_exp, bah, node_id=node_idx, model=model, delta=delta, sens_idx=[bah.sensitive_feature])
         print('### GNNExplainer ###')
         print(f'Graph Explanation Accuracy using GNNExplainer={gnnex_gea_score:.3f}')
+        print(f'Graph Explanation Stability using GNNExplainer={gnnex_ges_score:.3f}')
 
         # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
         # gcam_gef_score = graph_exp_faith(gcam_exp)
