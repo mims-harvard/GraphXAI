@@ -37,7 +37,9 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
 
     EPS = 1e-09
     thresh = 0.8
-    JAC_feat = JAC_node = JAC_edge = 0    
+    JAC_feat = 0
+    JAC_node = 0
+    JAC_edge = 0    
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
@@ -104,8 +106,8 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
         FP = len(FPs)
         FN = len(FNs)
         JAC_edge = TP / (TP + FP + FN + EPS)
-    print(JAC_feat, JAC_node, JAC_edge)
-    return max(JAC_feat, JAC_node, JAC_edge)
+
+    return [JAC_feat, JAC_node, JAC_edge]
 
 
 def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
@@ -115,9 +117,9 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_id
         generated_exp (Explanation): Explanation output by an explainer.
     '''
 
-    # TODO: 1) Implement perturbations for continuous and discrete node attribute features
-
-    GEF_feat = GEF_node = GEF_edge = 0
+    GEF_feat = 0
+    GEF_node = 0
+    GEF_edge = 0
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
@@ -130,8 +132,6 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_id
         # Identifying the top_k features in the node attribute feature vector
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
-        # node_map = [v for k, v in generated_exp.node_reference.items() if k == generated_exp.node_idx][0]
-
         # Getting the softmax vector for the perturbed graph
         pert_x = shape_graph.get_graph().x.clone()
 
@@ -140,12 +140,13 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_id
             [i for i in range(shape_graph.get_graph().x.shape[1]) if i not in top_k_features]).long()
 
         pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx)
-        # torch.normal(0, 0.1, pert_x[generated_exp.node_idx, rem_features].shape)
+
         pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
     if generated_exp.node_imp is not None:
+
         # Identifying the top_k nodes in the explanation subgraph
         top_k_nodes = generated_exp.node_imp.topk(int(generated_exp.node_imp.shape[0] * top_k))[1]
 
@@ -182,7 +183,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_id
         pert_softmax = F.softmax(pert_vec, dim=-1)        
         GEF_edge = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    return max(GEF_feat, GEF_node, GEF_edge)
+    return [GEF_feat, GEF_node, GEF_edge]
 
 
 def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='softmax', dist_norm=2):
@@ -195,7 +196,7 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='so
             continue
         pert_x = shape_graph.get_graph().x.clone()
         pert_x[n_id] = perturb_node_features(x=pert_x, node_idx=n_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
-        # pert_x[n_id] += torch.normal(0, 0.01, pert_x[n_id].shape)
+
         org_vec = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
         pert_vec = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
@@ -257,7 +258,9 @@ def intersection(lst1, lst2):
 
 
 def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
-    GES = []
+    GES_feat = []
+    GES_node = []
+    GES_edge = []
     num_run = 25
     for run in range(num_run):
         # Generate perturbed counterpart
@@ -269,48 +272,78 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
         pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
 
         if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
-            # Compute CAM explanation
-            preds = model(pert_x, pert_edge_index)
-            pred = preds[node_id, :].reshape(-1, 1)
-            pred_class = pred.argmax(dim=0).item()
-            act = lambda x: torch.argmax(x, dim=1)
-            cam = CAM(model, activation=act)
-            cam_pert_exp = cam.get_explanation_node(
-                pert_x,
-                node_idx=int(node_id),
-                label=pred_class,
-                edge_index=pert_edge_index)
+            # Test for GNN Explainers
+            gnnexpr = GNNExplainer(model)
+            pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=pert_edge_index)
 
-            # Normalize the explanations to 0-1 range:
-            cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
-            top_feat = int(generated_exp.node_imp.shape[0] * top_k)
-            ipdb.set_trace()
-            try:
-                if generated_exp.node_imp.shape == cam_pert_exp.node_imp.shape:
-                    ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
-                    ori_exp_mask[generated_exp.node_imp.topk(top_feat)[1]] = 1
-                    pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
-                    pert_exp_mask[cam_pert_exp.node_imp.topk(top_feat)[1]] = 1
-                    GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
-                else:
-                    all_nodes = [*intersection([*generated_exp.node_reference], [*cam_pert_exp.node_reference])]
-                    ori_exp_mask = torch.zeros([len(all_nodes)])
-                    pert_exp_mask = torch.zeros([len(all_nodes)])
-                    for i, n_id in enumerate(all_nodes):
-                        if n_id in [*generated_exp.node_reference]:
-                            ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
-                        if n_id in [*cam_pert_exp.node_reference]:
-                            pert_exp_mask[i] = cam_pert_exp.node_imp[cam_pert_exp.node_reference[n_id]].item()
-                    topk, indices = torch.topk(ori_exp_mask, top_feat)
-                    ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
-                    ori_exp_mask[ori_exp_mask.topk(top_feat)[1]] = 1
-                    topk, indices = torch.topk(pert_exp_mask, top_feat)
-                    pert_exp_mask = torch.zeros_like(pert_exp_mask).scatter_(0, indices, topk)
-                    pert_exp_mask[pert_exp_mask.topk(top_feat)[1]] = 1
-                    GES.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
-            except:
-                continue
-    return max(GES)
+            # # Compute CAM explanation
+            # preds = model(pert_x, pert_edge_index)
+            # pred = preds[node_id, :].reshape(-1, 1)
+            # pred_class = pred.argmax(dim=0).item()
+            # act = lambda x: torch.argmax(x, dim=1)
+            # cam = CAM(model, activation=act)
+            # cam_pert_exp = cam.get_explanation_node(
+            #     pert_x,
+            #     node_idx=int(node_id),
+            #     label=pred_class,
+            #     edge_index=pert_edge_index)
+            # 
+            # # Normalize the explanations to 0-1 range:
+            # cam_pert_exp.node_imp = cam_pert_exp.node_imp / torch.max(cam_pert_exp.node_imp)
+            if generated_exp.feature_imp is not None:
+                top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
+                ori_exp_mask = torch.zeros_like(generated_exp.feature_imp)
+                ori_exp_mask[generated_exp.feature_imp.topk(top_feat)[1]] = 1
+                pert_exp_mask = torch.zeros_like(pert_exp.feature_imp)
+                pert_exp_mask[pert_exp.feature_imp.topk(top_feat)[1]] = 1
+                GES_feat.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+            if generated_exp.node_imp is not None:
+                top_node = int(generated_exp.node_imp.shape[0] * top_k) 
+                try:
+                    if generated_exp.node_imp.shape == pred_exp.node_imp.shape:
+                        ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
+                        ori_exp_mask[generated_exp.node_imp.topk(top_node)[1]] = 1
+                        pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
+                        pert_exp_mask[cam_pert_exp.node_imp.topk(top_node)[1]] = 1
+                        GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                    else:
+                        all_nodes = [*intersection([*generated_exp.node_reference], [*pred_exp.node_reference])]
+                        ori_exp_mask = torch.zeros([len(all_nodes)])
+                        pert_exp_mask = torch.zeros([len(all_nodes)])
+                        for i, n_id in enumerate(all_nodes):
+                            if n_id in [*generated_exp.node_reference]:
+                                ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
+                            if n_id in [*pred_exp.node_reference]:
+                                pert_exp_mask[i] = pred_exp.node_imp[pred_exp.node_reference[n_id]].item()
+                        topk, indices = torch.topk(ori_exp_mask, top_node)
+                        ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
+                        ori_exp_mask[ori_exp_mask.topk(top_node)[1]] = 1
+                        topk, indices = torch.topk(pert_exp_mask, top_node)
+                        pert_exp_mask = torch.zeros_like(pert_exp_mask).scatter_(0, indices, topk)
+                        pert_exp_mask[pert_exp_mask.topk(top_node)[1]] = 1
+                        GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                except:
+                    continue
+            if generated_exp.edge_imp is not None:
+                GES_edge.append(1 - F.cosine_similarity(1*(generated_exp.enc_subgraph.edge_mask), 1*(generated_exp.enc_subgraph.edge_mask)))
+                try:
+                    if generated_exp.edge_imp.shape == pert_exp.edge_imp.shape:
+                        GES_node.append(1 - F.cosine_similarity(generated_exp.edge_imp.reshape(1, -1), pert_exp.edge_imp.reshape(1, -1)).item())                    
+                    else:
+                        all_edges = torch.from_numpy(np.union1d(torch.where(pert_exp.enc_subgraph.edge_mask == True)[0].numpy(), torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].numpy()))
+                        ori_exp_mask = torch.zeros([len(all_edges)])             
+                        pert_exp_mask = torch.zeros([len(all_edges)])
+                        for i, e_id in enumerate(all_edges):
+                            if e_id in torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]:
+                                ori_exp_mask[i] = 1.
+                            if e_id in torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]:
+                                pert_exp_mask[i] = 1.
+                        GES_edge.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                except:
+                    continue
+
+    # Change to individual scores for feat, nodes, edges
+    return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
 
 def get_exp(explainer, node_idx, data):
@@ -335,10 +368,8 @@ if __name__ == '__main__':
 #    np.random.seed(912)
 #    torch.manual_seed(912)
 #    torch.cuda.manual_seed(912)
-    # ipdb.set_trace()
 
     data = bah.get_graph(seed=912)   
-    # ipdb.set_trace()
     model = GIN_3layer_basic(64, input_feat=11, classes=2)
     # print(model)
     print('Samples in Class 0', torch.sum(data.y == 0).item())
@@ -372,7 +403,6 @@ if __name__ == '__main__':
         class1 = (data.y == 1).nonzero(as_tuple=True)[0]
         test_idx = torch.where(data.test_mask == True)[0]
         node_idx = test_idx[torch.randperm(test_idx.shape[0])[0]]
-        # ipdb.set_trace()
         # node_idx = random.choice(class1).item()
         # node_idx = 9
 
@@ -382,55 +412,55 @@ if __name__ == '__main__':
         print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
         print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
-        # if data.y[node_idx].item() == pred.argmax(dim=0).item():
         # Compute CAM explanation
-        act = lambda x: torch.argmax(x, dim=1)
-        cam = CAM(model, activation=act)
-        cam_exp = cam.get_explanation_node(
-            data.x,
-            node_idx=int(node_idx),
-            label=pred_class,
-            edge_index=data.edge_index)
+        # act = lambda x: torch.argmax(x, dim=1)
+        # cam = CAM(model, activation=act)
+        # cam_exp = cam.get_explanation_node(
+        #     data.x,
+        #     node_idx=int(node_idx),
+        #     label=pred_class,
+        #     edge_index=data.edge_index)
 
-        # Explanation
         # Get ground-truth explanation
         gt_exp = bah.explanations[node_idx]
 
         # Compute Grad-CAM explanation
-        gcam = GradCAM(model, criterion=criterion)
+        # gcam = GradCAM(model, criterion=criterion)
         # print('node_idx', node_idx)
-        gcam_exp = gcam.get_explanation_node(
-            data.x,
-            y=data.y,
-            node_idx=int(node_idx),
-            edge_index=data.edge_index,
-            average_variant=True)
+        # gcam_exp = gcam.get_explanation_node(
+        #     data.x,
+        #     y=data.y,
+        #     node_idx=int(node_idx),
+        #     edge_index=data.edge_index,
+        #     average_variant=True)
 
         # Normalize the explanations to 0-1 range:
-        cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
-        gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
+        # cam_exp.node_imp = cam_exp.node_imp / torch.max(cam_exp.node_imp)
+        # gcam_exp.node_imp = gcam_exp.node_imp / torch.max(gcam_exp.node_imp)
 
 	# Compute Score
-        cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
-        cam_gef_score = graph_exp_faith(cam_exp, bah, sens_idx=[bah.sensitive_feature])
+        # cam_gea_score = graph_exp_acc(gt_exp, cam_exp)
+        # cam_gef_score = graph_exp_faith(cam_exp, bah, sens_idx=[bah.sensitive_feature])
         delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y, sens_idx=[bah.sensitive_feature])
         # cam_ges_score = graph_exp_stability(cam_exp, bah, node_id=node_idx, model=model, delta=delta, sens_idx=[bah.sensitive_feature])
 
-        print('### CAM ###')
-        print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
-        print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
+        # print('### CAM ###')
+        # print(f'Graph Explanation Accuracy using CAM={cam_gea_score:.3f}')
+        # print(f'Graph Explanation Faithfulness using CAM={cam_gef_score:.3f}')
         # print(f'Graph Explanation Stability using CAM={cam_ges_score:.3f}')
         print(f'Delta: {delta:.3f}')
      
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
         pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx), edge_index=data.edge_index)
+        ipdb.set_trace()
         gnnex_gea_score = graph_exp_acc(gt_exp, pred_exp)
         gnnex_gef_score = graph_exp_faith(pred_exp, bah, sens_idx=[bah.sensitive_feature])
         gnnex_ges_score = graph_exp_stability(pred_exp, bah, node_id=node_idx, model=model, delta=delta, sens_idx=[bah.sensitive_feature])
         print('### GNNExplainer ###')
-        print(f'Graph Explanation Accuracy using GNNExplainer={gnnex_gea_score:.3f}')
-        print(f'Graph Explanation Stability using GNNExplainer={gnnex_ges_score:.3f}')
+        print(f'Graph Explanation Accuracy using GNNExplainer={gnnex_gea_score}')
+        print(f'Graph Explanation Faithfulness using GNNExplainer={gnnex_gef_score}')
+        print(f'Graph Explanation Stability using GNNExplainer={gnnex_ges_score}')
 
         # gcam_gea_score = graph_exp_acc(gt_exp, gcam_exp)
         # gcam_gef_score = graph_exp_faith(gcam_exp)
