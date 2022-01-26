@@ -17,12 +17,14 @@ SG = ShapeGraph(
     subgraph_size = 10,
     class_sep = 30,
     n_informative = 2,
-    verify = False
+    verify = False,
+    make_explanations = False,
+    homphily_coef = -1.0
 )
 
 data = SG.get_graph()
 
-model = GIN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
 print(model)
 print('Samples in Class 0', torch.sum(data.y == 0).item())
 print('Samples in Class 1', torch.sum(data.y == 1).item())

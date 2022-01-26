@@ -1,5 +1,5 @@
 import torch
-import random
+import random, math
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -187,9 +187,8 @@ class ShapeGraph(NodeDataset):
                     seed = self.seed
                     )
 
-
-        self.generate_shape_graph() # Performs planting, augmenting, etc.
         self.num_nodes = self.G.number_of_nodes() # Number of nodes in graph
+        self.generate_shape_graph() # Performs planting, augmenting, etc.
 
         # Set random splits for size n graph:
         range_set = list(range(self.num_nodes))
@@ -261,7 +260,8 @@ class ShapeGraph(NodeDataset):
                 feature_mask = feat_mask,
                 homophily_coef = self.homophily_coef,
                 epochs = 1000,
-                batch_size = (edge_index.shape[1] // 2)
+                connected_batch_size = (edge_index.shape[1] // 2),
+                disconnected_batch_size = math.comb(self.num_nodes, 2) // 50
             )
 
         self.graph = Data(

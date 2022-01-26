@@ -13,6 +13,12 @@ def make_node_ref(nodes: torch.Tensor):
     return node_reference
 
 def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor, edge_mask: torch.Tensor):
+    '''
+    Gets node mask from an edge_mask:
+
+    Args:
+        edge_mask (torch.Tensor): Boolean mask over all edges in edge_index. Shape: (edge_index.shape[1],).
+    '''
     mask_eidx = edge_index[:,edge_mask]
 
     unique_nodes = torch.unique(mask_eidx)
@@ -20,6 +26,28 @@ def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor
     node_mask = torch.tensor([node_subset[i] in unique_nodes for i in range(node_subset.shape[0])])
     
     return node_mask.float()
+
+def edge_mask_from_node_mask(node_mask: torch.Tensor, edge_index: torch.Tensor):
+    '''
+    Convert edge_mask to node_mask
+
+    Args:
+        node_mask (torch.Tensor): Boolean mask over all nodes included in edge_index. Indices must 
+            match to those in edge index. This is straightforward for graph-level prediction, but 
+            converting over subgraphs must be done carefully to match indices in both edge_index and
+            the node_mask.
+    '''
+
+    node_numbers = node_mask.nonzero(as_tuple=True)[0]
+
+    iter_mask = torch.zeros((edge_index.shape[1],))
+
+    # See if edges have both ends in the node mask
+    for i in range(edge_index.shape[1]):
+        iter_mask[i] = (edge_index[0,i] in node_numbers) and (edge_index[1,i] in node_numbers) 
+    
+    return iter_mask
+
 
 def top_k_mask(to_mask: torch.Tensor, top_k: int):
     '''
