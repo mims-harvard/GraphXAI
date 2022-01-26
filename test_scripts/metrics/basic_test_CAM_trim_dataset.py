@@ -300,21 +300,21 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
             if generated_exp.node_imp is not None:
                 top_node = int(generated_exp.node_imp.shape[0] * top_k) 
                 try:
-                    if generated_exp.node_imp.shape == pred_exp.node_imp.shape:
+                    if generated_exp.node_imp.shape == pert_exp.node_imp.shape:
                         ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
                         ori_exp_mask[generated_exp.node_imp.topk(top_node)[1]] = 1
-                        pert_exp_mask = torch.zeros_like(cam_pert_exp.node_imp)
-                        pert_exp_mask[cam_pert_exp.node_imp.topk(top_node)[1]] = 1
+                        pert_exp_mask = torch.zeros_like(pert_exp.node_imp)
+                        pert_exp_mask[pert_exp.node_imp.topk(top_node)[1]] = 1
                         GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
                     else:
-                        all_nodes = [*intersection([*generated_exp.node_reference], [*pred_exp.node_reference])]
+                        all_nodes = [*intersection([*generated_exp.node_reference], [*pert_exp.node_reference])]
                         ori_exp_mask = torch.zeros([len(all_nodes)])
                         pert_exp_mask = torch.zeros([len(all_nodes)])
                         for i, n_id in enumerate(all_nodes):
                             if n_id in [*generated_exp.node_reference]:
                                 ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
-                            if n_id in [*pred_exp.node_reference]:
-                                pert_exp_mask[i] = pred_exp.node_imp[pred_exp.node_reference[n_id]].item()
+                            if n_id in [*pert_exp.node_reference]:
+                                pert_exp_mask[i] = pert_exp.node_imp[pert_exp.node_reference[n_id]].item()
                         topk, indices = torch.topk(ori_exp_mask, top_node)
                         ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
                         ori_exp_mask[ori_exp_mask.topk(top_node)[1]] = 1
@@ -325,10 +325,10 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                 except:
                     continue
             if generated_exp.edge_imp is not None:
-                GES_edge.append(1 - F.cosine_similarity(1*(generated_exp.enc_subgraph.edge_mask), 1*(generated_exp.enc_subgraph.edge_mask)))
                 try:
+                    # Check not just shape but also content
                     if generated_exp.edge_imp.shape == pert_exp.edge_imp.shape:
-                        GES_node.append(1 - F.cosine_similarity(generated_exp.edge_imp.reshape(1, -1), pert_exp.edge_imp.reshape(1, -1)).item())                    
+                        GES_edge.append(1 - F.cosine_similarity(generated_exp.edge_imp.reshape(1, -1), pert_exp.edge_imp.reshape(1, -1)).item())                    
                     else:
                         all_edges = torch.from_numpy(np.union1d(torch.where(pert_exp.enc_subgraph.edge_mask == True)[0].numpy(), torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].numpy()))
                         ori_exp_mask = torch.zeros([len(all_edges)])             
@@ -341,7 +341,6 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                         GES_edge.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
                 except:
                     continue
-
     # Change to individual scores for feat, nodes, edges
     return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
@@ -453,7 +452,6 @@ if __name__ == '__main__':
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
         pred_exp = gnnexpr.get_explanation_node(x=data.x, node_idx=int(node_idx), edge_index=data.edge_index)
-        ipdb.set_trace()
         gnnex_gea_score = graph_exp_acc(gt_exp, pred_exp)
         gnnex_gef_score = graph_exp_faith(pred_exp, bah, sens_idx=[bah.sensitive_feature])
         gnnex_ges_score = graph_exp_stability(pred_exp, bah, node_id=node_idx, model=model, delta=delta, sens_idx=[bah.sensitive_feature])
