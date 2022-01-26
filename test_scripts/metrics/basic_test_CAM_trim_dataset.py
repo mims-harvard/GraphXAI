@@ -33,8 +33,6 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
         generated_exp (Explanation): Explanation output by an explainer.
     '''
 
-    # TODO: 1) Have to implement the cases where we have multiple ground-truth explanations
-
     EPS = 1e-09
     thresh = 0.8
     JAC_feat = 0
@@ -45,67 +43,79 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
     exp_subgraph = generated_exp.enc_subgraph
 
     if generated_exp.feature_imp is not None:
-        TPs = []
-        FPs = []
-        FNs = []
-        true_feat = torch.where(gt_exp.feature_imp ==1)[0]
-        for i, feat in enumerate(gt_exp.feature_imp):
-            # Restore original feature numbering
-            positive = generated_exp.feature_imp[i].item() > thresh
-            if positive:
-                if i in true_feat:
-                    TPs.append(generated_exp.feature_imp[i])
+        JAC_feat = []
+        for exp in gt_exp.feature_imp:
+            TPs = []
+            FPs = []
+            FNs = []
+            true_feat = torch.where(exp == 1)[0]
+            for i, feat in enumerate(exp):
+                # Restore original feature numbering
+                positive = generated_exp.feature_imp[i].item() > thresh
+                if positive:
+                    if i in true_feat:
+                        TPs.append(generated_exp.feature_imp[i])
+                    else:
+                        FPs.append(generated_exp.feature_imp[i])
                 else:
-                    FPs.append(generated_exp.feature_imp[i])
-            else:
-                if i in true_feat:
-                    FNs.append(generated_exp.feature_imp[i])
-        TP = len(TPs)
-        FP = len(FPs)
-        FN = len(FNs)
-        JAC_feat = TP / (TP + FP + FN + EPS)
+                    if i in true_feat:
+                        FNs.append(generated_exp.feature_imp[i])
+            TP = len(TPs)
+            FP = len(FPs)
+            FN = len(FNs)
+            JAC_feat.append(TP / (TP + FP + FN + EPS))
+
+        JAC_feat = max(JAC_feat)
 
     if generated_exp.node_imp is not None:
-        TPs = []
-        FPs = []
-        FNs = []
-        relative_positives = (gt_exp.node_imp == 1).nonzero(as_tuple=True)[0]
-        true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
+        JAC_node = []
+        for exp in gt_exp.node_imp:
+            TPs = []
+            FPs = []
+            FNs = []
+            relative_positives = (exp == 1).nonzero(as_tuple=True)[0]
+            true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
 
-        for i, node in enumerate(exp_subgraph.nodes):
-            # Restore original node numbering
-            positive = generated_exp.node_imp[i].item() > thresh
-            if positive:
-                if node in true_nodes:
-                    TPs.append(node)
+            for i, node in enumerate(exp_subgraph.nodes):
+                # Restore original node numbering
+                positive = generated_exp.node_imp[i].item() > thresh
+                if positive:
+                    if node in true_nodes:
+                        TPs.append(node)
+                    else:
+                        FPs.append(node)
                 else:
-                    FPs.append(node)
-            else:
-                if node in true_nodes:
-                    FNs.append(node)
-        TP = len(TPs)
-        FP = len(FPs)
-        FN = len(FNs)
-        JAC_node = TP / (TP + FP + FN + EPS)
+                    if node in true_nodes:
+                        FNs.append(node)
+            TP = len(TPs)
+            FP = len(FPs)
+            FN = len(FNs)
+            JAC_node.append(TP / (TP + FP + FN + EPS))
+
+        JAC_node = max(JAC_node)
 
     if generated_exp.edge_imp is not None:
-        TPs = []
-        FPs = []
-        FNs = []
-        true_edges = torch.where(gt_exp.edge_imp == 1)[0]
-        for edge in range(gt_exp.edge_imp.shape[0]):
-            if generated_exp.edge_imp[edge]:
-                if edge in true_edges:
-                    TPs.append(edge)
+        JAC_edge = []
+        for exp in gt_exp.edge_imp:
+            TPs = []
+            FPs = []
+            FNs = []
+            true_edges = torch.where(exp.edge_imp == 1)[0]
+            for edge in range(exp.shape[0]):
+                if generated_exp.edge_imp[edge]:
+                    if edge in true_edges:
+                        TPs.append(edge)
+                    else:
+                        FPs.append(edge)
                 else:
-                    FPs.append(edge)
-            else:
-                if edge in true_edges:
-                    FNs.append(edge)
-        TP = len(TPs)
-        FP = len(FPs)
-        FN = len(FNs)
-        JAC_edge = TP / (TP + FP + FN + EPS)
+                    if edge in true_edges:
+                        FNs.append(edge)
+            TP = len(TPs)
+            FP = len(FPs)
+            FN = len(FNs)
+            JAC_edge.append(TP / (TP + FP + FN + EPS))
+
+        JAC_edge = max(JAC_edge)
 
     return [JAC_feat, JAC_node, JAC_edge]
 
@@ -299,49 +309,51 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                 GES_feat.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
             if generated_exp.node_imp is not None:
                 top_node = int(generated_exp.node_imp.shape[0] * top_k) 
+                # ipdb.set_trace()
                 try:
-                    if generated_exp.node_imp.shape == pert_exp.node_imp.shape:
-                        ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
-                        ori_exp_mask[generated_exp.node_imp.topk(top_node)[1]] = 1
-                        pert_exp_mask = torch.zeros_like(pert_exp.node_imp)
-                        pert_exp_mask[pert_exp.node_imp.topk(top_node)[1]] = 1
-                        GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
-                    else:
-                        all_nodes = [*intersection([*generated_exp.node_reference], [*pert_exp.node_reference])]
-                        ori_exp_mask = torch.zeros([len(all_nodes)])
-                        pert_exp_mask = torch.zeros([len(all_nodes)])
-                        for i, n_id in enumerate(all_nodes):
-                            if n_id in [*generated_exp.node_reference]:
-                                ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
-                            if n_id in [*pert_exp.node_reference]:
-                                pert_exp_mask[i] = pert_exp.node_imp[pert_exp.node_reference[n_id]].item()
-                        topk, indices = torch.topk(ori_exp_mask, top_node)
-                        ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
-                        ori_exp_mask[ori_exp_mask.topk(top_node)[1]] = 1
-                        topk, indices = torch.topk(pert_exp_mask, top_node)
-                        pert_exp_mask = torch.zeros_like(pert_exp_mask).scatter_(0, indices, topk)
-                        pert_exp_mask[pert_exp_mask.topk(top_node)[1]] = 1
-                        GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                    # if pert_exp.node_reference.keys() == generated_exp.node_reference.keys():
+                    #     ori_exp_mask = torch.zeros_like(generated_exp.node_imp)
+                    #     ori_exp_mask[generated_exp.node_imp.topk(top_node)[1]] = 1
+                    #     pert_exp_mask = torch.zeros_like(pert_exp.node_imp)
+                    #     pert_exp_mask[pert_exp.node_imp.topk(top_node)[1]] = 1
+                    #     GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                    # else:
+                    all_nodes = [*intersection([*generated_exp.node_reference], [*pert_exp.node_reference])]
+                    ori_exp_mask = torch.zeros([len(all_nodes)])
+                    pert_exp_mask = torch.zeros([len(all_nodes)])
+                    for i, n_id in enumerate(all_nodes):
+                        if n_id in [*generated_exp.node_reference]:
+                            ori_exp_mask[i] = generated_exp.node_imp[generated_exp.node_reference[n_id]].item()
+                        if n_id in [*pert_exp.node_reference]:
+                            pert_exp_mask[i] = pert_exp.node_imp[pert_exp.node_reference[n_id]].item()
+                    topk, indices = torch.topk(ori_exp_mask, top_node)
+                    ori_exp_mask = torch.zeros_like(ori_exp_mask).scatter_(0, indices, topk)
+                    ori_exp_mask[ori_exp_mask.topk(top_node)[1]] = 1
+                    topk, indices = torch.topk(pert_exp_mask, top_node)
+                    pert_exp_mask = torch.zeros_like(pert_exp_mask).scatter_(0, indices, topk)
+                    pert_exp_mask[pert_exp_mask.topk(top_node)[1]] = 1
+                    GES_node.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
                 except:
                     continue
             if generated_exp.edge_imp is not None:
+                org_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
+                pert_edges = torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]
                 try:
-                    # Check not just shape but also content
-                    if generated_exp.edge_imp.shape == pert_exp.edge_imp.shape:
-                        GES_edge.append(1 - F.cosine_similarity(generated_exp.edge_imp.reshape(1, -1), pert_exp.edge_imp.reshape(1, -1)).item())                    
-                    else:
-                        all_edges = torch.from_numpy(np.union1d(torch.where(pert_exp.enc_subgraph.edge_mask == True)[0].numpy(), torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].numpy()))
-                        ori_exp_mask = torch.zeros([len(all_edges)])             
-                        pert_exp_mask = torch.zeros([len(all_edges)])
-                        for i, e_id in enumerate(all_edges):
-                            if e_id in torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]:
-                                ori_exp_mask[i] = 1.
-                            if e_id in torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]:
-                                pert_exp_mask[i] = 1.
-                        GES_edge.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
+                   #  if generated_exp.edge_imp.shape == pert_exp.edge_imp.shape:
+                   #      GES_edge.append(1 - F.cosine_similarity(generated_exp.edge_imp.reshape(1, -1), pert_exp.edge_imp.reshape(1, -1)).item())                    
+                   #  else:
+                    all_edges = torch.from_numpy(np.union1d(org_edges.numpy(), pert_edges.numpy()))
+                    ori_exp_mask = torch.zeros([len(all_edges)])             
+                    pert_exp_mask = torch.zeros([len(all_edges)])
+                    for i, e_id in enumerate(all_edges):
+                        if e_id in org_edges:
+                            ori_exp_mask[i] = 1.
+                        if e_id in pert_edges:
+                            pert_exp_mask[i] = 1.
+                    GES_edge.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
                 except:
                     continue
-    # Change to individual scores for feat, nodes, edges
+
     return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
 
