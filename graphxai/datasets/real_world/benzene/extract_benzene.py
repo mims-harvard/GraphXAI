@@ -20,7 +20,9 @@ def load_graphs(dir_path = benzene_data_dir):
     
     att = np.load(os.path.join(dir_path, 'true_raw_attribution_datadicts.npz'),
             allow_pickle = True)
-    X = np.load(os.path.join(dir_path, 'x_aug.npz'), allow_pickle = True)
+    X = np.load(os.path.join(dir_path, 'x_true.npz'), allow_pickle = True)
+    y = np.load(os.path.join(dir_path, 'y_true.npz'), allow_pickle = True)
+    ylist = [y['y'][i][0] for i in range(y['y'].shape[0])]
 
     att = att['datadict_list']
     X = X['datadict_list'][0]
@@ -37,8 +39,9 @@ def load_graphs(dir_path = benzene_data_dir):
 
     for i in range(len(X)):
         x = torch.from_numpy(X[i]['nodes'])
-        edge_attr = X[i]['edges']
-        y = X[i]['globals'][0]
+        edge_attr = torch.from_numpy(X[i]['edges'])
+        #y = X[i]['globals'][0]
+        y = torch.tensor([ylist[i]], dtype = torch.long)
 
         # Get edge_index:
         e1 = torch.from_numpy(X[i]['receivers']).long()
@@ -59,7 +62,9 @@ def load_graphs(dir_path = benzene_data_dir):
         node_imp = torch.from_numpy(att[i][0]['nodes']).float()
 
         # Error-check:
-        assert node_imp.shape[0] == x.shape[0], 'Num: {}, Shapes: {} vs. {}'.format(i, node_imp.shape[0], x.shape[0])
+        assert att[i][0]['n_edge'] == X[i]['n_edge'], 'Num: {}, Edges different sizes'.format(i)
+        assert node_imp.shape[0] == x.shape[0], 'Num: {}, Shapes: {} vs. {}'.format(i, node_imp.shape[0], x.shape[0]) \
+            + '\nExp: {} \nReal:{}'.format(att[i][0], X[i])
 
         exp = Explanation(
             feature_imp = None, # No feature importance - everything is one-hot encoded
@@ -78,4 +83,4 @@ if __name__ == '__main__':
 
     print(len(ag))
     print(len(exp))
-    print(zinc)
+    print(len(zinc))

@@ -23,7 +23,6 @@ from graphxai.datasets.utils.substruct_chem_match import match_NH2, match_substr
 # 12	Li
 # 13	Ca
 
-
 class MUTAG(GraphDataset):
     '''
     GraphXAI implementation MUTAG dataset
