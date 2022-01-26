@@ -6,4 +6,5 @@ from .shape_graph import ShapeGraph
 
 # Real-world datasets:
 from .real_world.MUTAG import MUTAG
+from .real_world.benzene.benzene import Benzene
 from .real_world.mutagenicity import Mutagenicity

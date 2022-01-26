@@ -19,11 +19,11 @@ def train(model: torch.nn.Module, optimizer: torch.optim.Optimizer,
           criterion: torch.nn.Module, data_loader: DataLoader):
     model.train()
     for data in data_loader:  # Iterate in batches over the training dataset.
-         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
-         loss = criterion(out, data.y)  # Compute the loss.
-         loss.backward()  # Derive gradients.
-         optimizer.step()  # Update parameters based on gradients.
-         optimizer.zero_grad()  # Clear gradients.
+        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+        loss = criterion(out, data.y)  # Compute the loss.
+        loss.backward()  # Derive gradients.
+        optimizer.step()  # Update parameters based on gradients.
+        optimizer.zero_grad()  # Clear gradients.
 
 
 def test_old(model: torch.nn.Module, data_loader: DataLoader):
@@ -60,5 +60,3 @@ def test(model: torch.nn.Module, data_loader: DataLoader):
     auroc = metrics.roc_auc_score(GT, probas)
 
     return f1, precision, recall, auprc, auroc
-
-    
