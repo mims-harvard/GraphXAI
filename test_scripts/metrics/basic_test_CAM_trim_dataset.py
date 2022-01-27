@@ -26,7 +26,7 @@ from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 
-def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
+def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -44,12 +44,13 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
 
     if generated_exp.feature_imp is not None:
         JAC_feat = []
-        for exp in gt_exp.feature_imp:
+        for exp in gt_exp:
+        #for exp in gt_exp.feature_imp:
             TPs = []
             FPs = []
             FNs = []
-            true_feat = torch.where(exp == 1)[0]
-            for i, feat in enumerate(exp):
+            true_feat = torch.where(exp.feature_imp == 1)[0]
+            for i, feat in enumerate(exp.feature_imp):
                 # Restore original feature numbering
                 positive = generated_exp.feature_imp[i].item() > thresh
                 if positive:
@@ -69,11 +70,12 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
 
     if generated_exp.node_imp is not None:
         JAC_node = []
-        for exp in gt_exp.node_imp:
+        for exp in gt_exp:
+        #for exp in gt_exp.node_imp:
             TPs = []
             FPs = []
             FNs = []
-            relative_positives = (exp == 1).nonzero(as_tuple=True)[0]
+            relative_positives = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
             true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
 
             for i, node in enumerate(exp_subgraph.nodes):
@@ -96,12 +98,13 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
 
     if generated_exp.edge_imp is not None:
         JAC_edge = []
-        for exp in gt_exp.edge_imp:
+        for exp in gt_exp:
+        #for exp in gt_exp.edge_imp:
             TPs = []
             FPs = []
             FNs = []
             true_edges = torch.where(exp.edge_imp == 1)[0]
-            for edge in range(exp.shape[0]):
+            for edge in range(exp.edge_imp.shape[0]):
                 if generated_exp.edge_imp[edge]:
                     if edge in true_edges:
                         TPs.append(edge)

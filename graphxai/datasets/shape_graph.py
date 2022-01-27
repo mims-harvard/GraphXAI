@@ -323,7 +323,9 @@ class ShapeGraph(NodeDataset):
         )
 
         exp.set_enclosing_subgraph(khop_info)
-        return exp
+
+        # Return list of single element since ShapeGraph produces unique explanations
+        return [exp]
 
 
     def visualize(self, shape_label = False, ax = None, show = False):

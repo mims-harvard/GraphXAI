@@ -125,11 +125,9 @@ def optimize_homophily(
     for i in range(epochs):
         # Compute similarities for all edges in the c_inds:
         c_cos_sim = F.cosine_similarity(to_opt[edge_index.t()[c_inds][:, 0]], to_opt[edge_index.t()[c_inds][:, 1]])
-        #nc_cos_sim = F.cosine_similarity(to_opt[edge_index.t()[nc_inds][:, 0]], to_opt[edge_index.t()[nc_inds][:, 1]])
         nc_cos_sim = F.cosine_similarity(to_opt[nc_list1], to_opt[nc_list2])
         diff_label_sim = F.cosine_similarity(to_opt[edge_index.t()[nc_inds][:, 0]], to_opt[edge_index.t()[nc_inds][:, 1]])
         optimizer.zero_grad()
-        #loss = -homophily_coef * c_cos_sim.sum() + (1-homophily_coef)*nc_cos_sim.sum()
         loss = -homophily_coef * c_cos_sim.mean() + (homophily_coef)*(nc_cos_sim.mean() + diff_label_sim.mean())
         loss.backward()
         optimizer.step()
