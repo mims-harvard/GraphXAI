@@ -7,7 +7,7 @@ from test_homophily import homophily_test
 
 if __name__ == '__main__':
 
-    HF = 0.00001
+    HF = 1.0
 
     SG = ShapeGraph(
         model_layers = 3,
