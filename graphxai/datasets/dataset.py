@@ -8,8 +8,8 @@ from torch_geometric.utils.convert import to_networkx
 from graphxai.utils import Explanation#, WholeGraph
 
 from torch_geometric.data import Dataset, data
-from torch_geometric.loader import DataLoader
-#from torch.utils.data.dataloader import DataLoader
+# from torch_geometric.loader import DataLoader
+from torch.utils.data.dataloader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 from sklearn.model_selection import train_test_split
 
