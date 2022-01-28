@@ -11,6 +11,8 @@ from graphxai.datasets import Mutagenicity
 
 import matplotlib.pyplot as plt
 
+from graphxai.utils.exp_aggregation import aggregate_explanations
+
 if len(sys.argv) > 1:
     seed = int(sys.argv[1])
 else:
@@ -48,7 +50,11 @@ predicted = prediction.argmax(dim=1).item()
 # Plot ground-truth explanation ------------------------
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-gt_exp.graph_draw(ax = ax1)
+gt_agg = aggregate_explanations(gt_exp, node_level = False)
+
+print('node imp', gt_agg.node_imp)
+
+gt_agg.graph_draw(ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Call Explainer: --------------------------------------

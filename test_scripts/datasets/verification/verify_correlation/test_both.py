@@ -2,6 +2,7 @@ import os
 import torch
 from tqdm import trange
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
@@ -12,21 +13,49 @@ from graphxai.datasets import load_ShapeGraph, ShapeGraph
 
 root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 #SG = load_ShapeGraph(number=1, root = root_data)
+
+# SG = ShapeGraph(
+#     model_layers = 3,
+#     make_explanations=False,
+#     num_subgraphs = 1200,
+#     prob_connection = 0.0075,
+#     subgraph_size = 11,
+#     class_sep = 0.3,
+#     n_informative = 4,
+#     homophily_coef = 1,
+#     n_clusters_per_class = 1,
+#     seed = 1456,
+#     verify = False
+# )
+
 SG = ShapeGraph(
     model_layers = 3,
     make_explanations=False,
-    num_subgraphs = 1200,
-    prob_connection = 0.0075,
-    subgraph_size = 12,
-    class_sep = 0.25,
-    n_informative = 6,
+    num_subgraphs = 200,
+    prob_connection = 0.045,
+    subgraph_size = 11,
+    class_sep = 0.3,
+    n_informative = 4,
+    homophily_coef = 1,
     n_clusters_per_class = 1,
+    seed = 1456,
     verify = False
 )
 
+
 data = SG.get_graph()
 
-X = data.x.numpy()
+degrees = sorted([d for n, d in SG.G.degree()])
+
+variant_code = 'PA'
+
+plt.hist(degrees, color = 'green')
+plt.title('Degree Distribution - {}'.format(variant_code))
+plt.xlabel('Degree')
+plt.ylabel('Frequency')
+plt.show()
+
+X = data.x.detach().clone().numpy()
 Y = data.y.numpy()
 
 print(f'Num (0): {np.sum(Y == 0)}')
@@ -45,7 +74,7 @@ print('LR Best AUROC', clf.best_score_)
 print('LR Best params', clf.best_params_)
 
 # -----------------------------------------------
-model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GCN_3layer_basic(16, input_feat = 11, classes = 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay = 5e-5)
 criterion = torch.nn.CrossEntropyLoss()
 

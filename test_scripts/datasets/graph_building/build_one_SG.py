@@ -9,19 +9,31 @@ from graphxai.datasets import load_ShapeGraph
 
 start_time = time.time()
 
+    # model_layers = 3,
+    # make_explanations=True,
+    # num_subgraphs = 1200,
+    # prob_connection = 0.0075,
+    # subgraph_size = 12,
+    # class_sep = 0.5,
+    # n_informative = 4,
+    # verify = True
+
 SG = ShapeGraph(
     model_layers = 3,
     make_explanations=True,
     num_subgraphs = 1200,
     prob_connection = 0.0075,
-    subgraph_size = 12,
-    class_sep = 0.5,
-    n_informative = 6,
+    subgraph_size = 11,
+    class_sep = 0.3,
+    n_informative = 4,
+    homophily_coef = 1,
+    n_clusters_per_class = 1,
+    seed = 1456,
     verify = True
 )
 
-SG.dump('large_graph.pickle')
-print('Time to make:', time.time() - start_time)
+SG.dump('saved_SGs/SG_HF_HF=-1.pickle')
+print('Time to make (and dump):', time.time() - start_time)
 
 # tmp_loc = root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 # SG = load_ShapeGraph(number=2, root = tmp_loc)

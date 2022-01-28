@@ -76,7 +76,7 @@ class Mutagenicity(GraphDataset):
             explanations_i = []
 
             for m in all_matches:
-                node_imp = torch.zeros(molG.number_of_nodes())
+                node_imp = torch.zeros((molG.number_of_nodes(),))
                 
                 node_imp[m] = 1
                 edge_imp = match_edge_presence(eidx, m)
@@ -86,7 +86,24 @@ class Mutagenicity(GraphDataset):
                     edge_imp = edge_imp.float()
                 )
 
+                exp.set_whole_graph(self.graphs[i])
+
+                exp.has_match = True
+
                 explanations_i.append(exp)
+
+            if len(explanations_i) == 0:
+                # Set a null explanation:
+                exp = Explanation(
+                    node_imp = torch.zeros((molG.number_of_nodes(),), dtype = torch.float),
+                    edge_imp = torch.zeros((eidx.shape[1],), dtype = torch.float)
+                )
+
+                exp.set_whole_graph(self.graphs[i])
+
+                exp.has_match = False
+
+                explanations_i = [exp]
 
             self.explanations.append(explanations_i)
             

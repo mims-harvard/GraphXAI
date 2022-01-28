@@ -74,6 +74,6 @@ def optimize_homophily(
 
     # Assign to appropriate copies:
     xcopy = x.detach().clone()
-    xcopy[:,feature_mask] = to_opt
+    xcopy[:,feature_mask] = to_opt.detach().clone()
 
     return xcopy
