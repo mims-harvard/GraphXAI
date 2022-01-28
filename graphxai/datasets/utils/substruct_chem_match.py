@@ -27,6 +27,7 @@ from torch_geometric.utils.convert import to_networkx
 # N_vec = torch.zeros(7); N_vec[1] = 1
 # O_vec = torch.zeros(7); O_vec[2] = 1 
 
+
 C_vec = torch.zeros(14); C_vec[0] = 1
 N_vec = torch.zeros(14); N_vec[4] = 1
 O_vec = torch.zeros(14); O_vec[1] = 1 

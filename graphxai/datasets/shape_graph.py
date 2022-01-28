@@ -244,9 +244,6 @@ class ShapeGraph(NodeDataset):
         else:
             self.sensitive_feature = None
 
-        for i in self.G.nodes:
-            self.G.nodes[i]['x'] = x[i,:].detach().clone() #gen_features(i)
-
         edge_index = to_undirected(torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous())
 
         if self.homophily_coef is not None:
@@ -261,8 +258,11 @@ class ShapeGraph(NodeDataset):
                 homophily_coef = self.homophily_coef,
                 epochs = 1000,
                 connected_batch_size = (edge_index.shape[1] // 2),
-                disconnected_batch_size = math.comb(self.num_nodes, 2) // 50
+                disconnected_batch_size = math.comb(self.num_nodes, 2) // self.num_nodes
             )
+
+        for i in self.G.nodes:
+            self.G.nodes[i]['x'] = x[i,:].detach().clone() #gen_features(i)
 
         self.graph = Data(
             x=x, 
@@ -323,7 +323,9 @@ class ShapeGraph(NodeDataset):
         )
 
         exp.set_enclosing_subgraph(khop_info)
-        return exp
+
+        # Return list of single element since ShapeGraph produces unique explanations
+        return [exp]
 
 
     def visualize(self, shape_label = False, ax = None, show = False):

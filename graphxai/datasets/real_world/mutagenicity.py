@@ -63,38 +63,71 @@ class Mutagenicity(GraphDataset):
 
             molG = self.get_graph_as_networkx(i)
 
-            node_imp = torch.zeros(molG.number_of_nodes())
-
             # Screen for NH2:
             nh2_matches = match_substruct_mutagenicity(molG, MUTAG_NH2, nh2_no2 = 0)
 
             # Screen for NO2:
             no2_matches = match_substruct_mutagenicity(molG, MUTAG_NO2, nh2_no2 = 1)
 
+            all_matches = nh2_matches + no2_matches # Combine lists
+
             eidx = self.graphs[i].edge_index
-            cumulative_edge_mask = torch.zeros(eidx.shape[1]).bool()
-            
-            for m in no2_matches:
-                node_imp[m] = 1 # Mask-in those values
 
-                # Update edge mask:
+            explanations_i = []
+
+            for m in all_matches:
+                node_imp = torch.zeros((molG.number_of_nodes(),))
                 
-                cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
-
-            for m in nh2_matches:
                 node_imp[m] = 1
+                edge_imp = match_edge_presence(eidx, m)
 
-                # Update edge_mask:
+                exp = Explanation(
+                    node_imp = node_imp.float(),
+                    edge_imp = edge_imp.float()
+                )
+
+                exp.set_whole_graph(self.graphs[i])
+
+                exp.has_match = True
+
+                explanations_i.append(exp)
+
+            if len(explanations_i) == 0:
+                # Set a null explanation:
+                exp = Explanation(
+                    node_imp = torch.zeros((molG.number_of_nodes(),), dtype = torch.float),
+                    edge_imp = torch.zeros((eidx.shape[1],), dtype = torch.float)
+                )
+
+                exp.set_whole_graph(self.graphs[i])
+
+                exp.has_match = False
+
+                explanations_i = [exp]
+
+            self.explanations.append(explanations_i)
             
-                cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
+            # cumulative_edge_mask = torch.zeros(eidx.shape[1]).bool()
+            
+            # for m in no2_matches:
+            #     node_imp[m] = 1 # Mask-in those values
 
-            # TODO: mask-in edge importance
+            #     # Update edge mask:
+                
+            #     cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
 
-            exp = Explanation(
-                node_imp = node_imp,
-                edge_imp = cumulative_edge_mask.float(),
-            )
+            # for m in nh2_matches:
+            #     node_imp[m] = 1
 
-            exp.set_whole_graph(self.graphs[i])
+            #     # Update edge_mask:
+            
+            #     cumulative_edge_mask = cumulative_edge_mask.bool() | (match_edge_presence(eidx, m))
 
-            self.explanations.append(exp)
+            # exp = Explanation(
+            #     node_imp = node_imp,
+            #     edge_imp = cumulative_edge_mask.float(),
+            # )
+
+            # exp.set_whole_graph(self.graphs[i])
+
+            # self.explanations.append(exp)

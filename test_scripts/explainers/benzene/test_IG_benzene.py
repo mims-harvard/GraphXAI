@@ -8,6 +8,7 @@ from graphxai.gnn_models.graph_classification import train, test
 from graphxai.gnn_models.graph_classification.gcn import GCN_2layer, GCN_3layer
 from graphxai.gnn_models.graph_classification.gin import GIN_2layer, GIN_3layer
 from graphxai.datasets import Benzene
+from graphxai.utils import aggregate_explanations
 
 import matplotlib.pyplot as plt
 
@@ -63,8 +64,10 @@ exp = ig.get_explanation_graph(
 )
 # ------------------------------------------------------
 
+agg_exp = aggregate_explanations(exp_list = exp, node_level = False)
+
 # Draw rest of explanations:
-exp.graph_draw(ax = ax2)
+agg_exp.graph_draw(ax = ax2)
 ax2.set_title('Integrated Gradients')
 
 # Draw label on the plot

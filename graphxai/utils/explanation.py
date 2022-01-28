@@ -525,7 +525,7 @@ class Explanation:
         if show:
             plt.show()
 
-    def graph_draw(self, ax = None, show = False, agg_nodes = torch.mean):
+    def graph_draw(self, ax = None, show = False, agg_nodes = torch.mean, agg_explanations = torch.max):
 
         if ax is None:
             ax = plt.gca()

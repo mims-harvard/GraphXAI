@@ -26,7 +26,7 @@ from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 
-def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
+def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -50,7 +50,6 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
             FNs = []
             true_feat = torch.where(exp.feature_imp == 1)[0]
             for i, feat in enumerate(exp.feature_imp):
-
                 # Restore original feature numbering
                 positive = generated_exp.feature_imp[i].item() > thresh
                 if positive:
@@ -103,7 +102,7 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
             FPs = []
             FNs = []
             true_edges = torch.where(exp.edge_imp == 1)[0]
-            for edge in range(exp.shape[0]):
+            for edge in range(exp.edge_imp.shape[0]):
                 if generated_exp.edge_imp[edge]:
                     if edge in true_edges:
                         TPs.append(edge)
