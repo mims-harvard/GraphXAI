@@ -42,7 +42,6 @@ SG = ShapeGraph(
     verify = False
 )
 
-
 data = SG.get_graph()
 
 degrees = sorted([d for n, d in SG.G.degree()])

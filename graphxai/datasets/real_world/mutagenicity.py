@@ -7,6 +7,7 @@ from torch_geometric.datasets import TUDataset
 from graphxai.datasets.dataset import GraphDataset
 from graphxai.utils import Explanation, match_edge_presence
 from graphxai.datasets.utils.substruct_chem_match import match_NH2, match_substruct_mutagenicity, MUTAG_NO2, MUTAG_NH2
+from graphxai.datasets.utils.substruct_chem_match import match_aliphatic_halide, match_nitroso, match_azo_type, match_polycyclic
 
 # 0	C
 # 1	O
@@ -40,23 +41,35 @@ class Mutagenicity(GraphDataset):
         use_fixed_split: bool = True, 
         generate: bool = True,
         split_sizes = (0.7, 0.2, 0.1),
-        seed = None
+        seed = None,
+        test_debug = False
         ):
 
         self.graphs = TUDataset(root=root, name='Mutagenicity')
         # self.graphs retains all qualitative and quantitative attributes from PyG
 
-        self.__make_explanations()
+        self.__make_explanations(test_debug)
+
+        # Filter based on label-explanation validity:
+        self.__filter_dataset()
 
         super().__init__(name = 'Mutagenicity', seed = seed, split_sizes = split_sizes)
 
 
-    def __make_explanations(self):
+    def __make_explanations(self, test: bool = False):
         '''
         Makes explanations for Mutagenicity dataset
         '''
 
         self.explanations = []
+
+        # Testing
+        if test:
+            count_nh2 = 0
+            count_no2 = 0
+            count_halide = 0
+            count_nitroso = 0
+            count_azo_type = 0
 
         # Need to do substructure matching
         for i in range(len(self.graphs)):
@@ -69,7 +82,23 @@ class Mutagenicity(GraphDataset):
             # Screen for NO2:
             no2_matches = match_substruct_mutagenicity(molG, MUTAG_NO2, nh2_no2 = 1)
 
-            all_matches = nh2_matches + no2_matches # Combine lists
+            # Screen for aliphatic halide
+            halide_matches = match_aliphatic_halide(molG)
+
+            # Screen for nitroso
+            nitroso_matches = match_nitroso(molG)
+
+            # Screen for azo-type
+            azo_matches = match_azo_type(molG)
+
+            if test:
+                count_nh2 += int(len(nh2_matches) > 0)
+                count_no2 += int(len(no2_matches) > 0)
+                count_halide += int(len(halide_matches) > 0)
+                count_nitroso += int(len(nitroso_matches) > 0)
+                count_azo_type += int(len(azo_matches) > 0)
+
+            all_matches = nh2_matches + no2_matches + nitroso_matches + azo_matches + halide_matches 
 
             eidx = self.graphs[i].edge_index
 
@@ -106,6 +135,14 @@ class Mutagenicity(GraphDataset):
                 explanations_i = [exp]
 
             self.explanations.append(explanations_i)
+
+        if test:
+            print(f'NH2: {count_nh2}')
+            print(f'NO2: {count_no2}')
+            print(f'Halide: {count_halide}')
+            print(f'Nitroso: {count_nitroso}')
+            print(f'Azo-type: {count_azo_type}')
+            #print(f'Poly: {count_poly}')
             
             # cumulative_edge_mask = torch.zeros(eidx.shape[1]).bool()
             
@@ -131,3 +168,23 @@ class Mutagenicity(GraphDataset):
             # exp.set_whole_graph(self.graphs[i])
 
             # self.explanations.append(exp)
+
+    def __filter_dataset(self):
+        '''
+        TODO: could merge this function into __make_explanations, easier to keep
+            it here for now
+        '''
+        self.label_exp_mask = torch.zeros(len(self.graphs), dtype = bool)
+
+        for i in range(len(self.graphs)):
+            matches = int(self.explanations[i][0].has_match)
+            yval = int(self.graphs[i].y.item())
+
+            self.label_exp_mask[i] = (matches == yval)
+
+        # Perform filtering:
+        self.graphs = self.graphs[self.label_exp_mask]
+        mask_inds = self.label_exp_mask.nonzero(as_tuple = True)[0]
+        self.explanations = [self.explanations[i.item()] for i in mask_inds]
+
+
