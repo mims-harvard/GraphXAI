@@ -3,10 +3,11 @@ from sympy import E
 import torch
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from torch_geometric.data import Data
 
-from graphxai.utils import Explanation, edge_mask_from_node_mask
+from graphxai.utils import Explanation, edge_mask_from_node_mask, aggregate_explanations
 
 benzene_data_dir = os.path.join(os.path.dirname(__file__), 'benzene_data')
 
@@ -37,6 +38,9 @@ def load_graphs(dir_path = benzene_data_dir):
 
     print('Len X', len(X))
 
+    # n_imp_sizes0 = []
+    # n_imp_sizes1 = []
+
     for i in range(len(X)):
         x = torch.from_numpy(X[i]['nodes'])
         edge_attr = torch.from_numpy(X[i]['edges'])
@@ -66,14 +70,31 @@ def load_graphs(dir_path = benzene_data_dir):
         assert node_imp.shape[0] == x.shape[0], 'Num: {}, Shapes: {} vs. {}'.format(i, node_imp.shape[0], x.shape[0]) \
             + '\nExp: {} \nReal:{}'.format(att[i][0], X[i])
 
-        exp = Explanation(
-            feature_imp = None, # No feature importance - everything is one-hot encoded
-            node_imp = node_imp,
-            edge_imp = edge_mask_from_node_mask(node_imp.bool(), edge_index = edge_index),
-        )
-        
-        exp.set_whole_graph(data_i)
-        explanations.append(exp)
+        i_exps = []
+
+        for j in range(node_imp.shape[1]):
+
+        # n_imp_sizes0.append(node_imp.shape[0])
+        # n_imp_sizes1.append(node_imp.shape[1])
+
+            exp = Explanation(
+                feature_imp = None, # No feature importance - everything is one-hot encoded
+                node_imp = node_imp,
+                edge_imp = edge_mask_from_node_mask(node_imp.bool(), edge_index = edge_index),
+            )
+            
+            exp.set_whole_graph(data_i)
+            i_exps.append(exp)
+            
+        explanations.append(i_exps)
+
+    # plt.hist(n_imp_sizes0, bins = 20)
+    # plt.title('0')
+    # plt.show()
+
+    # plt.hist(n_imp_sizes1, bins = 20)
+    # plt.title('1')
+    # plt.show()
 
     return all_graphs, explanations, zinc_ids
 
@@ -84,3 +105,10 @@ if __name__ == '__main__':
     print(len(ag))
     print(len(exp))
     print(len(zinc))
+
+    # Choose one that has at least two rings:
+    i = 0
+    while len(exp[i]) <= 1:
+        i += 1 
+
+    aggregate_explanations(exp[i], node_level = False).graph_draw(show = True)

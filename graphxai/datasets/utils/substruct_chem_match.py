@@ -29,9 +29,13 @@ from torch_geometric.utils.convert import to_networkx
 
 
 C_vec = torch.zeros(14); C_vec[0] = 1
-N_vec = torch.zeros(14); N_vec[4] = 1
 O_vec = torch.zeros(14); O_vec[1] = 1 
+Cl_vec = torch.zeros(14); Cl_vec[2] = 1
 H_vec = torch.zeros(14); H_vec[3] = 1
+N_vec = torch.zeros(14); N_vec[4] = 1
+F_vec = torch.zeros(14); F_vec[5] = 1
+Br_vec = torch.zeros(14); Br_vec[6] = 1
+I_vec = torch.zeros(14); I_vec[9] = 1
 
 def make_NO2():
     no2 = nx.Graph()
@@ -152,6 +156,8 @@ def match_substruct(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2):
 
 def match_substruct_mutagenicity(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2, nh2_no2 = 0):
     '''
+    Only works for NH2 and NO2
+
     Args:
         nh2_no2: 0 if NH2, 1 if NO2
     '''
@@ -171,7 +177,7 @@ def match_substruct_mutagenicity(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2
         # Find matching to 0
         # Ensure the subgraph matches attributes (i.e. N's, O's, H's, etc.)
         for k, v in iso.items():
-            if v != 0: continue
+            if v != 0: continue # Ensures we're checking what maps to v=0
             
             # Make sure k is N:
             if G.degree[k] != 3:
@@ -215,6 +221,125 @@ def match_substruct_mutagenicity(G: nx.Graph, substructure: nx.Graph = MUTAG_NO2
         matches.append(torch.as_tensor(list(iso.keys()), dtype = int))
 
     return matches
+
+def match_aliphatic_halide(G: nx.Graph):
+    '''
+    Matches -Cl,Br,I group
+    '''
+    matches = []
+
+    all_cycles = nx.cycle_basis(G)
+    
+    for n, data in G.nodes(data=True):
+        
+        if G.degree[n] > 1:
+            continue
+
+        other_end =[i_n for i_n in list(G.edges(n))[0] if i_n != n][0]
+
+        for c in all_cycles:
+            if (other_end in c) and len(c) > 4: # Roughly determines if connected atom is in aromatic ring?
+                break
+        else:
+            continue
+
+        # Test if the x matches Cl, Br, or I
+        X = torch.as_tensor(data['x']).int()
+        #print(X)
+        if torch.norm(X - Cl_vec).item() == 0 or \
+            torch.norm(X - Br_vec).item() == 0 or \
+            torch.norm(X - I_vec).item() == 0 or \
+            torch.norm(X - F_vec).item() == 0:
+            matches.append(n)
+    
+    return matches
+
+def match_nitroso(G: nx.Graph):
+    '''
+    
+    Nitroso: R--N==O
+    
+    '''
+    matches = []
+
+    # Try all edges, any isomorphic search will just get any edge
+    # ASSUMPTION: G doesn't have any duplicate edges (shouldn't be true unless MultiDiGraph) 
+    for e1, e2 in G.edges():
+        e1X = torch.as_tensor(G.nodes[e1]['x'])
+        e2X = torch.as_tensor(G.nodes[e2]['x'])
+
+        if G.degree[e1] == 2 and G.degree[e2] == 1:
+            if (torch.norm(e1X - N_vec).item() == 0) and \
+                (torch.norm(e2X - O_vec).item() == 0):
+                matches.append(torch.as_tensor([e1, e2], dtype = int))
+
+        elif G.degree[e2] == 2 and G.degree[e1] == 1:
+            if (torch.norm(e2X - N_vec).item() == 0) and \
+                (torch.norm(e1X - O_vec).item() == 0):
+                matches.append(torch.as_tensor([e1, e2], dtype = int))
+
+        # Else, we know we don't have it
+
+    return matches  
+
+def match_azo_type(G: nx.Graph):
+
+
+    matches = []
+
+    for e1, e2 in G.edges():
+
+        e1X = torch.as_tensor(G.nodes[e1]['x'])
+        e2X = torch.as_tensor(G.nodes[e2]['x'])
+
+        if (G.degree[e1] == G.degree[e2]) and (G.degree[e2] == 2) and \
+                torch.norm(e1X - N_vec).item() == 0 and \
+                torch.norm(e2X - N_vec).item() == 0:
+            matches.append(torch.as_tensor([e1, e2], dtype = int))
+
+    return matches
+            
+def match_polycyclic(G: nx.Graph):
+
+    '''
+    Find any group of 3 or more conjoined rings
+    '''
+
+    cycles = list(nx.cycle_basis(G))
+
+    if len(cycles) < 3:
+        return []
+
+    # Get all nodes, make subgraph:
+    all_nodes = []
+    for i in range(len(cycles)):
+        for j in range(len(cycles[i])):
+            all_nodes.append(cycles[i][j])
+
+    subG = G.subgraph(all_nodes)
+    conn_comp = sorted(nx.connected_components(subG), key=len, reverse=True)
+
+    matches = []
+    
+    # Go over connected components, from largest to smallest:
+    for i in range(len(conn_comp)):
+        this_subG = G.subgraph(conn_comp[i])
+
+        cycles = list(nx.cycle_basis(this_subG))
+
+        # Filter for cycles that are less than 5 atoms:
+        to_del = [i for i in range(len(cycles)) if len(cycles[i]) < 5]
+        #copy_cycles = 
+        for d in to_del:
+            del cycles[d]
+
+
+        if len(cycles) >= 3:
+            matches.append(torch.as_tensor(list(this_subG.nodes), dtype = int))
+
+    return matches
+
+
 
 def match_NO2_old(data):
     '''
