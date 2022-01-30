@@ -1,7 +1,7 @@
 import os
 import torch
 
-Owen_root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGraph/unzipped'
+root_path = '~/GraphXAI/data/ShapeGraph/'
 
 # def load_ShapeGraph(number: int = 1, root: str = Owen_root):
 #     '''
@@ -11,5 +11,5 @@ Owen_root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/dat
 #     '''
 #     return torch.load(open(os.path.join(root, 'ShapeGraph_{}.pickle'.format(number)), 'rb'))
 
-def load_ShapeGraph(name, root = Owen_root):
-    return torch.load(open(os.path.join(root, name, 'rb')))
+def load_ShapeGraph(name, root = root_path):
+    return torch.load(open(os.path.join(root, name), 'rb'))

@@ -2,3 +2,5 @@
 .DS_Store
 **/*.egg-info/*
 data/ShapeGraph/unzipped
+data/ShapeGraph/SG_heterophilic.pickle
+data/ShapeGraph/SG_homophilic.pickle
