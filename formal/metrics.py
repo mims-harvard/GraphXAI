@@ -144,7 +144,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = shape_graph.get_graph().x.clone()
+        pert_x = shape_graph.get_graph().x.clone().cuda()
 
         # Perturbing the unimportant node feature indices using gaussian noise
         rem_features = torch.Tensor(
@@ -156,7 +156,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    if False:  # generated_exp.node_imp is not None:
+    if generated_exp.node_imp is not None:
 
         # Identifying the top_k nodes in the explanation subgraph
         top_k_nodes = generated_exp.node_imp.topk(int(generated_exp.node_imp.shape[0] * top_k))[1]
@@ -167,16 +167,16 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
                 rem_nodes.append([k for k, v in generated_exp.node_reference.items() if v == node][0])
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = shape_graph.get_graph().x.clone()
+        pert_x = shape_graph.get_graph().x.clone().cuda()
 
         # Removing the unimportant nodes by masking
-        pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes])
-        pert_vec = model(pert_x.cuda(), shape_graph.get_graph().edge_index.cuda())[generated_exp.node_idx]
+        pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes]).cuda()
+        pert_vec = model(pert_x, shape_graph.get_graph().edge_index.cuda())[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
     if generated_exp.edge_imp is not None:
-        subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
+        subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].cuda()
         # Get the list of all edges that we need to keep
         keep_edges = [] 
         for i in range(shape_graph.get_graph().edge_index.shape[1]):
@@ -189,7 +189,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         edge_index = shape_graph.get_graph().edge_index[:, keep_edges]
                     
         # Getting the softmax vector for the perturbed graph
-        pert_vec = model(shape_graph.get_graph().x, edge_index)[generated_exp.node_idx]
+        pert_vec = model(shape_graph.get_graph().x.cuda(), edge_index.cuda())[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)        
         GEF_edge = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 

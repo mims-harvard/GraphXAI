@@ -293,3 +293,28 @@ def test(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
 
     
     return acc, f1_score(true_Y, pred[data.test_mask].tolist())
+
+
+def val(model: torch.nn.Module, data, num_classes = 2, get_auc = False):
+    model.eval()
+    out = model(data.x, data.edge_index)
+    pred = out.argmax(dim=1)  # Use the class with highest probability.
+    probas = out.softmax(dim=1)[data.valid_mask,1].detach().clone().numpy()
+
+    true_Y = data.y[data.valid_mask].tolist()
+
+    acc = accuracy_score(true_Y, pred[data.valid_mask].tolist())
+    if num_classes == 2:
+        test_score = f1_score(true_Y, pred[data.valid_mask].tolist())
+        precision = precision_score(true_Y, pred[data.valid_mask].tolist())
+        recall = recall_score(true_Y, pred[data.valid_mask].tolist())
+
+        # AUROC and AUPRC
+        if get_auc:
+            auprc = metrics.average_precision_score(true_Y, probas, pos_label = 1)
+            auroc = metrics.roc_auc_score(true_Y, probas)
+
+            return test_score, acc, precision, recall, auprc, auroc
+
+    
+    return acc, f1_score(true_Y, pred[data.valid_mask].tolist())
