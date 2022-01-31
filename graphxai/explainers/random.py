@@ -17,8 +17,13 @@ class RandomExplainer(_BaseExplainer):
     def __init__(self, model):
         super().__init__(model)
 
-    def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, num_hops: Optional[int] = None):
+    def get_explanation_node(self, 
+            node_idx: int, 
+            x: torch.Tensor,
+            edge_index: torch.Tensor, 
+            num_hops: Optional[int] = None,
+            aggregate_node_imp = torch.sum
+        ):
         """
         Get the explanation for a node.
 
@@ -26,6 +31,10 @@ class RandomExplainer(_BaseExplainer):
             node_idx (int): index of the node to be explained
             x (torch.Tensor, [n x d]): tensor of node features
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
+            aggregate_node_imp (function, optional): torch function that aggregates
+                all node importance feature-wise scores across the enclosing 
+                subgraph. Must support `dim` argument. 
+                (:default: :obj:`torch.sum`)
 
         Returns:
             exp (dict):
@@ -44,10 +53,12 @@ class RandomExplainer(_BaseExplainer):
         # exp = {k: None for k in EXP_TYPES}
         # exp['feature_imp'] = torch.randn(x[0, :].shape)
         # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
+
+        #node_imp = aggregate_node_imp(torch.randn(khop_info[0].shape), dim = 1)
         
         exp = Explanation(
             feature_imp = torch.randn(x[0, :].shape),
-            node_imp = torch.randn(edge_index[0, :].shape),
+            node_imp = torch.randn(khop_info[0].shape),
             node_idx = node_idx
         )
 
@@ -55,8 +66,11 @@ class RandomExplainer(_BaseExplainer):
 
         return exp
 
-    def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
-                              num_nodes : int = None):
+    def get_explanation_graph(self, 
+            x: torch.Tensor, 
+            edge_index: torch.Tensor,
+            num_nodes : int = None,
+            aggregate_node_imp = torch.sum):
         """
         Get the explanation for the whole graph.
 
@@ -64,6 +78,9 @@ class RandomExplainer(_BaseExplainer):
             x (torch.Tensor, [n x d]): tensor of node features from the entire graph
             edge_index (torch.Tensor, [2 x m]): edge index of entire graph
             num_nodes (int, optional): number of nodes in graph
+            aggregate_node_imp (function, optional): torch function that aggregates
+                all node importance feature-wise scores across the graph. 
+                Must support `dim` argument. (:default: :obj:`torch.sum`)
 
         Returns:
             exp (dict):
@@ -79,8 +96,10 @@ class RandomExplainer(_BaseExplainer):
 
         # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
+        node_imp = aggregate_node_imp(rand_mask * torch.randn_like(x), dim=1)
+
         exp = Explanation(
-            node_imp = rand_mask * torch.randn_like(x),
+            node_imp = node_imp,
             edge_imp = torch.randn(edge_index[0, :].shape)
         )
 

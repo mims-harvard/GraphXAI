@@ -28,7 +28,7 @@ def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False
     """
     if to_undirected:
         G = nx.Graph()
-        data.edge_index = pyg_utils.to_undirected(data.edge_index)
+        #data.edge_index = pyg_utils.to_undirected(data.edge_index)
     else:
         G = nx.DiGraph()
 
@@ -143,23 +143,35 @@ def match_torch_to_nx_edges(G: nx.Graph, edge_index: torch.Tensor):
         e1, e2 = edges_list[i]
 
         # Check e1 -> 0, e2 -> 1
+        # cond1 = ((e1 == edge_index[0,:]) & (e2 == edge_index[1,:])).nonzero(as_tuple=True)[0]
+        # cond2 = ((e2 == edge_index[0,:]) & (e1 == edge_index[1,:])).nonzero(as_tuple=True)[0]
         cond1 = ((e1 == edge_index[0,:]) & (e2 == edge_index[1,:])).nonzero(as_tuple=True)[0]
         cond2 = ((e2 == edge_index[0,:]) & (e1 == edge_index[1,:])).nonzero(as_tuple=True)[0]
         #print(cond1)
 
-        if cond1.shape[0] > 0 and cond2.shape[0] > 0:
-            # Choose smallest
-            edges_map[(e1, e2)] = min(cond1[0].item(), cond2[0].item())
-
-        # Check e1 -> 1, e2 -> 0 if the first condition didn't work
-        if cond1.shape[0] == 0:
-            if cond2.shape[0] > 0:
-                edges_map[(e2, e1)] = i
-            else:
-                #print(e1, e2)
-                raise ValueError('Edge not in graph')
+        if cond1.shape[0] > 0:
+            edges_map[(e1, e2)] = cond1[0].item()
+            edges_map[(e2, e1)] = cond1[0].item()
+        elif cond2.shape[0] > 0:
+            edges_map[(e1, e2)] = cond2[0].item()
+            edges_map[(e2, e1)] = cond2[0].item()
         else:
-            edges_map[(e1, e2)] = i # Get first instance, don't care about duplicates
+            raise ValueError('Edge not in graph')
+
+        # if cond1.shape[0] > 0 and cond2.shape[0] > 0:
+        #     # Choose smallest
+        #     edges_map[(e1, e2)] = min(cond1[0].item(), cond2[0].item())
+
+        # # Check e1 -> 1, e2 -> 0 if the first condition didn't work
+        # else:
+        #     if cond1.shape[0] == 0:
+        #         if cond2.shape[0] > 0:
+        #             edges_map[(e2, e1)] = i
+        #         else:
+        #             #print(e1, e2)
+        #             raise ValueError('Edge not in graph')
+        #     else:
+        #         edges_map[(e1, e2)] = i # Get first instance, don't care about duplicates
 
     return edges_map
 

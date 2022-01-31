@@ -34,6 +34,7 @@ class GuidedBP(_BaseDecomposition):
                 y: torch.Tensor,
                 edge_index: torch.Tensor,  
                 node_idx: int, 
+                aggregate_node_imp = torch.sum,
                 forward_kwargs: dict = {}
             ) -> Explanation:
         '''
@@ -45,6 +46,10 @@ class GuidedBP(_BaseDecomposition):
                 function provided in `__init__()`.
             edge_index (torch.tensor): Edge_index of entire graph.
             node_idx (int): node index for which to explain a prediction around
+            aggregate_node_imp (function, optional): torch function that aggregates
+                all node importance feature-wise scores across the enclosing 
+                subgraph. Must support `dim` argument.
+                (:default: :obj:`torch.sum`)
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
@@ -80,9 +85,11 @@ class GuidedBP(_BaseDecomposition):
         khop_info = k_hop_subgraph(node_idx = node_idx, num_hops = self.L, edge_index = edge_index)
         subgraph_nodes = khop_info[0]
 
+        node_imp = aggregate_node_imp(torch.stack([graph_exp[i,:] for i in subgraph_nodes]), dim=1)
+
         # Get only those explanations for nodes in the subgraph:
         exp = Explanation(
-            node_imp = torch.stack([graph_exp[i,:] for i in subgraph_nodes]),
+            node_imp = node_imp,
             node_idx = node_idx
         )
 
@@ -93,6 +100,7 @@ class GuidedBP(_BaseDecomposition):
                 x: torch.Tensor, 
                 y: torch.Tensor, 
                 edge_index: torch.Tensor, 
+                aggregate_node_imp = torch.sum,
                 forward_kwargs: dict = {}
         ) -> Explanation:
         '''
@@ -103,6 +111,9 @@ class GuidedBP(_BaseDecomposition):
             y (torch.tensor): Ground truth label of given input. This argument is 
                 input to the `criterion` function provided in `__init__()`.
             edge_index (torch.tensor): Edge_index of entire graph.
+            aggregate_node_imp (function, optional): torch function that aggregates
+                all node importance feature-wise scores across the graph. 
+                Must support `dim` argument. (:default: :obj:`torch.sum`)
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)   
@@ -133,8 +144,10 @@ class GuidedBP(_BaseDecomposition):
 
         xhook.remove() # Remove hook from x
 
+        node_imp = aggregate_node_imp(x.grad, dim=1)
+
         exp = Explanation(
-            node_imp = x.grad
+            node_imp = node_imp
         )
     
         exp.set_whole_graph(Data(x, edge_index))

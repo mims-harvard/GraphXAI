@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import GradExplainer
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train 
 from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.utils import aggregate_explanations
 
 # Load dataset:
 # Smaller graph is shown to work well with model accuracy, graph properties
@@ -16,7 +17,7 @@ data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
 # Test on 3-layer basic GCN, 16 hidden dim:
-model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GCN_3layer_basic(16, input_feat = 11, classes = 2)
 
 # Train the model:
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -40,7 +41,7 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # Ground truth plot:
-gt_exp = bah.explanations[node_idx]
+gt_exp = aggregate_explanations(bah.explanations[node_idx], node_level = True)
 gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
