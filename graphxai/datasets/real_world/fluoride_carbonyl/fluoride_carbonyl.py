@@ -9,16 +9,16 @@ ATOM_TYPES = [
     'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Br', 'Na', 'Ca', 'I', 'B', 'H', '*'
 ]
 
-benzene_data_dir = os.path.join(os.path.dirname(__file__), 'benzene_data')
-benzene_smiles_df = 'benzene_smiles.csv'
+fc_data_dir = os.path.join(os.path.dirname(__file__), 'fc_data')
+fc_smiles_df = 'FC_smiles.csv'
 
-class Benzene(GraphDataset):
+class FluorideCarbonyl(GraphDataset):
 
     def __init__(
             self,
             split_sizes = (0.7, 0.2, 0.1),
             seed = None,
-            data_path: str = benzene_data_dir
+            data_path: str = fc_data_dir
         ):
         '''
         Args:
@@ -28,6 +28,6 @@ class Benzene(GraphDataset):
         '''
         
         self.graphs, self.explanations, self.zinc_ids = \
-            load_graphs(data_path, os.path.join(data_path, benzene_smiles_df))
+            load_graphs(data_path, os.path.join(data_path, fc_smiles_df))
 
-        super().__init__(name = 'Benzene', seed = seed, split_sizes = split_sizes)
+        super().__init__(name = 'FluorideCarbonyl', seed = seed, split_sizes = split_sizes)

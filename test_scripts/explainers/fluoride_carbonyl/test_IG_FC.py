@@ -7,7 +7,7 @@ from graphxai.explainers import IntegratedGradExplainer
 from graphxai.gnn_models.graph_classification import train, test
 from graphxai.gnn_models.graph_classification.gcn import GCN_2layer, GCN_3layer
 from graphxai.gnn_models.graph_classification.gin import GIN_2layer, GIN_3layer
-from graphxai.datasets import Benzene
+from graphxai.datasets import FluorideCarbonyl as FC
 from graphxai.utils import aggregate_explanations
 
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ else:
     seed = 1200
 
 # Load data: ------------------------------------------
-dataset = Benzene(split_sizes = (0.8, 0.2, 0), seed = seed)
+dataset = FC(split_sizes = (0.8, 0.2, 0), seed = seed)
 train_loader, _ = dataset.get_train_loader(batch_size = 64)
 test_loader, _ = dataset.get_test_loader()
 
@@ -51,8 +51,6 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 
 aggregate_explanations(gt_exp, node_level = False).graph_draw(ax = ax1)
 ax1.set_title('Ground Truth')
-
-print('Y', test_data.y)
 
 # Call Explainer: --------------------------------------
 ig = IntegratedGradExplainer(model, criterion = criterion)

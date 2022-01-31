@@ -10,7 +10,7 @@ from pgmpy.estimators import HillClimbSearch, BicScore
 from pgmpy.models import BayesianModel
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.perturb import perturb_node_features
+from graphxai.utils.perturb import PGM_perturb_node_features
 from graphxai.utils import Explanation
 from .utils import chi_square_pgm, generalize_target, generalize_others
 
@@ -124,7 +124,7 @@ class PGMExplainer(_BaseExplainer):
             for iter_idx in range(num_samples):
                 # Perturb the features of randomly selected nodes
                 x_pert, pert_mask = \
-                    perturb_node_features(x, perturb_prob=self.perturb_prob,
+                    PGM_perturb_node_features(x, perturb_prob=self.perturb_prob,
                                           perturb_mode=self.perturb_mode)
                 # pert_mask stores whether a node is perturbed
                 pert_mask = pert_mask.numpy().astype(int)
@@ -150,7 +150,7 @@ class PGMExplainer(_BaseExplainer):
             for iter_idx in range(num_samples):
                 # Perturb the features of randomly selected nodes
                 sub_x_pert, pert_mask = \
-                    perturb_node_features(sub_x, perturb_prob=self.perturb_prob,
+                    PGM_perturb_node_features(sub_x, perturb_prob=self.perturb_prob,
                                           perturb_mode=self.perturb_mode)
                 x_pert = x.clone()
                 x_pert[subset] = sub_x_pert

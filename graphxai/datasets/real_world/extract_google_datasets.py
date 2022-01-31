@@ -9,9 +9,7 @@ from torch_geometric.data import Data
 
 from graphxai.utils import Explanation, edge_mask_from_node_mask, aggregate_explanations
 
-benzene_data_dir = os.path.join(os.path.dirname(__file__), 'benzene_data')
-
-def load_graphs(dir_path = benzene_data_dir):
+def load_graphs(dir_path, smiles_df_path):
     '''
     TODO: replace path with Harvard Dataverse loading
 
@@ -28,15 +26,13 @@ def load_graphs(dir_path = benzene_data_dir):
     att = att['datadict_list']
     X = X['datadict_list'][0]
 
-    df = pd.read_csv(os.path.join(dir_path, 'benzene_smiles.csv'))
+    df = pd.read_csv(os.path.join(dir_path, smiles_df_path))
 
     # Unique zinc identifiers:
     zinc_ids = df['mol_id'].tolist()
 
     all_graphs = []
     explanations = []
-
-    print('Len X', len(X))
 
     # n_imp_sizes0 = []
     # n_imp_sizes1 = []
@@ -64,6 +60,7 @@ def load_graphs(dir_path = benzene_data_dir):
 
         # Get ground-truth explanation:
         node_imp = torch.from_numpy(att[i][0]['nodes']).float()
+        #print(node_imp.shape)
 
         # Error-check:
         assert att[i][0]['n_edge'] == X[i]['n_edge'], 'Num: {}, Edges different sizes'.format(i)
@@ -79,11 +76,12 @@ def load_graphs(dir_path = benzene_data_dir):
 
             exp = Explanation(
                 feature_imp = None, # No feature importance - everything is one-hot encoded
-                node_imp = node_imp,
+                node_imp = node_imp[:,j],
                 edge_imp = edge_mask_from_node_mask(node_imp.bool(), edge_index = edge_index),
             )
             
             exp.set_whole_graph(data_i)
+            exp.has_match = (torch.sum(node_imp[:,j] > 0).item() > 0)
             i_exps.append(exp)
             
         explanations.append(i_exps)

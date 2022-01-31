@@ -8,8 +8,8 @@ from torch_geometric.utils.convert import to_networkx
 from graphxai.utils import Explanation#, WholeGraph
 
 from torch_geometric.data import Dataset, data
-# from torch_geometric.loader import DataLoader
-from torch.utils.data.dataloader import DataLoader
+from torch_geometric.loader import DataLoader
+#from torch.utils.data.dataloader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 from sklearn.model_selection import train_test_split
 
@@ -272,8 +272,6 @@ class GraphDataset:
 
         for i in range(len(data_list)):
             data_list[i].exp_key = [i]
-
-        print('Type data.y', data_list[0].y.type())
 
         loader = DataLoader(data_list, batch_size = batch_size, shuffle = True)
 
