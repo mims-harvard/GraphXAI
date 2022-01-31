@@ -72,17 +72,17 @@ class GNNExplainer(_BaseExplainer):
         # print('node_idx', node_idx)
         # print('edge_index', edge_index)
 
-        org_eidx = edge_index.clone()
+        org_eidx = edge_index.clone().cuda()
 
         khop_info = subset, sub_edge_index, mapping, hard_edge_mask = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True) #num_nodes=x.shape[0])
-        sub_x = x[subset]
+        sub_x = x[subset].cuda()
 
         # print('sub_x shape', sub_x.shape)
         # print('sub edge index shape', sub_edge_index.shape)
 
-        self._set_masks(sub_x, sub_edge_index, explain_feature=explain_feature)
+        self._set_masks(sub_x.cuda(), sub_edge_index.cuda(), explain_feature=explain_feature)
 
         self.model.eval()
         num_epochs = 200

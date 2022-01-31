@@ -136,7 +136,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     exp_subgraph = generated_exp.enc_subgraph
 
     # Getting the softmax vector for the original graph
-    org_vec = model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
+    org_vec = model(shape_graph.get_graph().x.cuda(), shape_graph.get_graph().edge_index.cuda())[generated_exp.node_idx]
     org_softmax = F.softmax(org_vec, dim=-1)
 
     if generated_exp.feature_imp is not None:
@@ -152,11 +152,11 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
 
         pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx)
 
-        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
+        pert_vec = model(pert_x.cuda(), shape_graph.get_graph().edge_index.cuda())[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    if generated_exp.node_imp is not None:
+    if False:  # generated_exp.node_imp is not None:
 
         # Identifying the top_k nodes in the explanation subgraph
         top_k_nodes = generated_exp.node_imp.topk(int(generated_exp.node_imp.shape[0] * top_k))[1]
@@ -171,7 +171,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
 
         # Removing the unimportant nodes by masking
         pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes])
-        pert_vec = model(pert_x, shape_graph.get_graph().edge_index)[generated_exp.node_idx]
+        pert_vec = model(pert_x.cuda(), shape_graph.get_graph().edge_index.cuda())[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
