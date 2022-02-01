@@ -467,7 +467,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
         if i == 0:
             # predictions for the original features
             pert_x = X.clone()
-            pert_edge_index = 
+            pert_edge_index = EIDX
             out_x = torch.argmax(F.softmax(model(pert_x, pert_edge_index), dim=-1)[node_id]).item()
         else:
             # perturb node features for node_id
