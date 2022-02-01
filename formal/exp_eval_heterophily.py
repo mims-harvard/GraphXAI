@@ -88,6 +88,10 @@ parser.add_argument('--exp_method', required=True, help='name of the explanation
 parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
 args = parser.parse_args()
 
+# Folder to collect epoch results
+if not os.path.exists(args.save_dir):
+    os.makedirs(name=args.save_dir)
+
 seed_value=912
 rand.seed(seed_value)
 np.random.seed(seed_value)
@@ -131,7 +135,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    ipdb.set_trace()
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics

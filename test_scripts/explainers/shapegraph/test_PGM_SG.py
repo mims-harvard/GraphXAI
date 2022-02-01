@@ -16,7 +16,7 @@ data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
 # Test on 3-layer basic GCN, 16 hidden dim:
-model = GIN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
 
 # Train the model:
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
