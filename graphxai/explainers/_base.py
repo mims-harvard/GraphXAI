@@ -7,6 +7,8 @@ from typing import Optional
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import k_hop_subgraph
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 class _BaseExplainer:
     """
@@ -108,7 +110,7 @@ class _BaseExplainer:
         """
         # Compute unnormalized class score
         with torch.no_grad():
-            out = self.model(x, edge_index, **forward_kwargs)
+            out = self.model.to(device)(x, edge_index, **forward_kwargs)
             if return_type == 'label':
                 out = out.argmax(dim=-1)
             elif return_type == 'prob':

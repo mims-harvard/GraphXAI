@@ -8,6 +8,7 @@ from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
 
 from .nx_modified import swap
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
                  node_idx: int = None, num_hops: int = 3,
@@ -75,7 +76,7 @@ def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 
     elif perturb_mode == 'gaussian':
         # Add a Gaussian noise
         sigma = torch.std(x[:, cont_dims], dim=0, keepdim=True).squeeze(0)
-        x_pert[node_idx, cont_dims] += sigma * torch.randn(len(cont_dims))
+        x_pert[node_idx, cont_dims] += sigma * torch.randn(len(cont_dims)).to(device)
     elif perturb_mode == 'uniform':
         # Add a uniform noise
         epsilon = 0.05 * max_val.squeeze(0)
@@ -134,7 +135,7 @@ def PGM_perturb_node_features(x: torch.Tensor, perturb_prob: float = 0.5,
 
     if perturb_mode == 'scale':
         # Scale the continuous dims randomly
-        x_pert[:, cont_dims] *= 2 * torch.rand(c)
+        x_pert[:, cont_dims] *= 2 * torch.rand(c).to(device)
     elif perturb_mode == 'gaussian':
         # Add a Gaussian noise
         sigma = torch.std(x[:, cont_dims], dim=0, keepdim=True)
@@ -152,10 +153,10 @@ def PGM_perturb_node_features(x: torch.Tensor, perturb_prob: float = 0.5,
 
     # Ensure feature value is between 0 and max_val
     x_pert[:, cont_dims] = torch.clamp(x_pert[:, cont_dims],
-                                       min=torch.zeros(1, c), max=max_val)
+                                       min=torch.zeros(1, c).to(device), max=max_val)
 
     # Randomly flip the binary dims
-    x_pert[:, bin_dims] = torch.randint(2, size=(n_pert, b)).float()
+    x_pert[:, bin_dims] = torch.randint(2, size=(n_pert, b)).float().to(device)
 
     # Copy x_pert to perturbed nodes in x_new
     x_new[nodes_pert] = x_pert

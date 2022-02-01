@@ -11,6 +11,7 @@ from torch_geometric.data import Data
 from ._decomp_base import _BaseDecomposition
 from graphxai.utils import Explanation
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 EPS = 1e-15
 
@@ -135,9 +136,9 @@ class GNN_LRP(_BaseDecomposition):
 
         edge_index_with_loop, _ = add_self_loops(edge_index, num_nodes=self.num_nodes)
 
-
+        print(self.device)
         walk_indices_list = torch.tensor(
-            self.walks_pick(edge_index_with_loop.cpu(), list(range(edge_index_with_loop.shape[1])),
+            self.walks_pick(edge_index_with_loop, list(range(edge_index_with_loop.shape[1])),
                             num_layers=self.L), device=self.device)
 
         # Get subgraph of nodes in computational graph:
@@ -386,7 +387,7 @@ class GNN_LRP(_BaseDecomposition):
         edge_index_with_loop, _ = add_self_loops(edge_index, num_nodes=self.num_nodes)
 
         walk_indices_list = torch.tensor(
-            self.walks_pick(edge_index_with_loop.cpu(), list(range(edge_index_with_loop.shape[1])),
+            self.walks_pick(edge_index_with_loop, list(range(edge_index_with_loop.shape[1])),
                             num_layers=self.L), device=self.device)
         
         def compute_walk_score():

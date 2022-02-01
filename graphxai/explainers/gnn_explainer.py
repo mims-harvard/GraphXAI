@@ -7,6 +7,8 @@ from graphxai.utils.constants import EXP_TYPES
 from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 class GNNExplainer(_BaseExplainer):
     """
     GNNExplainer: node only
@@ -62,7 +64,7 @@ class GNNExplainer(_BaseExplainer):
                 2. the mapping from node indices in `node_idx` to their new location
                 3. the `edge_index` mask indicating which edges were preserved
         """
-        label = self._predict(x, edge_index,
+        label = self._predict(x.to(device), edge_index.to(device),
                               forward_kwargs=forward_kwargs)# if label is None else label
         num_hops = self.L if num_hops is None else num_hops
 
@@ -72,17 +74,17 @@ class GNNExplainer(_BaseExplainer):
         # print('node_idx', node_idx)
         # print('edge_index', edge_index)
 
-        org_eidx = edge_index.clone().cuda()
+        org_eidx = edge_index.clone().to(device)
 
         khop_info = subset, sub_edge_index, mapping, hard_edge_mask = \
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True) #num_nodes=x.shape[0])
-        sub_x = x[subset].cuda()
+        sub_x = x[subset].to(device)
 
         # print('sub_x shape', sub_x.shape)
         # print('sub edge index shape', sub_edge_index.shape)
 
-        self._set_masks(sub_x.cuda(), sub_edge_index.cuda(), explain_feature=explain_feature)
+        self._set_masks(sub_x.to(device), sub_edge_index.to(device), explain_feature=explain_feature)
 
         self.model.eval()
         num_epochs = 200
@@ -108,10 +110,10 @@ class GNNExplainer(_BaseExplainer):
             for epoch in range(1, num_epochs+1):
                 optimizer.zero_grad()
                 if mask_type == 'feature':
-                    h = sub_x * mask.view(1, -1).sigmoid()
+                    h = sub_x.to(device) * mask.view(1, -1).sigmoid().to(device)
                 else:
-                    h = sub_x
-                log_prob = self._predict(h, sub_edge_index, return_type='log_prob')
+                    h = sub_x.to(device)
+                log_prob = self._predict(h.to(device), sub_edge_index.to(device), return_type='log_prob')
                 loss = loss_fn(log_prob, mask, mask_type)
                 loss.backward()
                 optimizer.step()
@@ -122,7 +124,7 @@ class GNNExplainer(_BaseExplainer):
             feat_imp = self.feature_mask.data.sigmoid()
 
         train(self.edge_mask, 'edge')
-        edge_imp = self.edge_mask.data.sigmoid()
+        edge_imp = self.edge_mask.data.sigmoid().to(device)
 
         # print('IN GNNEXPLAINER')
         # print('edge imp shape', edge_imp.shape)

@@ -13,6 +13,7 @@ from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
 from graphxai.utils import Explanation, node_mask_from_edge_mask
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PGExplainer(_BaseExplainer):
     """
@@ -82,7 +83,7 @@ class PGExplainer(_BaseExplainer):
             training == False: sigmoid(log_alpha)
         """
         if training:
-            random_noise = torch.rand(log_alpha.shape)
+            random_noise = torch.rand(log_alpha.shape).to(device)
             random_noise = torch.log(random_noise) - torch.log(1.0 - random_noise)
             gate_inputs = (random_noise + log_alpha) / beta
             gate_inputs = gate_inputs.sigmoid()
@@ -119,7 +120,7 @@ class PGExplainer(_BaseExplainer):
 
             # Calculate the edge weights and set the edge mask
             for elayer in self.elayers:
-                h = elayer(h)
+                h = elayer.to(device)(h)
             h = h.squeeze()
             edge_weights = self.__concrete_sample(h, tmp, training)
             n = emb.shape[0]  # number of nodes
@@ -173,7 +174,7 @@ class PGExplainer(_BaseExplainer):
                 emb_dict = {}
                 ori_pred_dict = {}
                 for gid in tqdm.tqdm(dataset_indices):
-                    data = dataset[gid]
+                    data = dataset[gid].to(device)
                     pred_label = self._predict(data.x, data.edge_index,
                                                forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
@@ -191,7 +192,7 @@ class PGExplainer(_BaseExplainer):
                 optimizer.zero_grad()
                 tic = time.perf_counter()
                 for gid in tqdm.tqdm(dataset_indices):
-                    data = dataset[gid]
+                    data = dataset[gid].to(device)
                     prob_with_mask, _ = self.__emb_to_edge_mask(
                         emb_dict[gid], data.x, data.edge_index,
                         forward_kwargs=forward_kwargs,
@@ -209,7 +210,7 @@ class PGExplainer(_BaseExplainer):
                 last_loss = loss
 
         else:  # Explain node-level predictions of a graph
-            data = dataset
+            data = dataset.to(device)
             # Get the predicted labels for training nodes
             with torch.no_grad():
                 self.model.eval()
@@ -241,7 +242,7 @@ class PGExplainer(_BaseExplainer):
                     # print('data.edge_index', data.edge_index)
                     # print('forward_kwargs', forward_kwargs)
                     prob_with_mask, _ = self.__emb_to_edge_mask(
-                        emb, 
+                        emb.to(device), 
                         x = data.x, 
                         edge_index = data.edge_index, 
                         node_idx = node_idx,

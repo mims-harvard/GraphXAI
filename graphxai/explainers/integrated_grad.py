@@ -5,6 +5,9 @@ from torch_geometric.data import Data
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 class IntegratedGradExplainer(_BaseExplainer):
     """
     Integrated Gradient Explanation for GNNs
@@ -53,14 +56,14 @@ class IntegratedGradExplainer(_BaseExplainer):
         steps = 40
 
         self.model.eval()
-        grads = torch.zeros(steps+1, x.shape[1])
+        grads = torch.zeros(steps+1, x.shape[1]).to(device)
         for i in range(steps+1):
             with torch.no_grad():
-                baseline = torch.zeros_like(sub_x)  # TODO: baseline all 0s, all 1s, ...?
+                baseline = torch.zeros_like(sub_x).to(device)  # TODO: baseline all 0s, all 1s, ...?
                 temp_x = baseline + (float(i)/steps) * (sub_x.clone()-baseline)
             temp_x.requires_grad = True
             output = self.model(temp_x, sub_edge_index)
-            loss = self.criterion(output[mapping], label[mapping])
+            loss = self.criterion(output[mapping], label)
             loss.backward()
             grad = temp_x.grad[torch.where(subset==node_idx)[0].item()]
             grads[i] = grad
@@ -78,7 +81,7 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         exp = Explanation(
             feature_imp = integrated_gradients,
-            node_imp = all_node_ig,
+            node_imp = torch.sum(all_node_ig, dim=1),
             node_idx = node_idx
         )
         exp.set_enclosing_subgraph(khop_info)

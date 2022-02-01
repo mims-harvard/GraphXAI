@@ -270,8 +270,9 @@ class _BaseDecomposition(_BaseExplainer):
 
             # Adding one edge
             walk_indices.append(edge_idx)
-            _, new_src = src, tgt = edge_index[:, edge_idx]
-            next_edge_indices = np.array((edge_index[0, :] == new_src).nonzero().view(-1))
+            _, new_src = src, tgt = edge_index[:, edge_idx].cpu()
+            # import ipdb; ipdb.set_trace()
+            next_edge_indices = np.array((edge_index[0, :].cpu() == new_src).nonzero().view(-1))
 
             # Finding next edge
             if len(walk_indices) >= num_layers:

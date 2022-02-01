@@ -14,6 +14,8 @@ from .subgraphx_utils.subgraphx_fns import find_closest_node_result, reward_func
 from ._base import _BaseExplainer
 from graphxai.utils import Explanation
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 class SubgraphX(_BaseExplainer):
     r"""
     Code adapted from Dive into Graphs (DIG)
@@ -149,13 +151,13 @@ class SubgraphX(_BaseExplainer):
 
         if label is None:
             self.model.eval()
-            pred = self.model(x, edge_index, **forward_kwargs)
+            pred = self.model(x.to(device), edge_index.to(device), **forward_kwargs)
             label = int(pred.argmax(dim=1).item())
         else:
             label = int(label)
 
         # collect all the class index
-        logits = self.model(x, edge_index, **forward_kwargs)
+        logits = self.model(x.to(device), edge_index.to(device), **forward_kwargs)
         probs = F.softmax(logits, dim=-1)
         probs = probs.squeeze()
 
@@ -172,7 +174,7 @@ class SubgraphX(_BaseExplainer):
         )
         #value_func = partial(value_func, forward_kwargs=forward_kwargs)
         def wrap_value_func(data):
-            return value_func(x=data.x, edge_index=data.edge_index, forward_kwargs=forward_kwargs)
+            return value_func(x=data.x.to(device), edge_index=data.edge_index.to(device), forward_kwargs=forward_kwargs)
 
         payoff_func = self.get_reward_func(wrap_value_func, node_idx=self.mcts_state_map.node_idx, explain_graph = False)
         self.mcts_state_map.set_score_func(payoff_func)
@@ -189,8 +191,8 @@ class SubgraphX(_BaseExplainer):
 
         # Set explanation
         exp = Explanation(
-            node_imp = node_mask[khop_info[0]], # Apply node mask
-            edge_imp = edge_mask[subgraph_edge_mask],
+            node_imp = 1*node_mask[khop_info[0]], # Apply node mask
+            edge_imp = 1*edge_mask[subgraph_edge_mask],
             node_idx = node_idx
         )
 

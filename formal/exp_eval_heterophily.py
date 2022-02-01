@@ -85,7 +85,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
-parser.add_argument('--save_dir', default='./results_homophily/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
 args = parser.parse_args()
 
 seed_value=912
@@ -97,7 +97,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -108,7 +108,7 @@ print(inhouse)
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('model_homophily.pth'))
+model.load_state_dict(torch.load('model_heterophily.pth'))
 # model.eval()
 
 gef_feat = []
@@ -131,6 +131,7 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
+    ipdb.set_trace()
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
