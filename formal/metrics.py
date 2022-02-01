@@ -137,8 +137,13 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
 
+    data = shape_graph.get_graph()
+    X = data.x.to(device)
+    Y = data.y.to(device)
+    EIDX = data.edge_index.to(device)
+
     # Getting the softmax vector for the original graph
-    org_vec = model(shape_graph.get_graph().x.to(device), shape_graph.get_graph().edge_index.to(device))[generated_exp.node_idx]
+    org_vec = model(X, EIDX)[generated_exp.node_idx]
     org_softmax = F.softmax(org_vec, dim=-1)
 
     if generated_exp.feature_imp is not None:
@@ -146,15 +151,15 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = shape_graph.get_graph().x.clone().to(device)
+        pert_x = X.clone()
 
         # Perturbing the unimportant node feature indices using gaussian noise
         rem_features = torch.Tensor(
-            [i for i in range(shape_graph.get_graph().x.shape[1]) if i not in top_k_features]).long()
+            [i for i in range(X.shape[1]) if i not in top_k_features]).long()
 
         pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx)
 
-        pert_vec = model(pert_x.to(device), shape_graph.get_graph().edge_index.to(device))[generated_exp.node_idx]
+        pert_vec = model(pert_x.to(device), EIDX)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
@@ -168,11 +173,11 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
                 rem_nodes.append([k for k, v in generated_exp.node_reference.items() if v == node][0])
 
         # Getting the softmax vector for the perturbed graph
-        pert_x = shape_graph.get_graph().x.clone().to(device)
+        pert_x = X.clone()
 
         # Removing the unimportant nodes by masking
         pert_x[rem_nodes] = torch.zeros_like(pert_x[rem_nodes]).to(device)
-        pert_vec = model(pert_x, shape_graph.get_graph().edge_index.to(device))[generated_exp.node_idx]
+        pert_vec = model(pert_x, EIDX)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
@@ -180,17 +185,17 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].to(device)
         # Get the list of all edges that we need to keep
         keep_edges = [] 
-        for i in range(shape_graph.get_graph().edge_index.shape[1]):
+        for i in range(EIDX.shape[1]):
             if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
                 continue
             else:
                 keep_edges.append(i)
 
         # Get new edge_index
-        edge_index = shape_graph.get_graph().edge_index[:, keep_edges]
+        edge_index = EIDX[:, keep_edges]
                     
         # Getting the softmax vector for the perturbed graph
-        pert_vec = model(shape_graph.get_graph().x.to(device), edge_index.to(device))[generated_exp.node_idx]
+        pert_vec = model(X, edge_index.to(device))[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)        
         GEF_edge = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
