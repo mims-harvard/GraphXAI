@@ -202,18 +202,18 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     return [GEF_feat, GEF_node, GEF_edge]
 
 
-def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='softmax', dist_norm=2):
+def calculate_delta(x, edge_index, train_set, label, sens_idx, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
         try:
-            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=n_id.item(), num_nodes=1)
+            pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1)
         except:
             continue
-        pert_x = shape_graph.get_graph().x.clone()
+        pert_x = x.clone()
         pert_x[n_id] = perturb_node_features(x=pert_x, node_idx=n_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
 
-        org_vec = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
+        org_vec = F.softmax(model(x, edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
         pert_vec = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
         pert_pred = torch.argmax(pert_vec)
@@ -250,10 +250,10 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='so
         exit(0)
 
 
-def check_delta(shape_graph: ShapeGraph, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
+def check_delta(x, edge_index, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
     if rep == 'softmax':
         # Softmax differences
-        org_softmax = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
+        org_softmax = F.softmax(model(x, edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_softmax)
         pert_softmax = F.softmax(model(pert_x, pert_edge_index)[n_id], dim=-1)
         pert_pred = torch.argmax(pert_softmax)
@@ -278,16 +278,22 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
     GES_node = []
     GES_edge = []
     num_run = 25
+
+    data = shape_graph.get_graph()
+    X = data.x.to(device)
+    Y = data.y.to(device)
+    EIDX = data.edge_index.to(device)
+
     for run in range(num_run):
         # Generate perturbed counterpart
         try:
-            pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=node_id.item(), num_nodes=1)  # , seed=run)
+            pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1)  # , seed=run)
         except:
             continue
-        pert_x = shape_graph.get_graph().x.clone()
+        pert_x = X.clone()
         pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
 
-        if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
+        if check_delta(X, EIDX, rep, pert_x, pert_edge_index, node_id, delta):
             # Test for GNN Explainers
             gnnexpr = GNNExplainer(model)
             pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=pert_edge_index)
@@ -356,14 +362,19 @@ def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, n
     GECF_node = None
     GECF_edge = None
 
-    pert_x = shape_graph.get_graph().x.clone()
+    data = shape_graph.get_graph()
+    X = data.x.to(device)
+    Y = data.y.to(device)
+    EIDX = data.edge_index.to(device)
+
+    pert_x = X.clone()
     pert_x[node_id, sens_idx] = 1 - pert_x[node_id, sens_idx]
 
-    if check_delta(shape_graph, rep, pert_x, shape_graph.get_graph().edge_index, node_id, delta):
+    if check_delta(shape_graph, rep, pert_x, EIDX, node_id, delta):
 
         # Test for GNN Explainers
         gnnexpr = GNNExplainer(model)
-        pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=shape_graph.get_graph().edge_index)
+        pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=edge_index)
 
         if generated_exp.feature_imp is not None:
             top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
@@ -445,20 +456,25 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
     GEGF_node = None
     GEGF_edge = None
 
+    data = shape_graph.get_graph()
+    X = data.x.to(device)
+    Y = data.y.to(device)
+    EIDX = data.edge_index.to(device)
+
     # Number of neighborhood samples
     num_samples = 25
     for i in range(num_samples):
         if i == 0:
             # predictions for the original features
-            pert_x = shape_graph.get_graph().x.clone()
-            pert_edge_index = shape_graph.get_graph().edge_index
+            pert_x = X.clone()
+            pert_edge_index = 
             out_x = torch.argmax(F.softmax(model(pert_x, pert_edge_index), dim=-1)[node_id]).item()
         else:
             # perturb node features for node_id
-            pert_x = shape_graph.get_graph().x.clone()
+            pert_x = X.clone()
             pert_x[node_id, :] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
             try:
-                pert_edge_index = rewire_edges(shape_graph.get_graph().edge_index, node_idx=node_id.item(), num_nodes=1)
+                pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1)
             except:
                 continue
 
@@ -499,7 +515,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
 
                 # Get the list of all edges that we need to keep
                 keep_edges = [] 
-                for i in range(shape_graph.get_graph().edge_index.shape[1]):
+                for i in range(EIDX.shape[1]):
                     if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
                         continue
                     else:
