@@ -202,12 +202,16 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     return [GEF_feat, GEF_node, GEF_edge]
 
 
-def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep='softmax', dist_norm=2):
+def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep='softmax', dist_norm=2, device = 'cpu'):
+
+    x = x.to(device)
+    edge_index = edge_index.to(device)
+
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
         try:
-            pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1)
+            pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1).to(device)
         except:
             continue
         pert_x = x.clone()

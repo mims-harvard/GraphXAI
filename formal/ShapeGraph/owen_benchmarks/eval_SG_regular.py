@@ -135,7 +135,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
-delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature])
+delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
 
 for node_idx in tqdm.tqdm(inhouse[:1000]):
 
