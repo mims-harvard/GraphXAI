@@ -11,6 +11,7 @@ from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GC
 
 
 def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
+    method = method.lower()
     if method=='gnnex':
         exp_method = GNNExplainer(model)
         forward_kwargs={'x': data.x.to(device),
