@@ -202,7 +202,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     return [GEF_feat, GEF_node, GEF_edge]
 
 
-def calculate_delta(x, edge_index, train_set, label, sens_idx, rep='softmax', dist_norm=2):
+def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
