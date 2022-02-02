@@ -98,7 +98,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
-parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
 seed_value=912
@@ -134,6 +134,9 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+# Get delta for the model:
+delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y, sens_idx=[bah.sensitive_feature])
+
 for node_idx in tqdm.tqdm(inhouse[:1000]):
 
     node_idx = node_idx.item()
@@ -150,6 +153,14 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+    feat, node, edge = graph_exp_stability(
+            exp, 
+            bah, 
+            node_id = node_idx, 
+            model = model,
+            delta = delta,
+            sens_idx = [bah.sensitive_feature],
+            )
 
     gef_feat.append(feat)
     gef_node.append(node)
@@ -159,6 +170,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(f'{args.save_dir}{args.exp_method}_gef_feat.npy', gef_feat)
-np.save(f'{args.save_dir}{args.exp_method}_gef_node.npy', gef_node)
-np.save(f'{args.save_dir}{args.exp_method}_gef_edge.npy', gef_edge)
+np.save(f'{args.save_dir}{args.exp_method}_GES_feat.npy', gef_feat)
+np.save(f'{args.save_dir}{args.exp_method}_GES_node.npy', gef_node)
+np.save(f'{args.save_dir}{args.exp_method}_GES_edge.npy', gef_edge)
