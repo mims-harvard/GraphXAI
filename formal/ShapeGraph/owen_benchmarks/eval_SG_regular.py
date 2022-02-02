@@ -110,7 +110,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_HF_HF=1.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -135,7 +135,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
-delta = calculate_delta(bah, torch.where(data.train_mask == True)[0], label=data.y, sens_idx=[bah.sensitive_feature])
+delta = calculate_delta(data.x, data.edge_index, torch.where(data.train_mask == True)[0], label=data.y, sens_idx=[bah.sensitive_feature])
 
 for node_idx in tqdm.tqdm(inhouse[:1000]):
 
@@ -170,6 +170,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(f'{args.save_dir}{args.exp_method}_GES_feat.npy', gef_feat)
-np.save(f'{args.save_dir}{args.exp_method}_GES_node.npy', gef_node)
-np.save(f'{args.save_dir}{args.exp_method}_GES_edge.npy', gef_edge)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
