@@ -18,7 +18,7 @@ sklearn==0.0
 tensorboardX==2.3
 torch==1.8.1
 torch-cluster==1.5.9
-torch-geometric==1.7.2
+torch-geometric==2.0.1
 torch-geometric-temporal==0.29
 torch-scatter==2.0.6
 torch-sparse==0.6.9
