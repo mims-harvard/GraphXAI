@@ -25,6 +25,8 @@ def chi_square_pgm(X, Y, Z, df: pd.DataFrame):
     """
     X = str(int(X))
     Y = str(int(Y))
+    # X = int(X)
+    # Y = int(Y)
     if isinstance(Z, (frozenset, list, set, tuple)):
         Z = list(Z)
     Z = [str(int(z)) for z in Z]
@@ -32,6 +34,8 @@ def chi_square_pgm(X, Y, Z, df: pd.DataFrame):
     state_names = {
         var_name: df.loc[:, var_name].unique() for var_name in df.columns
     }
+
+    #print('State names', state_names)
 
     row_index = state_names[X]
     column_index = pd.MultiIndex.from_product(
