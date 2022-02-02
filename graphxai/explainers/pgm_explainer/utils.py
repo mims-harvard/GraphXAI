@@ -32,7 +32,7 @@ def chi_square_pgm(X, Y, Z, df: pd.DataFrame):
     state_names = {
         var_name: df.loc[:, var_name].unique() for var_name in df.columns
     }
-
+    
     row_index = state_names[X]
     column_index = pd.MultiIndex.from_product(
             [state_names[Y]] + [state_names[z] for z in Z], names=[Y] + Z

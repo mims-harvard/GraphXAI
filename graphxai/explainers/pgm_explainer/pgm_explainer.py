@@ -226,8 +226,9 @@ class PGMExplainer(_BaseExplainer):
         # Compute p-values for each neighbor
         p_values = []
         dependent_neighbors = []
+        # import ipdb; ipdb.set_trace()
         for node in neighbors:
-            _, p = chi_square_pgm(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [], df)  # , boolean=False)
+            _, p = chi_square(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [], df)  # , boolean=False)
             p_values.append(p)
             if p < self.p_threshold:
                 dependent_neighbors.append(node)
@@ -348,7 +349,7 @@ class PGMExplainer(_BaseExplainer):
         # Compute p-values and pick the candidate nodes to perturb
         p_values = []
         for node in range(n):
-            _, p = chi_square_pgm(node, target, [], df)
+            _, p = chi_square(node, target, [], df)
             p_values.append(p)
         num_candidates = min(top_k_nodes*4, n-1)
         candidate_nodes = np.argpartition(p_values, num_candidates)[0:num_candidates]
@@ -365,7 +366,7 @@ class PGMExplainer(_BaseExplainer):
         p_values = []
         dependent_nodes = []
         for node in range(n):
-            _, p = chi_square_pgm(node, target, [], df)
+            _, p = chi_square(node, target, [], df)
             p_values.append(p)
             if p < self.p_threshold:
                 dependent_nodes.append(node)

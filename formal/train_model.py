@@ -1,13 +1,27 @@
 import ipdb
 import random
 import torch
+import argparse
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train, val
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.datasets  import load_ShapeGraph
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--expt_name', required=True, help='name of the explanation method')
+args = parser.parse_args()
+
+
 # Load ShapeGraph dataset
-# Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+if args.expt_name == 'homophily':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+elif args.expt_name == 'heterophily':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+elif args.expt_name == 'triangle':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangle.pickle', 'rb'))
+else:
+    print('Invalid Input!!')
+    exit(0)
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
@@ -25,7 +39,7 @@ for epoch in range(1, 101):
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
     if auroc > best_auroc:
         best_auroc = auroc
-        torch.save(model.state_dict(), 'model_heterophily.pth')
+        torch.save(model.state_dict(), f'model_{args.expt_name}.pth')
 
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 

@@ -215,11 +215,12 @@ class PGExplainer(_BaseExplainer):
             with torch.no_grad():
                 self.model.eval()
                 explain_node_index_list = torch.where(data.train_mask)[0].tolist()
-                pred_dict = {}
+                # pred_dict = {}
                 label = self._predict(data.x, data.edge_index,
                                       forward_kwargs=forward_kwargs)
-                for node_idx in tqdm.tqdm(explain_node_index_list):
-                    pred_dict[node_idx] = label[node_idx]
+                pred_dict = dict(zip(explain_node_index_list, label[explain_node_index_list]))
+                # for node_idx in tqdm.tqdm(explain_node_index_list):
+                #     pred_dict[node_idx] = label[node_idx]
 
             # Train the mask generator
             duration = 0.0
@@ -291,7 +292,6 @@ class PGExplainer(_BaseExplainer):
         """
         if self.explain_graph:
             raise Exception('For graph-level explanations use `get_explanation_graph`.')
-
         label = self._predict(x, edge_index) if label is None else label
 
         exp = {k: None for k in EXP_TYPES}
