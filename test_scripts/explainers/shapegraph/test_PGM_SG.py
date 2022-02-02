@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from graphxai.explainers import PGMExplainer
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train 
 from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.utils import aggregate_explanations
 
 # Load dataset:
 # Smaller graph is shown to work well with model accuracy, graph properties
@@ -40,7 +41,7 @@ print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # Ground truth plot:
-gt_exp = bah.explanations[node_idx]
+gt_exp = aggregate_explanations(bah.explanations[node_idx], node_level = True)
 gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
