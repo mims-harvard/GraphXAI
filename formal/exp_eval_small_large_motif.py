@@ -61,10 +61,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'top_k_nodes': 10}
     elif method=='pgex':
         exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        flag = True
-        if flag:
-            exp_method.train_explanation_model(data.to(device))
-            flag = False
+        exp_method.train_explanation_model(data.to(device))
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
@@ -88,12 +85,16 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
-parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
+parser.add_argument('--expt_name', help='folder for saving results')
 args = parser.parse_args()
 
-# Folder to collect epoch results
-if not os.path.exists(args.save_dir):
-    os.makedirs(name=args.save_dir)
+
+# Folder to collect epoch snapshots
+save_dir = os.path.join(os.getcwd(), f'results_{args.expt_name}')
+
+# Folder to store results
+if not os.path.exists(save_dir):
+    os.makedirs(name=save_dir)
 
 seed_value=912
 rand.seed(seed_value)
@@ -103,8 +104,12 @@ torch.manual_seed(seed_value)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
-# Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+if args.expt_name == 'small':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
+elif args.expt_name == 'large':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+else:
+    OSError('Invalid argument!!')
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -114,13 +119,17 @@ print(inhouse)
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
-# Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('model_heterophily.pth'))
-# model.eval()
+# Load model
+if args.expt_name == 'small':
+    model.load_state_dict(torch.load('model_triangle.pth'))
+elif args.expt_name == 'large':
+    model.load_state_dict(torch.load('model_homophily.pth'))
+else:
+    OSError('Invalid argument!!')
 
-gef_feat = []
-gef_node = []
-gef_edge = []
+gea_feat = []
+gea_node = []
+gea_edge = []
 
 # Get predictions
 pred = model(data.x.to(device), data.edge_index.to(device))
@@ -138,19 +147,19 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
+    gt_exp = bah.explanations[node_idx]
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
-    feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+    feat, node, edge = graph_exp_acc(gt_exp, exp)
 
-    gef_feat.append(feat)
-    gef_node.append(node)
-    gef_edge.append(edge)
+    gea_feat.append(feat)
+    gea_node.append(node)
+    gea_edge.append(edge)
 
 
 ############################
 # Saving the metric values
-# save_dir='./results_homophily/'
-np.save(f'{args.save_dir}{args.exp_method}_gef_feat.npy', gef_feat)
-np.save(f'{args.save_dir}{args.exp_method}_gef_node.npy', gef_node)
-np.save(f'{args.save_dir}{args.exp_method}_gef_edge.npy', gef_edge)
+np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
+np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
+np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)

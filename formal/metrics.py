@@ -36,16 +36,16 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
     '''
 
     EPS = 1e-09
-    thresh = 0.8
     JAC_feat = None
     JAC_node = None
-    JAC_edge = None 
+    JAC_edge = None
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
 
     if generated_exp.feature_imp is not None:
         JAC_feat = []
+        thresh_feat = generated_exp.feature_imp.mean()
         for exp in gt_exp:
             TPs = []
             FPs = []
@@ -53,7 +53,7 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
             true_feat = torch.where(exp.feature_imp == 1)[0]
             for i, feat in enumerate(exp.feature_imp):
                 # Restore original feature numbering
-                positive = generated_exp.feature_imp[i].item() > thresh
+                positive = generated_exp.feature_imp[i].item() > thresh_feat
                 if positive:
                     if i in true_feat:
                         TPs.append(generated_exp.feature_imp[i])
@@ -72,16 +72,17 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
 
     if generated_exp.node_imp is not None:
         JAC_node = []
+        thresh_node = generated_exp.node_imp.mean()
         for exp in gt_exp:
             TPs = []
             FPs = []
             FNs = []
             relative_positives = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
-            true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
+            true_nodes = [exp.enc_subgraph.nodes[i].item() for i in relative_positives]
 
             for i, node in enumerate(exp_subgraph.nodes):
                 # Restore original node numbering
-                positive = generated_exp.node_imp[i].item() > thresh
+                positive = generated_exp.node_imp[i].item() > thresh_node
                 if positive:
                     if node in true_nodes:
                         TPs.append(node)
