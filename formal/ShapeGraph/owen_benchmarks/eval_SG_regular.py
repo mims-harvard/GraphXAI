@@ -137,7 +137,7 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 # Get delta for the model:
 delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
 
-for node_idx in tqdm.tqdm(inhouse[:1000]):
+for node_idx in tqdm.tqdm(inhouse[:10]):
 
     node_idx = node_idx.item()
 
@@ -155,6 +155,7 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
     feat, node, edge = graph_exp_stability(
             exp, 
+            explainer,
             bah, 
             node_id = node_idx, 
             model = model,
@@ -162,7 +163,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
             sens_idx = [bah.sensitive_feature],
             device = device,
             )
-
     gef_feat.append(feat)
     gef_node.append(node)
     gef_edge.append(edge)

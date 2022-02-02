@@ -210,7 +210,7 @@ def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep
 
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
-    for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
+    for n_id in train_set[torch.randperm(train_set.size()[0])][:1000]:
         try:
             pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1).to(device)
         except:
@@ -255,7 +255,7 @@ def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep
         exit(0)
 
 
-def check_delta(x, edge_index, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
+def check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
     if rep == 'softmax':
         # Softmax differences
         org_softmax = F.softmax(model(x, edge_index)[n_id], dim=-1)
@@ -278,7 +278,7 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = "cpu") -> float:
+def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = "cpu") -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
@@ -292,16 +292,14 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
     for run in range(num_run):
         # Generate perturbed counterpart
         try:
-            pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1)  # , seed=run)
+            pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
         except:
             continue
         pert_x = X.clone()
         pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
 
-        if check_delta(X, EIDX, rep, pert_x, pert_edge_index, node_id, delta):
-            # Test for GNN Explainers
-            gnnexpr = GNNExplainer(model)
-            pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=pert_edge_index)
+        if check_delta(X, EIDX, model.to(device), rep, pert_x, pert_edge_index, node_id, delta):
+            pert_exp = explainer.get_explanation_node(x=pert_x, node_idx=node_id, edge_index=pert_edge_index)
 
             if generated_exp.feature_imp is not None:
                 top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
@@ -349,13 +347,13 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                 for (i, edge) in enumerate(pert_edges):
                     pert_map[edge.item()] = pert_exp.edge_imp[i].item()
 
-                all_edges = torch.from_numpy(np.union1d(org_edges.numpy(), pert_edges.numpy()))
-                ori_exp_mask = torch.zeros([len(all_edges)])             
-                pert_exp_mask = torch.zeros([len(all_edges)])
+                all_edges = torch.from_numpy(np.union1d(org_edges.cpu().numpy(), pert_edges.cpu().numpy()))
+                ori_exp_mask = torch.zeros([len(all_edges)]).to(device)
+                pert_exp_mask = torch.zeros([len(all_edges)]).to(device)
                 for i, e_id in enumerate(all_edges):
-                    if e_id in org_edges:
+                    if e_id.item() in org_edges:
                         ori_exp_mask[i] = org_map[e_id.item()]
-                    if e_id in pert_edges:
+                    if e_id.item() in pert_edges:
                         pert_exp_mask[i] = pert_map[e_id.item()]
                 GES_edge.append(1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item())
 
