@@ -227,8 +227,7 @@ class PGMExplainer(_BaseExplainer):
         p_values = []
         dependent_neighbors = []
         for node in neighbors:
-            _, p = chi_square(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [],
-                              df, boolean=False)
+            _, p = chi_square(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [], df, boolean=False)
             p_values.append(p)
             if p < self.p_threshold:
                 dependent_neighbors.append(node)
