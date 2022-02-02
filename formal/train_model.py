@@ -18,7 +18,7 @@ if args.expt_name == 'homophily':
 elif args.expt_name == 'heterophily':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
 elif args.expt_name == 'triangle':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangle.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
 else:
     print('Invalid Input!!')
     exit(0)
@@ -34,7 +34,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
 best_auroc=0
-for epoch in range(1, 101):
+for epoch in range(1, 1001):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
     if auroc > best_auroc:

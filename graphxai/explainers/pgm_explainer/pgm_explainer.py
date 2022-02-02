@@ -14,6 +14,7 @@ from graphxai.utils.perturb import PGM_perturb_node_features
 from graphxai.utils import Explanation
 from .utils import chi_square_pgm, generalize_target, generalize_others
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class PGMExplainer(_BaseExplainer):
     """
@@ -165,7 +166,7 @@ class PGMExplainer(_BaseExplainer):
                 pred_diff = pred_prob[subset, pred_label[subset]] - \
                     pred_prob_pert[subset, pred_label[subset]]
                 pred_diff_mask = pred_diff > self.pred_diff_threshold
-                pred_diff_mask = pred_diff_mask.numpy().astype(int)
+                pred_diff_mask = pred_diff_mask.cpu().numpy().astype(int)
                 sample[iter_idx, :sub_n, 1] = pred_diff_mask
 
         return sample
