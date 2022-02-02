@@ -98,7 +98,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
-parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
 seed_value=912
@@ -110,7 +110,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_HF_HF=1.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -134,6 +134,9 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+# Get delta for the model:
+delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
+
 for node_idx in tqdm.tqdm(inhouse[:1000]):
 
     node_idx = node_idx.item()
@@ -145,11 +148,20 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    ipdb.set_trace()
+    #ipdb.set_trace()
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+    feat, node, edge = graph_exp_stability(
+            exp, 
+            bah, 
+            node_id = node_idx, 
+            model = model,
+            delta = delta,
+            sens_idx = [bah.sensitive_feature],
+            device = device,
+            )
 
     gef_feat.append(feat)
     gef_node.append(node)
@@ -159,6 +171,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(f'{args.save_dir}{args.exp_method}_gef_feat.npy', gef_feat)
-np.save(f'{args.save_dir}{args.exp_method}_gef_node.npy', gef_node)
-np.save(f'{args.save_dir}{args.exp_method}_gef_edge.npy', gef_edge)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)

@@ -40,7 +40,13 @@ def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
     return rewired_edge_index
 
 
-def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 0.5, pert_feat: List[int] = [], bin_dims: List[int] = [], perturb_mode: str = 'gaussian'):
+def perturb_node_features(x: torch.Tensor, 
+        node_idx: int, 
+        perturb_prob: float = 0.5, 
+        pert_feat: List[int] = [], 
+        bin_dims: List[int] = [], 
+        perturb_mode: str = 'gaussian',
+        device = "cpu"):
     """
     Pick nodes with probability perturb_prob and perturb their features.
 
@@ -72,7 +78,7 @@ def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 
 
     if perturb_mode == 'scale':
         # Scale the continuous dims randomly
-        x_pert[node_idx, cont_dims] *= scale_mul * torch.rand(cont_dims)
+        x_pert[node_idx, cont_dims] *= scale_mul * torch.rand(cont_dims).to(device)
     elif perturb_mode == 'gaussian':
         # Add a Gaussian noise
         sigma = torch.std(x[:, cont_dims], dim=0, keepdim=True).squeeze(0)
@@ -84,7 +90,7 @@ def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 
     elif perturb_mode == 'mean':
         # Set to mean values
         mu = torch.mean(x[:, cont_dims], dim=0, keepdim=True).squeeze(0)
-        x_pert[node_idx, cont_dims] = mu
+        x_pert[node_idx, cont_dims] = mu.to(device)
     else:
         raise ValueError("perturb_mode must be one of ['scale', 'gaussian', 'uniform', 'mean']")
 
@@ -93,7 +99,7 @@ def perturb_node_features(x: torch.Tensor, node_idx: int, perturb_prob: float = 
     x_pert[node_idx, cont_dims] = torch.max(torch.min(x_pert[node_idx, cont_dims], max_val), min_val)
 
     # Randomly flip the binary dims
-    x_pert[node_idx, bin_dims] = torch.randint(2, size=(1, len_bin)).float()
+    x_pert[node_idx, bin_dims] = torch.randint(2, size=(1, len_bin)).float().to(device)
 
     return x_pert[node_idx, pert_feat]
 

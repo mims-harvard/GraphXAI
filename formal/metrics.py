@@ -158,7 +158,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         rem_features = torch.Tensor(
             [i for i in range(X.shape[1]) if i not in top_k_features]).long()
 
-        pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx)
+        pert_x[generated_exp.node_idx, rem_features] = perturb_node_features(x=pert_x, node_idx=generated_exp.node_idx, pert_feat=rem_features, bin_dims=sens_idx, device = device)
 
         pert_vec = model(pert_x.to(device), EIDX)[generated_exp.node_idx]
         pert_softmax = F.softmax(pert_vec, dim=-1)
@@ -203,16 +203,20 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     return [GEF_feat, GEF_node, GEF_edge]
 
 
-def calculate_delta(x, edge_index, train_set, label, sens_idx, rep='softmax', dist_norm=2):
+def calculate_delta(x, edge_index, train_set, label, sens_idx, model = None, rep='softmax', dist_norm=2, device = 'cpu'):
+
+    x = x.to(device)
+    edge_index = edge_index.to(device)
+
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
         try:
-            pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1)
+            pert_edge_index = rewire_edges(edge_index, node_idx=n_id.item(), num_nodes=1).to(device)
         except:
             continue
         pert_x = x.clone()
-        pert_x[n_id] = perturb_node_features(x=pert_x, node_idx=n_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
+        pert_x[n_id] = perturb_node_features(x=pert_x, node_idx=n_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
 
         org_vec = F.softmax(model(x, edge_index)[n_id], dim=-1)
         org_pred = torch.argmax(org_vec)
@@ -274,7 +278,7 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = "cpu") -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
@@ -292,7 +296,7 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
         except:
             continue
         pert_x = X.clone()
-        pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
+        pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
 
         if check_delta(X, EIDX, rep, pert_x, pert_edge_index, node_id, delta):
             # Test for GNN Explainers
@@ -338,7 +342,7 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
                 for (i, edge) in enumerate(org_edges):
                     org_map[edge.item()] = generated_exp.edge_imp[i].item()
                    
-                pert_edges = torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]
+                pert_edges = torch.where(pert_exp.enc_subgraph.edge_mask == True)[0].to(device)
 
                 # Create a dictionary mapping edge ids to their importance
                 pert_map = {}
@@ -473,7 +477,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
         else:
             # perturb node features for node_id
             pert_x = X.clone()
-            pert_x[node_id, :] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx)
+            pert_x[node_id, :] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
             try:
                 pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1)
             except:
