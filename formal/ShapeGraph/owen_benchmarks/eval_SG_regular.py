@@ -148,7 +148,7 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    ipdb.set_trace()
+    #ipdb.set_trace()
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
