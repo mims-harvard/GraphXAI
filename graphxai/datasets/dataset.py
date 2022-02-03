@@ -47,7 +47,7 @@ class NodeDataset:
         #self.explanations = []
 
     def get_graph(self, 
-        use_fixed_split = False, 
+        use_fixed_split = True, 
         split_sizes = (0.7, 0.2, 0.1),
         stratify = True, 
         seed = None):

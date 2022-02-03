@@ -22,6 +22,9 @@ from graphxai.datasets.utils.opt_homophily import optimize_homophily
 from graphxai.datasets.utils.feature_generators import gaussian_lv_generator
 from graphxai.datasets.utils.label_generators import bound_graph_label
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, cross_val_predict
+
 class ShapeGraph(NodeDataset):
     '''
     BA Shapes dataset with keyword arguments for different planting, 
@@ -98,6 +101,8 @@ class ShapeGraph(NodeDataset):
         self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
 
         self.add_sensitive_feature = True if 'add_sensitive_feature' not in kwargs else kwargs['add_sensitive_feature']
+        self.attribute_sensitive_feature = False if 'attribute_sensitive_feature' not in kwargs else kwargs['attribute_sensitive_feature']
+        self.sens_attribution_noise = 0.25 if 'sens_attribution_noise' not in kwargs else kwargs['sens_attribution_noise']
 
         self.homophily_coef = None if 'homophily_coef' not in kwargs else kwargs['homophily_coef']
 
@@ -224,22 +229,38 @@ class ShapeGraph(NodeDataset):
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         if self.add_sensitive_feature:
-            if self.seed is not None:
-                torch.manual_seed(self.seed)
-            sensitive = torch.randint(low=0, high=2, size = (x.shape[0],)).float()
+            if self.attribute_sensitive_feature:
+                # Choose random node idx in the attributed space, threshold it
+                to_attr = random.choice(self.feature_imp_true.nonzero(as_tuple=True)[0]).item()
 
-            # Add sensitive attribute to last dimension on x
-            x = torch.cat([x, sensitive.unsqueeze(1)], dim = 1)
-            # Expand feature importance and mark last dimension as negative
-            self.feature_imp_true = torch.cat([self.feature_imp_true, torch.zeros((1,))])
+                # Two options:
+                # Option 1: fit logistic regression model, assign based on that:
+                lr = LogisticRegression()
 
-            # Shuffle to mix in x:
-            shuffle_ind = torch.randperm(x.shape[1])
-            x[:,shuffle_ind] = x.clone()
-            self.feature_imp_true[shuffle_ind] = self.feature_imp_true.clone()
+                preds = cross_val_predict(lr, x.numpy(), y.numpy())
 
-            # Sensitive feature is in the location where the last index was:
-            self.sensitive_feature = shuffle_ind[-1].item()
+
+                # Option 2: shuffle around some y labels
+                # TODO: only implemented for binary (using not)
+                sens = torch.where(torch.rand((y.shape[0],)) < self.sens_attribution_noise, (not y).long(), y).long()
+
+            else: # Choose sensitive feature randomly
+                if self.seed is not None:
+                    torch.manual_seed(self.seed)
+                sensitive = torch.randint(low=0, high=2, size = (x.shape[0],)).float()
+
+                # Add sensitive attribute to last dimension on x
+                x = torch.cat([x, sensitive.unsqueeze(1)], dim = 1)
+                # Expand feature importance and mark last dimension as negative
+                self.feature_imp_true = torch.cat([self.feature_imp_true, torch.zeros((1,))])
+
+                # Shuffle to mix in x:
+                shuffle_ind = torch.randperm(x.shape[1])
+                x[:,shuffle_ind] = x.clone()
+                self.feature_imp_true[shuffle_ind] = self.feature_imp_true.clone()
+
+                # Sensitive feature is in the location where the last index was:
+                self.sensitive_feature = shuffle_ind[-1].item()
 
         else:
             self.sensitive_feature = None
