@@ -283,7 +283,7 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
     GES_edge = []
     num_run = 25
 
-    data = shape_graph.get_graph(used_fixed_split=True)
+    data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
