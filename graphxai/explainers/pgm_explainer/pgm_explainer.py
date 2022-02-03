@@ -172,7 +172,7 @@ class PGMExplainer(_BaseExplainer):
         return sample
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, num_hops: int = None,
+                             edge_index: torch.Tensor, y = None, num_hops: int = None,
                              forward_kwargs: dict = {},
                              top_k_nodes: int = None, no_child: bool = True):
         """
@@ -312,6 +312,7 @@ class PGMExplainer(_BaseExplainer):
         return exp
 
     def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
+                              y = None,
                               forward_kwargs: dict = {},
                               top_k_nodes: int = None):
         """
