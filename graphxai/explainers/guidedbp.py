@@ -66,6 +66,11 @@ class GuidedBP(_BaseDecomposition):
         '''
 
         # Run whole-graph prediction:
+        try:
+            x = x.detach().clone()
+            x.requires_grad = True
+        except:
+            pass
         assert x.requires_grad, 'x must have requires_grad == True'
 
         # Perform the guided backprop:
@@ -130,7 +135,12 @@ class GuidedBP(_BaseDecomposition):
         '''
 
         # Run whole-graph prediction:
-        x.requires_grad = True
+        try:
+            x.requires_grad = True
+        except:
+            pass
+
+        assert x.requires_grad, 'x must have requires_grad == True' 
 
         # Perform the guided backprop:
         xhook = x.register_hook(clip_hook)

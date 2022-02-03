@@ -283,7 +283,7 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
     GES_edge = []
     num_run = 25
 
-    data = shape_graph.get_graph()
+    data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
@@ -364,13 +364,13 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
 
     return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
-
-def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+# check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
+def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: ShapeGraph, model, node_id, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu') -> float:
     GECF_feat = None
     GECF_node = None
     GECF_edge = None
 
-    data = shape_graph.get_graph()
+    data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
@@ -378,11 +378,12 @@ def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, n
     pert_x = X.clone()
     pert_x[node_id, sens_idx] = 1 - pert_x[node_id, sens_idx]
 
-    if check_delta(shape_graph, rep, pert_x, EIDX, node_id, delta):
+    #if check_delta(shape_graph, rep, pert_x, EIDX, node_id, delta):
+    if check_delta(X, EIDX, model = model, rep = rep, pert_x = pert_x, pert_edge_index = EIDX, n_id = node_id, delta = delta):
 
         # Test for GNN Explainers
-        gnnexpr = GNNExplainer(model)
-        pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_idx), edge_index=edge_index)
+        #gnnexpr = GNNExplainer(model)
+        pert_exp = gnnexpr.get_explanation_node(x=pert_x, node_idx=int(node_id), edge_index=EIDX, y = Y.clone())
 
         if generated_exp.feature_imp is not None:
             top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
@@ -445,12 +446,16 @@ def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, n
 def stat_parity(org, pred, sens):
     idx_s0 = np.array(sens) == 0
     idx_s1 = np.array(sens) == 1
-    parity_1 = abs(sum(org[idx_s0]) / sum(idx_s0) - sum(org[idx_s1])/sum(idx_s1))
-    parity_2 = abs(sum(pred[idx_s0]) / sum(idx_s0) - sum(pred[idx_s1])/sum(idx_s1))
-    return abs(parity_1-parity_2)
 
+    if (sens.unique().shape[0] == 1):
+        return 0
+    else:
+        parity_1 = abs(sum(org[idx_s0]) / sum(idx_s0) - sum(org[idx_s1])/sum(idx_s1))
+        parity_2 = abs(sum(pred[idx_s0]) / sum(idx_s0) - sum(pred[idx_s1])/sum(idx_s1))
+        return abs(parity_1-parity_2)
 
-def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+# check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
+def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu') -> float:
 
     # Generate the predictions
     org_pred = []
@@ -489,7 +494,9 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
             # Get predictions
             out_x = torch.argmax(F.softmax(model(pert_x, pert_edge_index), dim=-1)[node_id]).item()
        
-        if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
+        #if check_delta(shape_graph, rep, pert_x, pert_edge_index, node_id, delta):
+        if check_delta(X, EIDX, model = model, rep = rep, pert_x = pert_x, pert_edge_index = pert_edge_index, n_id = node_id, delta = delta):
+
             if generated_exp.feature_imp is not None:
                 top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
                 ori_exp_mask = torch.zeros_like(generated_exp.feature_imp)
