@@ -29,6 +29,7 @@ class GradExplainer(_BaseExplainer):
                              label: Optional[torch.Tensor] = None,
                              num_hops: Optional[int] = None,
                              aggregate_node_imp = torch.sum,
+                             y = None,
                              forward_kwargs: dict = {}, **_) -> Explanation:
         """
         Explain a node prediction.

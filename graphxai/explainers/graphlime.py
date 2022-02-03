@@ -70,7 +70,7 @@ class GraphLIME(_BaseExplainer):
 
     def get_explanation_node(self, node_idx: int, edge_index: torch.Tensor,
                              x: torch.Tensor, num_hops: int = None,
-                             forward_kwargs: dict = {}):
+                             forward_kwargs: dict = {}, y = None):
         """
         Explain a node prediction.
 

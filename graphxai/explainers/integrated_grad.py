@@ -22,7 +22,9 @@ class IntegratedGradExplainer(_BaseExplainer):
         self.criterion = criterion
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, label: torch.Tensor,
+                             edge_index: torch.Tensor, 
+                             label: torch.Tensor = None,
+                             y = None,
                              num_hops: int = None, **_):
         """
         Explain a node prediction.
@@ -46,6 +48,11 @@ class IntegratedGradExplainer(_BaseExplainer):
                 3. the `edge_index` mask indicating which edges were preserved
         """
         exp = dict()
+
+        if (label is None) and (y is None):
+            raise ValueError('Either label or y should be provided for Integrated Gradients')
+
+        label = y if label is None else label 
 
         num_hops = num_hops if num_hops is not None else self.L
         khop_info = subset, sub_edge_index, mapping, _ = \
@@ -89,7 +96,9 @@ class IntegratedGradExplainer(_BaseExplainer):
         return exp
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
-                              x: torch.Tensor, label: torch.Tensor,
+                              x: torch.Tensor, 
+                              y: torch.Tensor = None,
+                              label: torch.Tensor = None,
                               forward_kwargs={}):
         """
         Explain a whole-graph prediction.
@@ -110,6 +119,11 @@ class IntegratedGradExplainer(_BaseExplainer):
         exp = dict()
 
         steps = 40
+
+        if (label is None) and (y is None):
+            raise ValueError('Either label or y should be provided for Integrated Gradients')
+
+        label = y if label is None else label 
 
         self.model.eval()
         grads = torch.zeros(steps+1, *x.shape)
