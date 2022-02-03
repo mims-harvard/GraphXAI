@@ -86,6 +86,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--expt_name', help='folder for saving results')
+parser.add_argument('--evaluate', type=bool, help='flag for evaluating metric')
 args = parser.parse_args()
 
 
@@ -136,30 +137,43 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
-for node_idx in tqdm.tqdm(inhouse[:1000]):
+for node_idx in tqdm.tqdm(inhouse):
 
     node_idx = node_idx.item()
 
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
+    
+    if pred_class == data.y[node_idx]:
 
-    # Get explanation method
-    explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
+        if not args.evaluate:
 
-    # Get explanations
-    gt_exp = bah.explanations[node_idx]
-    exp = explainer.get_explanation_node(**forward_kwargs)
+            # Get explanation method
+            explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
-    # Calculate metrics
-    feat, node, edge = graph_exp_acc(gt_exp, exp)
+            # Get explanations
+            gt_exp = bah.explanations[node_idx]
+            exp = explainer.get_explanation_node(**forward_kwargs)
 
-    gea_feat.append(feat)
-    gea_node.append(node)
-    gea_edge.append(edge)
+            # Save exp
+            np.save(f'{save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
+            np.save(f'{save_dir}/gt_{node_idx}.pickle', gt_exp)
 
+        else:
+            exp = np.load(f'{save_dir}/{args.exp_method}_{node_idx}.pickle.npy', allow_pickle=True).ravel()[0]
+            gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
+
+            # Calculate metrics
+            feat, node, edge = graph_exp_acc(gt_exp, exp)
+            # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+
+            gea_feat.append(feat)
+            gea_node.append(node)
+            gea_edge.append(edge)
 
 ############################
-# Saving the metric values
-np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
-np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
-np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)
+if args.evaluate:
+    # Saving the metric values
+    np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
+    np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
+    np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)

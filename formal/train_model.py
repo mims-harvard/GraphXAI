@@ -33,12 +33,12 @@ model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
-best_auroc=0
+best_f1=0
 for epoch in range(1, 1001):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
-    if auroc > best_auroc:
-        best_auroc = auroc
+    if f1 > best_fc
+        best_f1 = f1
         torch.save(model.state_dict(), f'model_{args.expt_name}.pth')
 
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')

@@ -127,7 +127,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
-for node_idx in tqdm.tqdm(inhouse[:1000]):
+for node_idx in tqdm.tqdm(inhouse):
 
     node_idx = node_idx.item()
 

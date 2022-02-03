@@ -1,3 +1,4 @@
+import ipdb
 import random
 import torch
 import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 
 # Test on 3-layer basic GCN, 16 hidden dim:
-model = GCN_3layer_basic(16, input_feat = 10, classes = 2)
+model = GCN_3layer_basic(16, input_feat = 11, classes = 2)
 
 # Train the model:
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -37,12 +38,12 @@ print('GROUND TRUTH LABEL: \t {}'.format(data.y[node_idx].item()))
 print('PREDICTED LABEL   : \t {}'.format(pred.argmax(dim=0).item()))
 
 # Set up plotting:
-fig, (ax1, ax2) = plt.subplots(1, 2)
+#fig, (ax1, ax2) = plt.subplots(1, 2)
 
-# Ground truth plot:
+## Ground truth plot:
 gt_exp = bah.explanations[node_idx]
-gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
-ax1.set_title('Ground Truth')
+#gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
+#ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
 explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', 
@@ -54,7 +55,7 @@ exp = explainer.get_explanation_node(
                     edge_index = data.edge_index, 
                     label = data.y)
 # ------------------------------------------------------------------------
-
+ipdb.set_trace()
 # Grad-CAM plot:
 exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
 ax2.set_title('PGExplainer')

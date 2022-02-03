@@ -7,7 +7,7 @@ import seaborn as sea
 import matplotlib.pyplot as plt
 # plt.style.use('ggplot')
 
-plt.rcParams.update({'font.size': 36})  # , 'font.weight': 'bold'})
+plt.rcParams.update({'font.size': 27})  # , 'font.weight': 'bold'})
 plt.rc('font', family='sans-serif')
 plt.rcParams["axes.grid"] = False
 plt.rc('font', family='sans-serif')
@@ -24,7 +24,7 @@ def set_box_color(bp, color):
 algos = ['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex', 'pgmex']
 df_homo = []
 df_hete = []
-ty = 'edge'
+ty = 'node'
 # Loop over all datasets
 for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex', 'pgmex']):
     temp_homo = np.load(f'./results_homophily/{algo}_gef_{ty}.npy', allow_pickle=True)
@@ -37,21 +37,25 @@ for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex
         df_hete.append(temp_hete)
     # print(f'{algo}: Homophily={df_homo[-1].mean()} | Heterophily={df_hete[-1].mean()}')
 # plotting distributions
-fig, ax = plt.subplots(figsize=(70, len(df_homo)))
+fig, ax = plt.subplots(figsize=(20, len(df_homo)))
+ax.spines['right'].set_visible(False)
+ax.spines['top'].set_visible(False)
 
 # ipdb.set_trace()
 # my_pal = {"GCN": "#FF99AD", "NIFTY-GCN": "#FF0033", "GIN": "#9AF8E3", "NIFTY-GIN": "#0FDDAF", "SAGE": "#FDF19D", "NIFTY-SAGE": "#FBDB0C", "INFOMAX": "#77FF77", "NIFTY-INFOMAX": "#009900", "JK": "#D58DF8", "NIFTY-JK": "#820BBB"}
-sm = ax.boxplot(df_homo, positions=np.array(range(len(algos)))*2.0-0.4, sym='', widths=0.6, whis=(5, 95), medianprops=dict(color='k'), patch_artist=True)
-xnorm = ax.boxplot(df_hete, positions=np.array(range(len(algos)))*2.0+0.4, sym='', widths=0.6, whis=(5, 95), medianprops=dict(color='k'), patch_artist=True)
+sm = ax.boxplot(df_homo, positions=np.array(range(len(algos)))/8-0.0125, sym='', widths=0.025, whis=(5, 95), medianprops=dict(color='k'), patch_artist=True)
+xnorm = ax.boxplot(df_hete, positions=np.array(range(len(algos)))/8+0.0125, sym='', widths=0.025, whis=(5, 95), medianprops=dict(color='k'), patch_artist=True)
 set_box_color(sm, '#77FF77')  # '#D7191C') # colors are from http://colorbrewer2.org/
 set_box_color(xnorm, '#009900')  # '#2C7BB6')
 
 # draw temporary red and blue lines and use them to create a legend
 plt.plot([], c='#77FF77', label='Homophily')  # Triangle motifs')
 plt.plot([], c='#009900', label='Heterophily')  # oause motifs')
-plt.xticks(range(0, len(algos) * 2, 2), algos)
+plt.xticks(np.array(range(0, len(algos)))/8, ['Random', 'Grad', 'GradCAM', 'GradBP', 'IG', 'GNNEx', 'PGMEx'])
+ax.set_xlim(-0.05, (len(algos)/8)+0.013)
 # plt.yticks(range(0, 1, 0.1), fontsize=36)  # len(df_small)**2, 10), fontsize=36)
-plt.legend()  # bbox_to_anchor=(0.9, 0.6))
+plt.ylabel('Graph Explanation faithfulness')
+# plt.legend()  # bbox_to_anchor=(0.9, 0.6))
 plt.savefig(f'./demo.pdf', bbox_inches='tight')
 # plt.savefig(f'./empirical_bound_lg_faithfulness.pdf', bbox_inches='tight')
 

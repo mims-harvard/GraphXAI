@@ -61,7 +61,10 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'top_k_nodes': 10}
     elif method=='pgex':
         exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        exp_method.train_explanation_model(data.to(device))
+        flag=True
+        if flag:
+            exp_method.train_explanation_model(data.to(device))
+            flag = False
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
@@ -120,7 +123,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
-for node_idx in tqdm.tqdm(inhouse[:1000]):
+for node_idx in tqdm.tqdm(inhouse):
 
     node_idx = node_idx.item()
 
@@ -139,7 +142,6 @@ for node_idx in tqdm.tqdm(inhouse[:1000]):
     gef_feat.append(feat)
     gef_node.append(node)
     gef_edge.append(edge)
-
 
 ############################
 # Saving the metric values
