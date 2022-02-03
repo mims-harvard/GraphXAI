@@ -1,10 +1,12 @@
 """
 This code is modified from networkx.
 """
-
+import torch
 import random
+import numpy as np
 import networkx as nx
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def swap(G, subset: list = None, nswap: int = 1,
          max_tries: int = 100, seed: int = None):
@@ -55,13 +57,27 @@ def swap(G, subset: list = None, nswap: int = 1,
         Returns normalized cumulative distribution from discrete distribution,
         restricted to the subset.
         """
+        # Original implementation
+        # cdf = [0.0]
+        # if subset is not None:
+        #     # Restrict the distribution to subset
+        #     distribution = [d if i in subset else 0 for (i, d) in enumerate(distribution)]
+        # psum = float(sum(distribution))
+        # for i in range(0, len(distribution)):
+        #     cdf.append(cdf[i] + distribution[i] / psum)
+
+        # Tensorized implementation
         cdf = [0.0]
+        dist_tensor = torch.from_numpy(np.asarray(distribution)).to(device)
+        temp_dist = torch.zeros(len(distribution)).long().to(device)
         if subset is not None:
-            # Restrict the distribution to subset
-            distribution = [d if i in subset else 0 for (i, d) in enumerate(distribution)]
-        psum = float(sum(distribution))
-        for i in range(0, len(distribution)):
-            cdf.append(cdf[i] + distribution[i] / psum)
+            temp_dist[subset] = dist_tensor[subset]
+
+        psum = float(sum(temp_dist))
+        temp_dist = temp_dist/psum
+        for i in range(0, len(temp_dist)):
+            cdf.append(cdf[i] + temp_dist[i].item())
+
         return cdf
 
     # Initialize seed for random
@@ -79,7 +95,9 @@ def swap(G, subset: list = None, nswap: int = 1,
     n = 0
     swapcount = 0
     keys, degrees = zip(*G.degree())  # keys, degree
+    # import time; st_time = time.time()
     cdf = cumulative_distribution(degrees, subset)  # cdf of degree
+    # print(f'{time.time()-st_time}')
     discrete_sequence = nx.utils.discrete_sequence
     while swapcount < nswap:
         #        if random.random() < 0.5: continue # trick to avoid periodicities?
@@ -109,5 +127,3 @@ def swap(G, subset: list = None, nswap: int = 1,
             raise nx.NetworkXAlgorithmError(e)
         n += 1
     return G
-
-

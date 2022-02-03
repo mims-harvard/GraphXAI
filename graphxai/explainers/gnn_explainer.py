@@ -129,7 +129,7 @@ class GNNExplainer(_BaseExplainer):
         train(self.edge_mask, 'edge')
         edge_imp = self.edge_mask.data.sigmoid().to(device)
 
-        print('pre activation edge_imp:', edge_imp)
+        # print('pre activation edge_imp:', edge_imp)
 
         # print('IN GNNEXPLAINER')
         # print('edge imp shape', edge_imp.shape)

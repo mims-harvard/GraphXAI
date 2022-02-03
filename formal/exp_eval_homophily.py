@@ -137,7 +137,8 @@ for node_idx in tqdm.tqdm(inhouse):
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
-    feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+    feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
+    # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
 
     gef_feat.append(feat)
     gef_node.append(node)
