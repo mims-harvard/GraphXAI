@@ -111,7 +111,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-my_base_graphxai = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI'
+my_base_graphxai = '/home/owq978/GraphXAI'
 bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_HF_HF=1.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
