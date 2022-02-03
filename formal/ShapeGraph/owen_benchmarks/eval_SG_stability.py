@@ -115,9 +115,10 @@ bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_HF_HF=1
 
 data = bah.get_graph(use_fixed_split=True)
 
-inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-np.random.shuffle(inhouse.numpy())
-print(inhouse)
+#inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
+test_set = (data.test_mask).nonzero(as_tuple=True)[0]
+np.random.shuffle(test_set.numpy())
+print(test_set)
 # Test on 3-layer basic GCN, 16 hidden dim:
 #model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 model = get_model(name = args.model).to(device)
@@ -138,12 +139,17 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 # Get delta for the model:
 delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
 
-for node_idx in tqdm.tqdm(inhouse[:1000]):
+#for node_idx in tqdm.tqdm(inhouse[:1000]):
+for node_idx in tqdm.tqdm(test_set):
 
     node_idx = node_idx.item()
 
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
+
+    if pred_class != data.y[node_idx]:
+        # Don't evaluate if the prediction is incorrect
+        continue
 
     # Get explanation method
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
