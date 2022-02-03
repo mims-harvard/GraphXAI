@@ -22,6 +22,7 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor,
             edge_index: torch.Tensor, 
             num_hops: Optional[int] = None,
+            y = None,
             aggregate_node_imp = torch.sum
         ):
         """

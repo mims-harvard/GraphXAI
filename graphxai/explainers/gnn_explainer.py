@@ -32,12 +32,15 @@ class GNNExplainer(_BaseExplainer):
             self.coeff = {'edge': {'entropy': 1.0, 'size': 0.005},
                           'feature': {'entropy': 0.1, 'size': 1.0}}
 
-    def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor,
-                             label: torch.Tensor = None,
-                             num_hops: int = None,
-                             explain_feature: bool = True,
-                             forward_kwargs: dict = {}):
+    def get_explanation_node(self, 
+            node_idx: int, 
+            x: torch.Tensor,                 
+            edge_index: torch.Tensor,
+            label: torch.Tensor = None,
+            num_hops: int = None,
+            explain_feature: bool = True,
+            y = None,
+            forward_kwargs: dict = {}):
         """
         Explain a node prediction.
 

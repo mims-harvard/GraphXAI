@@ -266,6 +266,7 @@ class PGExplainer(_BaseExplainer):
 
     def get_explanation_node(self, node_idx: int, x: torch.Tensor,
                              edge_index: torch.Tensor, label: torch.Tensor = None,
+                             y = None,
                              forward_kwargs: dict = {}, **_):
         """
         Explain a node prediction.

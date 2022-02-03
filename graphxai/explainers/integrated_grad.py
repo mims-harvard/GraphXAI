@@ -89,7 +89,9 @@ class IntegratedGradExplainer(_BaseExplainer):
         return exp
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
-                              x: torch.Tensor, label: torch.Tensor,
+                              x: torch.Tensor, 
+                              y: torch.Tensor = None,
+                              label: torch.Tensor = None,
                               forward_kwargs={}):
         """
         Explain a whole-graph prediction.
@@ -110,6 +112,11 @@ class IntegratedGradExplainer(_BaseExplainer):
         exp = dict()
 
         steps = 40
+
+        if (label is None) and (y is None):
+            raise ValueError('Either label or y should be provided for Integrated Gradients')
+
+        label = y if label is None else label 
 
         self.model.eval()
         grads = torch.zeros(steps+1, *x.shape)

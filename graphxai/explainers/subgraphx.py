@@ -112,6 +112,7 @@ class SubgraphX(_BaseExplainer):
             edge_index: Tensor, 
             node_idx: int, 
             label: int = None, 
+            y = None,
             max_nodes: int = 14, 
             forward_kwargs: dict = {}
         ) -> Tuple[dict, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
