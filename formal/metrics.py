@@ -42,7 +42,6 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
-
     if generated_exp.feature_imp is not None:
         JAC_feat = []
         thresh_feat = generated_exp.feature_imp.mean()
@@ -72,14 +71,13 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
 
     if generated_exp.node_imp is not None:
         JAC_node = []
-        thresh_node = generated_exp.node_imp.mean()
+        thresh_node = 0.1*generated_exp.node_imp.max()
         for exp in gt_exp:
             TPs = []
             FPs = []
             FNs = []
             relative_positives = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
             true_nodes = [exp.enc_subgraph.nodes[i].item() for i in relative_positives]
-
             for i, node in enumerate(exp_subgraph.nodes):
                 # Restore original node numbering
                 positive = generated_exp.node_imp[i].item() > thresh_node
@@ -138,7 +136,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     exp_subgraph = generated_exp.enc_subgraph
 
-    data = shape_graph.get_graph()
+    data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
@@ -147,7 +145,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
     org_vec = model(X, EIDX)[generated_exp.node_idx]
     org_softmax = F.softmax(org_vec, dim=-1)
 
-    if generated_exp.feature_imp is not None:
+    if False:  # generated_exp.feature_imp is not None:
         # Identifying the top_k features in the node attribute feature vector
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
@@ -165,6 +163,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         GEF_feat = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
     if generated_exp.node_imp is not None:
+
         # Identifying the top_k nodes in the explanation subgraph
         top_k_nodes = generated_exp.node_imp.topk(int(generated_exp.node_imp.shape[0] * top_k))[1]
 
@@ -182,7 +181,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, 
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    if generated_exp.edge_imp is not None:
+    if False:  # generated_exp.edge_imp is not None:
         subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].to(device)
         # Get the list of all edges that we need to keep
         keep_edges = [] 

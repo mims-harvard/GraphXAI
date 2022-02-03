@@ -231,21 +231,23 @@ class PGExplainer(_BaseExplainer):
                 tmp = float(self.t0 * np.power(self.t1/self.t0, epoch/self.max_epochs))
                 self.elayers.train()
                 tic = time.perf_counter()
+                emb = self._get_embedding(data.x, data.edge_index,
+                                          forward_kwargs=forward_kwargs)
+                X = data.x
+                EIDX = data.edge_index
                 for iter_idx, node_idx in tqdm.tqdm(enumerate(explain_node_index_list)):
+                    import ipdb; ipdb.set_trace()
                     subset, _, _, _ = \
                         k_hop_subgraph(node_idx, self.num_hops, data.edge_index,
                                        relabel_nodes=True, num_nodes=data.x.shape[0])
-
-                    emb = self._get_embedding(data.x, data.edge_index,
-                                              forward_kwargs=forward_kwargs)
                     new_node_index = int(torch.where(subset == node_idx)[0])
                     # print('data.x', data.x)
                     # print('data.edge_index', data.edge_index)
                     # print('forward_kwargs', forward_kwargs)
                     prob_with_mask, _ = self.__emb_to_edge_mask(
-                        emb.to(device), 
-                        x = data.x, 
-                        edge_index = data.edge_index, 
+                        emb, 
+                        x = X, 
+                        edge_index = EIDX, 
                         node_idx = node_idx,
                         forward_kwargs=forward_kwargs,
                         tmp=tmp, 
@@ -257,7 +259,7 @@ class PGExplainer(_BaseExplainer):
 
                 optimizer.step()
                 duration += time.perf_counter() - tic
-                print(f'Epoch: {epoch} | Loss: {loss/len(explain_node_index_list)}')
+#                print(f'Epoch: {epoch} | Loss: {loss/len(explain_node_index_list)}')
                 if abs(loss - last_loss) < self.eps:
                     break
                 last_loss = loss
