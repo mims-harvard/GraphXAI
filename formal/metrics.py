@@ -290,10 +290,11 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
 
     for run in range(num_run):
         # Generate perturbed counterpart
+        pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
         try:
-            import time; st_time = time.time()
+            # import time; st_time = time.time()
             pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
-            print(time.time()-st_time)
+            # print(time.time()-st_time)
         except:
             continue
         pert_x = X.clone()

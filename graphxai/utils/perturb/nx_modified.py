@@ -67,7 +67,7 @@ def swap(G, subset: list = None, nswap: int = 1,
         #     cdf.append(cdf[i] + distribution[i] / psum)
 
         # Tensorized implementation
-        cdf = [0.0]
+        cdf = [0.0]  # torch.Tensor([0.0])
         dist_tensor = torch.from_numpy(np.asarray(distribution)).to(device)
         temp_dist = torch.zeros(len(distribution)).long().to(device)
         if subset is not None:
@@ -76,9 +76,10 @@ def swap(G, subset: list = None, nswap: int = 1,
         psum = float(sum(temp_dist))
         temp_dist = temp_dist/psum
         for i in range(0, len(temp_dist)):
+            # import ipdb; ipdb.set_trace()
             cdf.append(cdf[i] + temp_dist[i].item())
-
-        return cdf
+            # cdf = torch.cat((cdf, torch.Tensor([cdf[i]+temp_dist[i]])), dim=-1)
+        return cdf  # .numpy()
 
     # Initialize seed for random
     random.seed(seed)
