@@ -235,12 +235,12 @@ class ShapeGraph(NodeDataset):
 
                 # Two options:
                 # Option 1: fit logistic regression model, assign based on that:
-                lr = LogisticRegression()
+                # lr = LogisticRegression()
 
-                preds = cross_val_predict(lr, x.numpy(), y.numpy())
+                # preds = cross_val_predict(lr, x.numpy(), y.numpy())
 
 
-                # Option 2: shuffle around some y labels
+                # Option 2: shuffle around some y labels - go with this one
                 # TODO: only implemented for binary (using not)
                 sens = torch.where(torch.rand((y.shape[0],)) < self.sens_attribution_noise, (not y).long(), y).long()
 

@@ -444,9 +444,13 @@ def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: Shap
 def stat_parity(org, pred, sens):
     idx_s0 = np.array(sens) == 0
     idx_s1 = np.array(sens) == 1
-    parity_1 = abs(sum(org[idx_s0]) / sum(idx_s0) - sum(org[idx_s1])/sum(idx_s1))
-    parity_2 = abs(sum(pred[idx_s0]) / sum(idx_s0) - sum(pred[idx_s1])/sum(idx_s1))
-    return abs(parity_1-parity_2)
+
+    if (sens.unique().shape[0] == 1):
+        return 0
+    else:
+        parity_1 = abs(sum(org[idx_s0]) / sum(idx_s0) - sum(org[idx_s1])/sum(idx_s1))
+        parity_2 = abs(sum(pred[idx_s0]) / sum(idx_s0) - sum(pred[idx_s1])/sum(idx_s1))
+        return abs(parity_1-parity_2)
 
 # check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
 def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu') -> float:
