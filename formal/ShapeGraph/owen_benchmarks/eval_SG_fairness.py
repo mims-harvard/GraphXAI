@@ -10,7 +10,7 @@ from graphxai.datasets  import load_ShapeGraph
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
-my_base_graphxai = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI'
+my_base_graphxai = '/home/owq978/GraphXAI'
 
 def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
     method = method.lower()
