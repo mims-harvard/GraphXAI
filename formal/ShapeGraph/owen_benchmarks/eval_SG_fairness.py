@@ -174,7 +174,7 @@ for node_idx in tqdm.tqdm(test_set[:10]):
             model = model,
             node_id = node_idx, 
             delta = delta,
-            sens_idx = [bah.sensitive_feature],
+            sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
             device = device,
             )
 
