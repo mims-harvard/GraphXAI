@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from numpy import ndarray
 from torch_geometric.utils import to_networkx
+from torch_geometric.data import Data
 
 from graphxai.explainers import CAM, GradCAM, GNNExplainer
 # from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
@@ -277,26 +278,41 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = "cpu") -> float:
+def graph_exp_stability(generated_exp: Explanation, explainer, 
+        shape_graph: ShapeGraph, node_id, model, delta, sens_idx, 
+        top_k=0.25, rep='softmax', device = "cpu",
+        G = None, data = None) -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
     num_run = 25
 
-    data = shape_graph.get_graph(use_fixed_split=True)
+    if data is None:
+        data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
 
+    if G is None:
+        G = to_networkx_conv(data, to_undirected=True) # Cache graph to use in rewire_edges
+    data_for_rewire = Data(edge_index = EIDX, num_nodes = 1)
+
     for run in range(num_run):
         # Generate perturbed counterpart
-        pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
-        try:
+        #pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
+        pert_edge_index = rewire_edges(EIDX, 
+            data = data_for_rewire,
+            G = G,
+            node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
+        #try:
             # import time; st_time = time.time()
-            pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
+        #    pert_edge_index = rewire_edges(EIDX, 
+                # data = data_for_rewire,
+                # G = G,
+        #        node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
             # print(time.time()-st_time)
-        except:
-            continue
+        #except:
+        #    continue
         pert_x = X.clone()
         pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
 
