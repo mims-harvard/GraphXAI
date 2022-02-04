@@ -141,6 +141,9 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 my_base_graphxai = '/home/owq978/GraphXAI'
 delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'))[0]
 
+# Cached graphs:
+G = to_networkx_conv(data, to_undirected=True)
+
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set[:10]):
 
@@ -171,6 +174,8 @@ for node_idx in tqdm.tqdm(test_set[:10]):
             delta = delta,
             sens_idx = [bah.sensitive_feature],
             device = device,
+            G = G,
+            data = data,
             )
     gef_feat.append(feat)
     gef_node.append(node)

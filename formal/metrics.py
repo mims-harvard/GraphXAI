@@ -278,18 +278,23 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = "cpu") -> float:
+def graph_exp_stability(generated_exp: Explanation, explainer, 
+        shape_graph: ShapeGraph, node_id, model, delta, sens_idx, 
+        top_k=0.25, rep='softmax', device = "cpu",
+        G = None, data = None) -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
     num_run = 25
 
-    data = shape_graph.get_graph(use_fixed_split=True)
+    if data is None:
+        data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
 
-    G = to_networkx_conv(data, to_undirected=True) # Cache graph to use in rewire_edges
+    if G is None:
+        G = to_networkx_conv(data, to_undirected=True) # Cache graph to use in rewire_edges
     data_for_rewire = Data(edge_index = EIDX, num_nodes = 1)
 
     for run in range(num_run):
