@@ -294,16 +294,16 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
 
     for run in range(num_run):
         # Generate perturbed counterpart
-        #pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
-        try:
+        pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
+        #try:
             # import time; st_time = time.time()
-            pert_edge_index = rewire_edges(EIDX, 
+        #    pert_edge_index = rewire_edges(EIDX, 
                 # data = data_for_rewire,
                 # G = G,
-                node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
+        #        node_idx=node_id, num_nodes=1).to(device)  # , seed=run)
             # print(time.time()-st_time)
-        except:
-            continue
+        #except:
+        #    continue
         pert_x = X.clone()
         pert_x[node_id] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
 

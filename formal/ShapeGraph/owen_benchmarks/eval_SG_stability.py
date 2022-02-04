@@ -137,10 +137,12 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
-delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
+#delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
+my_base_graphxai = '/home/owq978/GraphXAI'
+delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'))[0]
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set):
+for node_idx in tqdm.tqdm(test_set[:10]):
 
     node_idx = node_idx.item()
 
