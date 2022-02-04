@@ -147,7 +147,7 @@ G = to_networkx_conv(data, to_undirected=True)
 save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set[:10]):
+for node_idx in tqdm.tqdm(test_set):
 
     node_idx = node_idx.item()
 

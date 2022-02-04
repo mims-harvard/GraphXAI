@@ -200,6 +200,10 @@ for node_idx in tqdm.tqdm(test_set[:10]):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gcf_feat)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gcf_node)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gcf_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
+
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)
