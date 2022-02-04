@@ -36,6 +36,13 @@ for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex
     if temp_hete[-1] is not None:
         df_hete.append(temp_hete)
     # print(f'{algo}: Homophily={df_homo[-1].mean()} | Heterophily={df_hete[-1].mean()}')
+
+### print statistics
+for i, val in enumerate(df_homo):
+    print(f'Explanation method: {algos[i]}, MeanGEF={np.mean(val):.3f}, StdGEF={np.std(val):.3f}')
+
+exit(0)
+    
 # plotting distributions
 fig, ax = plt.subplots(figsize=(20, len(df_homo)))
 ax.spines['right'].set_visible(False)

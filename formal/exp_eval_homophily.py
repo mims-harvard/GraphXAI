@@ -93,7 +93,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
-
+ipdb.set_trace()
 inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
 np.random.shuffle(inhouse.numpy())
 print(inhouse)
@@ -135,10 +135,17 @@ for node_idx in tqdm.tqdm(inhouse):
                         'label': pred_class}
     # Get explanations
     exp = explainer.get_explanation_node(**forward_kwargs)
+    gt_exp = bah.explanations[node_idx]
+
+    # Save explanations
+    np.save(f'{args.save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
+    np.save(f'{args.save_dir}/gt_{node_idx}.pickle', gt_exp)
 
     # Calculate metrics
+    feat, node, edge = graph_exp_acc(gt_exp, exp)
     # feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
-    feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+#     feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+
 
     gef_feat.append(feat)
     gef_node.append(node)
@@ -147,6 +154,6 @@ for node_idx in tqdm.tqdm(inhouse):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(f'{args.save_dir}{args.exp_method}_gef_feat.npy', gef_feat)
-np.save(f'{args.save_dir}{args.exp_method}_gef_node.npy', gef_node)
-np.save(f'{args.save_dir}{args.exp_method}_gef_edge.npy', gef_edge)
+np.save(f'{args.save_dir}{args.exp_method}_gea_feat.npy', gef_feat)
+np.save(f'{args.save_dir}{args.exp_method}_gea_node.npy', gef_node)
+np.save(f'{args.save_dir}{args.exp_method}_gea_edge.npy', gef_edge)
