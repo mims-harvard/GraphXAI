@@ -565,7 +565,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
             org_pred.append(out_x)
 
     # Calculate Statistical Parity
-    GEGF_feat = stat_parity(np.array(org_pred), np.array(exp_pred_feat), sens_feat)
-    GEGF_node = stat_parity(np.array(org_pred), np.array(exp_pred_node), sens_node)
-    GEGF_edge = stat_parity(np.array(org_pred), np.array(exp_pred_edge), sens_edge)
+    GEGF_feat = stat_parity(np.array(org_pred), np.array(exp_pred_feat), np.array(sens_feat))
+    GEGF_node = stat_parity(np.array(org_pred), np.array(exp_pred_node), np.array(sens_node))
+    GEGF_edge = stat_parity(np.array(org_pred), np.array(exp_pred_edge), np.array(sens_edge))
     return [GEGF_feat, GEGF_node, GEGF_edge]
