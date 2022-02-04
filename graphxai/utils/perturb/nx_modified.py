@@ -71,7 +71,7 @@ def swap(G, subset: list = None, nswap: int = 1,
         #dist_tensor = torch.from_numpy(np.asarray(distribution)).to(device)
         dist_tensor = torch.as_tensor(distribution).to(device)
         #temp_dist = torch.zeros(len(distribution)).long().to(device)
-        temp_dist = torch.zeros(len(distribution)).to(device)
+        temp_dist = torch.zeros(len(distribution)).long().to(device)
         if subset is not None:
             temp_dist[subset] = dist_tensor[subset]
 
