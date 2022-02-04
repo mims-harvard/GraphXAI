@@ -289,7 +289,7 @@ def graph_exp_stability(generated_exp: Explanation, explainer, shape_graph: Shap
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
 
-    G = to_networkx_conv(data) # Cache graph to use in rewire_edges
+    G = to_networkx_conv(data, to_undirected=True) # Cache graph to use in rewire_edges
     data_for_rewire = Data(edge_index = EIDX, num_nodes = 1)
 
     for run in range(num_run):
