@@ -37,7 +37,7 @@ best_f1=0
 for epoch in range(1, 1001):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
-    if f1 > best_fc
+    if f1 > best_fc:
         best_f1 = f1
         torch.save(model.state_dict(), f'model_{args.expt_name}.pth')
 
