@@ -59,13 +59,6 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
-    elif method=='pgex':
-        exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        exp_method.train_explanation_model(data.to(device))
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
-                        'edge_index': data.edge_index.to(device),
-                        'label': pred_class}
     elif method=='rand':
         exp_method = RandomExplainer(model)
         forward_kwargs={'x': data.x.to(device),
@@ -137,6 +130,10 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+if args.exp_method=='pgex' and not args.evaluate:
+    explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=1, lr=0.1)
+    explainer.train_explanation_model(data.to(device))
+
 for node_idx in tqdm.tqdm(inhouse):
 
     node_idx = node_idx.item()
@@ -149,7 +146,13 @@ for node_idx in tqdm.tqdm(inhouse):
         if not args.evaluate:
 
             # Get explanation method
-            explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
+            if args.exp_method != 'pgex':
+                explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
+            else:
+                forward_kwargs={'node_idx': node_idx,
+                        'x': data.x.to(device),
+                        'edge_index': data.edge_index.to(device),
+                        'label': pred_class}
 
             # Get explanations
             gt_exp = bah.explanations[node_idx]
@@ -164,8 +167,8 @@ for node_idx in tqdm.tqdm(inhouse):
             gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
 
             # Calculate metrics
-            feat, node, edge = graph_exp_acc(gt_exp, exp)
-            # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+            # feat, node, edge = graph_exp_acc(gt_exp, exp)
+            feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
 
             gea_feat.append(feat)
             gea_node.append(node)
@@ -174,6 +177,6 @@ for node_idx in tqdm.tqdm(inhouse):
 ############################
 if args.evaluate:
     # Saving the metric values
-    np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
-    np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
-    np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)
+    np.save(f'{save_dir}/{args.exp_method}_gef_feat.npy', gea_feat)
+    np.save(f'{save_dir}/{args.exp_method}_gef_node.npy', gea_node)
+    np.save(f'{save_dir}/{args.exp_method}_gef_edge.npy', gea_edge)

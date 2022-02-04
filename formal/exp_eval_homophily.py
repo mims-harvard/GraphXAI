@@ -59,16 +59,6 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
-    elif method=='pgex':
-        exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        flag=True
-        if flag:
-            exp_method.train_explanation_model(data.to(device))
-            flag = False
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
-                        'edge_index': data.edge_index.to(device),
-                        'label': pred_class}
     elif method=='rand':
         exp_method = RandomExplainer(model)
         forward_kwargs={'x': data.x.to(device),
@@ -123,6 +113,11 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+if args.exp_method=='pgex':
+    explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=1, lr=0.1)
+    explainer.train_explanation_model(data.to(device))
+
+
 for node_idx in tqdm.tqdm(inhouse):
 
     node_idx = node_idx.item()
@@ -131,14 +126,19 @@ for node_idx in tqdm.tqdm(inhouse):
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
     # Get explanation method
-    explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
-
+    if args.exp_method != 'pgex':
+        explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
+    else:
+        forward_kwargs={'node_idx': node_idx,
+                        'x': data.x.to(device),
+                        'edge_index': data.edge_index.to(device),
+                        'label': pred_class}
     # Get explanations
     exp = explainer.get_explanation_node(**forward_kwargs)
 
     # Calculate metrics
-    feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
-    # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+    # feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
+    feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
 
     gef_feat.append(feat)
     gef_node.append(node)

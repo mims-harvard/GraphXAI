@@ -58,7 +58,7 @@ class PGExplainer(_BaseExplainer):
 
         # Explanation model in PGExplainer
 
-        mult = 2 if self.explain_graph else 3
+        mult = 2 # if self.explain_graph else 3
 
         if isinstance(self.emb_layer, GCNConv):
             in_channels = mult * self.emb_layer.out_channels
@@ -71,7 +71,7 @@ class PGExplainer(_BaseExplainer):
             [nn.Sequential(
                 nn.Linear(in_channels, 64),
                 nn.ReLU()),
-             nn.Linear(64, 1)])
+             nn.Linear(64, 1)]).to(device)
 
     def __concrete_sample(self, log_alpha: torch.Tensor,
                           beta: float = 1.0, training: bool = True):
@@ -104,19 +104,20 @@ class PGExplainer(_BaseExplainer):
             prob_with_mask (torch.Tensor): the predicted probability with edge_mask
             edge_mask (torch.Tensor): the mask for graph edges with values in [0, 1]
         """
-        if not self.explain_graph and node_idx is None:
-            raise ValueError('node_idx should be provided.')
+#        if not self.explain_graph and node_idx is None:
+#            raise ValueError('node_idx should be provided.')
 
         with torch.set_grad_enabled(training):
             # Concat relevant node embeddings
+            # import ipdb; ipdb.set_trace()
             U, V = edge_index  # edge (u, v), U = (u), V = (v)
             h1 = emb[U]
             h2 = emb[V]
             if self.explain_graph:
                 h = torch.cat([h1, h2], dim=1)
             else:
-                h3 = emb[node_idx].repeat(h1.shape[0], 1)
-                h = torch.cat([h1, h2, h3], dim=1)
+                h3 = emb.repeat(h1.shape[0], 1)
+                h = torch.cat([h1, h2], dim=1)
 
             # Calculate the edge weights and set the edge mask
             for elayer in self.elayers:
@@ -144,6 +145,30 @@ class PGExplainer(_BaseExplainer):
         self._clear_masks()
 
         return prob_with_mask, edge_mask
+
+
+    def get_subgraph(self, node_idx, x, edge_index, y, **kwargs):
+        num_nodes, num_edges = x.size(0), edge_index.size(1)
+        graph = to_networkx(data=Data(x=x, edge_index=edge_index), to_undirected=True)
+
+        subset, edge_index, _, edge_mask = k_hop_subgraph_with_default_whole_graph(
+            node_idx, self.num_hops, edge_index, relabel_nodes=True,
+            num_nodes=num_nodes, flow=self.__flow__())
+
+        mapping = {int(v): k for k, v in enumerate(subset)}
+        subgraph = graph.subgraph(subset.tolist())
+        nx.relabel_nodes(subgraph, mapping)
+
+        x = x[subset]
+        for key, item in kwargs.items():
+            if torch.is_tensor(item) and item.size(0) == num_nodes:
+                item = item[subset]
+            elif torch.is_tensor(item) and item.size(0) == num_edges:
+                item = item[edge_mask]
+            kwargs[key] = item
+        y = y[subset]
+        return x, edge_index, y, subset, kwargs
+
 
     def train_explanation_model(self, dataset: Data, forward_kwargs: dict = {}):
         """
@@ -211,13 +236,15 @@ class PGExplainer(_BaseExplainer):
 
         else:  # Explain node-level predictions of a graph
             data = dataset.to(device)
+            X = data.x
+            EIDX = data.edge_index
+
             # Get the predicted labels for training nodes
             with torch.no_grad():
                 self.model.eval()
                 explain_node_index_list = torch.where(data.train_mask)[0].tolist()
                 # pred_dict = {}
-                label = self._predict(data.x, data.edge_index,
-                                      forward_kwargs=forward_kwargs)
+                label = self._predict(X, EIDX, forward_kwargs=forward_kwargs)
                 pred_dict = dict(zip(explain_node_index_list, label[explain_node_index_list]))
                 # for node_idx in tqdm.tqdm(explain_node_index_list):
                 #     pred_dict[node_idx] = label[node_idx]
@@ -225,44 +252,45 @@ class PGExplainer(_BaseExplainer):
             # Train the mask generator
             duration = 0.0
             last_loss = 0.0
+            x_dict = {}
+            edge_index_dict = {}
+            node_idx_dict = {}
+            emb_dict = {}
+            for iter_idx, node_idx in tqdm.tqdm(enumerate(explain_node_index_list)):
+                subset, sub_edge_index, _, _ = k_hop_subgraph(node_idx, self.num_hops, EIDX, relabel_nodes=True, num_nodes=data.x.shape[0])
+#                 new_node_index.append(int(torch.where(subset == node_idx)[0]))
+                x_dict[node_idx] = X[subset].to(device)
+                edge_index_dict[node_idx] = sub_edge_index.to(device)
+                emb = self._get_embedding(X[subset], sub_edge_index,forward_kwargs=forward_kwargs)
+                emb_dict[node_idx] = emb.to(device)
+                node_idx_dict[node_idx] = int(torch.where(subset==node_idx)[0])
+
             for epoch in range(self.max_epochs):
                 loss = 0.0
                 optimizer.zero_grad()
                 tmp = float(self.t0 * np.power(self.t1/self.t0, epoch/self.max_epochs))
                 self.elayers.train()
                 tic = time.perf_counter()
-                emb = self._get_embedding(data.x, data.edge_index,
-                                          forward_kwargs=forward_kwargs)
-                X = data.x
-                EIDX = data.edge_index
-                for iter_idx, node_idx in tqdm.tqdm(enumerate(explain_node_index_list)):
-                    import ipdb; ipdb.set_trace()
-                    subset, _, _, _ = \
-                        k_hop_subgraph(node_idx, self.num_hops, data.edge_index,
-                                       relabel_nodes=True, num_nodes=data.x.shape[0])
-                    new_node_index = int(torch.where(subset == node_idx)[0])
-                    # print('data.x', data.x)
-                    # print('data.edge_index', data.edge_index)
-                    # print('forward_kwargs', forward_kwargs)
+
+                for iter_idx, node_idx in tqdm.tqdm(enumerate(x_dict.keys())):
                     prob_with_mask, _ = self.__emb_to_edge_mask(
-                        emb, 
-                        x = X, 
-                        edge_index = EIDX, 
+                        emb_dict[node_idx], 
+                        x = x_dict[node_idx], 
+                        edge_index = edge_index_dict[node_idx], 
                         node_idx = node_idx,
                         forward_kwargs=forward_kwargs,
                         tmp=tmp, 
                         training=True)
-                    loss_tmp = loss_fn(prob_with_mask[new_node_index],
-                                       pred_dict[node_idx])
+                    loss_tmp = loss_fn(prob_with_mask[node_idx_dict[node_idx]], pred_dict[node_idx])
                     loss_tmp.backward()
-                    loss += loss_tmp.item()
+                    # loss += loss_tmp.item()
 
                 optimizer.step()
                 duration += time.perf_counter() - tic
 #                print(f'Epoch: {epoch} | Loss: {loss/len(explain_node_index_list)}')
-                if abs(loss - last_loss) < self.eps:
-                    break
-                last_loss = loss
+                # if abs(loss - last_loss) < self.eps:
+                #     break
+                # last_loss = loss
 
             print(f"training time is {duration:.5}s")
 
@@ -369,3 +397,45 @@ class PGExplainer(_BaseExplainer):
         Explain a link prediction.
         """
         raise NotImplementedError()
+
+
+
+#            # New implementation
+#            data = dataset.to(device)
+#            explain_node_index_list = torch.where(data.train_mask)[0].tolist()
+#            # collect the embedding of nodes
+#            x_dict = {}
+#            edge_index_dict = {}
+#            node_idx_dict = {}
+#            emb_dict = {}
+#            pred_dict = {}
+#            with torch.no_grad():
+#                self.model.eval()
+#                for gid in explain_node_index_list:
+#                    x, edge_index, y, subset, _ = self.get_subgraph(node_idx=gid, x=data.x, edge_index=data.edge_index, y=data.y)
+#                    _, prob, emb = self.get_model_output(x, edge_index)
+#
+#                    x_dict[gid] = x
+#                    edge_index_dict[gid] = edge_index
+#                    node_idx_dict[gid] = int(torch.where(subset == gid)[0])
+#                    pred_dict[gid] = prob[node_idx_dict[gid]].argmax(-1).cpu()
+#                    emb_dict[gid] = emb.data.cpu()        
+#
+#            # train the explanation network
+#            torch.autograd.set_detect_anomaly(True)
+#
+#            for epoch in range(self.epochs):
+#                loss = 0.0
+#                optimizer.zero_grad()
+#                tmp = float(self.t0 * np.power(self.t1 / self.t0, epoch / self.epochs))
+#                self.elayers.train()
+#                for gid in tqdm(explain_node_index_list):
+#                    pred, edge_mask = self.forward((x_dict[gid], emb_dict[gid], edge_index_dict[gid], tmp), training=True)
+#                    loss_tmp = self.__loss__(pred[node_idx_dict[gid]], pred_dict[gid])
+#                    loss_tmp.backward()
+#                    loss += loss_tmp.item()
+#
+#                optimizer.step()
+#                print(f'Epoch: {epoch} | Loss: {loss}')
+#                torch.save(self.elayers.cpu().state_dict(), self.ckpt_path)
+#                self.elayers.to(self.device)
