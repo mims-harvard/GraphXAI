@@ -168,7 +168,7 @@ for node_idx in tqdm.tqdm(test_set[:10]):
     if save_exp_flag:
         # Only saving, no loading here
         torch.save(exp, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 
-            args.exp_method.upper(), 'exp_node{:0<5d}.pt'.format(node_idx)), 'rb'))
+            args.exp_method.upper(), 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])

@@ -147,7 +147,7 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 delta = np.load(open(os.path.join(my_base_graphxai, 'formal/model_homophily_delta.npy'), 'rb'), allow_pickle = True)[0]
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set):
+for node_idx in tqdm.tqdm(test_set[:10]):
 
     node_idx = node_idx.item()
 
@@ -188,7 +188,7 @@ for node_idx in tqdm.tqdm(test_set):
             node_id = node_idx, 
             model = model,
             delta = delta,
-            sens_idx = [bah.sensitive_feature],
+            sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
             device = device,
             )
 
