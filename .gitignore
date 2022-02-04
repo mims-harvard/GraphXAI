@@ -6,3 +6,4 @@ data/ShapeGraph/SG_heterophilic.pickle
 data/ShapeGraph/SG_homophilic.pickle
 *.out
 *.err
+formal/ShapeGraph/owen_benchmarks/results

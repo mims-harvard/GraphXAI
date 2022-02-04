@@ -10,7 +10,7 @@ from graphxai.datasets  import load_ShapeGraph
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
-my_base_graphxai = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI'
+my_base_graphxai = '/home/owq978/GraphXAI'
 
 def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
     method = method.lower()
@@ -147,7 +147,7 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 delta = np.load(open(os.path.join(my_base_graphxai, 'formal/model_homophily_delta.npy'), 'rb'), allow_pickle = True)[0]
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set):
+for node_idx in tqdm.tqdm(test_set[:10]):
 
     node_idx = node_idx.item()
 
@@ -174,7 +174,7 @@ for node_idx in tqdm.tqdm(test_set):
             model = model,
             node_id = node_idx, 
             delta = delta,
-            sens_idx = [bah.sensitive_feature],
+            sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
             device = device,
             )
 
@@ -188,7 +188,7 @@ for node_idx in tqdm.tqdm(test_set):
             node_id = node_idx, 
             model = model,
             delta = delta,
-            sens_idx = [bah.sensitive_feature],
+            sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
             device = device,
             )
 
@@ -200,6 +200,10 @@ for node_idx in tqdm.tqdm(test_set):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gcf_feat)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gcf_node)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gcf_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
+
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)

@@ -229,38 +229,39 @@ class ShapeGraph(NodeDataset):
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         if self.add_sensitive_feature:
+            # if self.attribute_sensitive_feature:
+            #     # Choose random node idx in the attributed space, threshold it
+            #     self.sensitive_feature = random.choice(self.feature_imp_true.nonzero(as_tuple=True)[0]).item()
+
+            #     # Shuffle around some y labels - go with this one
+            #     # TODO: only implemented for binary (using not)
+            #     sens = torch.where(torch.rand((y.shape[0],)) < self.sens_attribution_noise, (not y).long(), y).float()
+
+            #     # Set discrete value in x (replacing old value):
+            #     x[:,self.sensitive_feature] = sens 
+
+            # Choose sensitive feature randomly
+            if self.seed is not None:
+                torch.manual_seed(self.seed)
+
             if self.attribute_sensitive_feature:
-                # Choose random node idx in the attributed space, threshold it
-                to_attr = random.choice(self.feature_imp_true.nonzero(as_tuple=True)[0]).item()
-
-                # Two options:
-                # Option 1: fit logistic regression model, assign based on that:
-                # lr = LogisticRegression()
-
-                # preds = cross_val_predict(lr, x.numpy(), y.numpy())
-
-
-                # Option 2: shuffle around some y labels - go with this one
-                # TODO: only implemented for binary (using not)
-                sens = torch.where(torch.rand((y.shape[0],)) < self.sens_attribution_noise, (not y).long(), y).long()
-
-            else: # Choose sensitive feature randomly
-                if self.seed is not None:
-                    torch.manual_seed(self.seed)
+                prob_change = (torch.rand((y.shape[0],)) < self.sens_attribution_noise)
+                sensitive = torch.where(prob_change, torch.logical_not(y.bool()).long(), y).float()
+            else:
                 sensitive = torch.randint(low=0, high=2, size = (x.shape[0],)).float()
 
-                # Add sensitive attribute to last dimension on x
-                x = torch.cat([x, sensitive.unsqueeze(1)], dim = 1)
-                # Expand feature importance and mark last dimension as negative
-                self.feature_imp_true = torch.cat([self.feature_imp_true, torch.zeros((1,))])
+            # Add sensitive attribute to last dimension on x
+            x = torch.cat([x, sensitive.unsqueeze(1)], dim = 1)
+            # Expand feature importance and mark last dimension as negative
+            self.feature_imp_true = torch.cat([self.feature_imp_true, torch.zeros((1,))])
 
-                # Shuffle to mix in x:
-                shuffle_ind = torch.randperm(x.shape[1])
-                x[:,shuffle_ind] = x.clone()
-                self.feature_imp_true[shuffle_ind] = self.feature_imp_true.clone()
+            # Shuffle to mix in x:
+            shuffle_ind = torch.randperm(x.shape[1])
+            x[:,shuffle_ind] = x.clone()
+            self.feature_imp_true[shuffle_ind] = self.feature_imp_true.clone()
 
-                # Sensitive feature is in the location where the last index was:
-                self.sensitive_feature = shuffle_ind[-1].item()
+            # Sensitive feature is in the location where the last index was:
+            self.sensitive_feature = shuffle_ind[-1].item()
 
         else:
             self.sensitive_feature = None

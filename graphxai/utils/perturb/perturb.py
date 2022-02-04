@@ -1,8 +1,8 @@
 import torch
-
+import networkx as nx
 from typing import List
 from torch_geometric.data import Data
-from torch_geometric.utils import convert
+from torch_geometric.utils import convert, to_undirected
 from torch_geometric.utils.subgraph import k_hop_subgraph
 from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
 
@@ -11,8 +11,9 @@ from .nx_modified import swap
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
-                 node_idx: int = None, num_hops: int = 3,
-                 rewire_prob: float = 0.001, seed: int = 912):
+                G: nx.Graph = None, data: Data = None,
+                node_idx: int = None, num_hops: int = 3,
+                rewire_prob: float = 0.001, seed: int = 912):
     """
     Rewire edges in the graph.
 
@@ -32,11 +33,20 @@ def rewire_edges(edge_index: torch.Tensor, num_nodes: int,
 
     # Convert to networkx graph for rewiring edges
     # import ipdb; ipdb.set_trace()
-    data = Data(edge_index=edge_index, num_nodes=num_nodes)
-    G = convert.to_networkx(data, to_undirected=True)
+    if data is None:
+        data = Data(edge_index=edge_index, num_nodes=num_nodes)
+    if G is None:
+        G = convert.to_networkx(data, to_undirected=True)
+    else:
+        G = G.copy()
+        
     rewired_G = swap(G, subset, nswap=nswap, max_tries=1000*nswap)  # , seed=seed)
-    rewired_adj_mat = adj_mat(rewired_G)
-    rewired_edge_index = convert.from_scipy_sparse_matrix(rewired_adj_mat)[0]
+
+    # Quick way to get edge index from networkx graph:
+    rewired_edge_index = to_undirected(torch.as_tensor(list(rewired_G.edges)).t().long())
+
+    # rewired_adj_mat = adj_mat(rewired_G)
+    # rewired_edge_index = convert.from_scipy_sparse_matrix(rewired_adj_mat)[0]
     return rewired_edge_index
 
 
