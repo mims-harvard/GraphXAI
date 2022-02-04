@@ -14,11 +14,33 @@ from graphxai.datasets import load_ShapeGraph, ShapeGraph
 root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 #SG = load_ShapeGraph(number=1, root = root_data)
 
+SG = ShapeGraph(
+    model_layers = 3,
+    make_explanations=False,
+    num_subgraphs = 1200,
+    prob_connection = 0.006,
+    subgraph_size = 11,
+    class_sep = 0.6,
+    n_informative = 4,
+    homophily_coef = -1,
+    n_clusters_per_class = 2,
+    seed = 1456,
+    verify = False,
+    attribute_sensitive_feature = False,
+    add_sensitive_feature = True,
+    #sens_attribution_noise = 0.75,
+)
+
+# 0.88 homophilic
+# 0.83 heterophilic
+
+#SG.dump(fname = 'SG_house_HF=1_nc=2_asf=0.pickle')
+
 # SG = ShapeGraph(
 #     model_layers = 3,
 #     make_explanations=False,
-#     num_subgraphs = 1200,
-#     prob_connection = 0.0075,
+#     num_subgraphs = 200,
+#     prob_connection = 0.045,
 #     subgraph_size = 11,
 #     class_sep = 0.3,
 #     n_informative = 4,
@@ -27,20 +49,6 @@ root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 #     seed = 1456,
 #     verify = False
 # )
-
-SG = ShapeGraph(
-    model_layers = 3,
-    make_explanations=False,
-    num_subgraphs = 200,
-    prob_connection = 0.045,
-    subgraph_size = 11,
-    class_sep = 0.3,
-    n_informative = 4,
-    homophily_coef = 1,
-    n_clusters_per_class = 1,
-    seed = 1456,
-    verify = False
-)
 
 data = SG.get_graph()
 
@@ -65,7 +73,7 @@ parameters = {
     'C': list(np.arange(0.25, 1.5, step=0.25)),
 }
 
-lr = LogisticRegression(C = 0.25)
+lr = LogisticRegression()
 clf = GridSearchCV(lr, parameters, scoring='roc_auc', verbose = 1)
 clf.fit(X, Y)
 
@@ -73,15 +81,26 @@ print('LR Best AUROC', clf.best_score_)
 print('LR Best params', clf.best_params_)
 
 # -----------------------------------------------
-model = GCN_3layer_basic(16, input_feat = 11, classes = 2)
+model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
+#model.load_state_dict()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay = 5e-5)
 criterion = torch.nn.CrossEntropyLoss()
+
+max_auroc = 0
+max_f1 = 0
+max_acc = 0
 
 for epoch in trange(1, 501):
     loss = train(model, optimizer, criterion, data)
     #acc = test(model, data)
     f1, acc, prec, rec, auprc, auroc = test(model, data, get_auc = True)
+
+    if auroc > max_auroc:
+        max_auroc = auroc
+        max_f1 = f1
+        max_acc = acc
+
     #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}')
     #print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
 
-print(f'Loss: {loss:.4f}, Test Acc: {acc:.4f}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
+print(f'Loss: {loss:.4f}, Test Acc: {max_acc:.4f}, Test F1: {max_f1:.4f}, Test AUROC: {max_auroc:.4f}')

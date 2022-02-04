@@ -2,7 +2,7 @@ import os, random
 import torch
 import numpy as np
 import torch.nn.functional as F
-from tqdm import trange
+#from tqdm import trange
 import matplotlib.pyplot as plt
 
 from torch_geometric.utils import sort_edge_index, to_undirected
@@ -55,21 +55,24 @@ def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
     #combs = torch.combinations(torch.arange(data.x.shape[0]), r = 2, with_replacement = True)
 
     combs = torch.combinations(label_mask.nonzero(as_tuple=True)[0], r = 2, with_replacement=True)
-
+    print('finished combs')
     #possible_inds = set(range(combs.shape[0]))
 
     chosen_inds = []
 
+    targ = torch.arange(combs.shape[0])
+
     for i in range(k):
-        pi = random.choice(torch.arange(combs.shape[0]))
+        pi = random.choice(targ)
         random_pair = combs[pi]
         
         # Go until we get one:
-        while if_edge_exists(data.edge_index, random_pair[0], random_pair[1]) and (pi in chosen_inds):
-            pi = random.choice(torch.arange(combs.shape[0]))
+        while if_edge_exists(data.edge_index, random_pair[0], random_pair[1]): #and (pi in chosen_inds):
+            pi = random.choice(targ)
             random_pair = combs[pi]
         chosen_inds.append(pi)
 
+    print('Finish first loop')
     for pi in chosen_inds:
 
         random_pair = combs[pi]
@@ -78,6 +81,8 @@ def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
         #print('Label 1 and 2: {}, {}'.format(data.y[n1], data.y[n2]))
         cos = F.cosine_similarity(data.x[n1,:], data.x[n2,:], dim = 0)
         not_connected_cosine.append(cos.item())
+
+    print('Finish last loop')
 
     return connected_cosine, not_connected_cosine
 

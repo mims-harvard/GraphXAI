@@ -14,6 +14,10 @@ wheel = nx.wheel_graph(n=6)
 star = nx.star_graph(n=5)
 flag = None
 
+triangle = nx.Graph()
+triangle.add_nodes_from([0, 1, 2])
+triangle.add_edges_from([(0, 1), (1, 2), (2, 0)])
+
 
 def random_shape(n) -> nx.Graph:
     '''

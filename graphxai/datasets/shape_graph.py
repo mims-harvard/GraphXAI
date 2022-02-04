@@ -101,6 +101,7 @@ class ShapeGraph(NodeDataset):
         self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
 
         self.add_sensitive_feature = True if 'add_sensitive_feature' not in kwargs else kwargs['add_sensitive_feature']
+        print('self.add_sensitive_feature', self.add_sensitive_feature)
         self.attribute_sensitive_feature = False if 'attribute_sensitive_feature' not in kwargs else kwargs['attribute_sensitive_feature']
         self.sens_attribution_noise = 0.25 if 'sens_attribution_noise' not in kwargs else kwargs['sens_attribution_noise']
 
@@ -229,6 +230,7 @@ class ShapeGraph(NodeDataset):
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         if self.add_sensitive_feature:
+            print('Adding sensitive')
             # if self.attribute_sensitive_feature:
             #     # Choose random node idx in the attributed space, threshold it
             #     self.sensitive_feature = random.choice(self.feature_imp_true.nonzero(as_tuple=True)[0]).item()
@@ -245,6 +247,7 @@ class ShapeGraph(NodeDataset):
                 torch.manual_seed(self.seed)
 
             if self.attribute_sensitive_feature:
+                print('Adding sensitive attr')
                 prob_change = (torch.rand((y.shape[0],)) < self.sens_attribution_noise)
                 sensitive = torch.where(prob_change, torch.logical_not(y.bool()).long(), y).float()
             else:
@@ -268,9 +271,12 @@ class ShapeGraph(NodeDataset):
 
         edge_index = to_undirected(torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous())
 
+        print('self.homophily coef', self.homophily_coef)
+
         if self.homophily_coef is not None:
             feat_mask = torch.logical_not(self.feature_imp_true)
-            feat_mask[self.sensitive_feature] = False
+            if self.sensitive_feature is not None:
+                feat_mask[self.sensitive_feature] = False
 
             x = optimize_homophily(
                 x = x,
