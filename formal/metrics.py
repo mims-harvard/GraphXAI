@@ -464,7 +464,7 @@ def stat_parity(org, pred, sens):
     idx_s0 = np.array(sens) == 0
     idx_s1 = np.array(sens) == 1
 
-    if (len(sens.unique()) == 1):
+    if (len(np.unique(sens)) == 1):
         return 0
     else:
         parity_1 = abs(sum(org[idx_s0]) / sum(idx_s0) - sum(org[idx_s1])/sum(idx_s1))
