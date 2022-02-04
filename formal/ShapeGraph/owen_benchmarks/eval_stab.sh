@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH -c 1
-#SBATCH -t 0-12:00
+#SBATCH -t 0-24:00
 #SBATCH -p gpu
 #SBATCH --gres=gpu:2
 #SBATCH --mem=10G
-#SBATCH -o eval_RAND.out
-#SBATCH -e eval_RAND.err
-#SBATCH -J RAND
+#SBATCH -o eval_PGMEX.out
+#SBATCH -e eval_PGMEX.err
+#SBATCH -J PGMEX
 
 source activate GXAI
-python3 eval_SG_stability.py --exp_method RAND --model GIN --model_path /home/owq978/GraphXAI/formal/model_homophily.pth 
+python3 eval_SG_stability.py --exp_method PGMEX --model GIN --model_path /home/owq978/GraphXAI/formal/model_homophily.pth 
