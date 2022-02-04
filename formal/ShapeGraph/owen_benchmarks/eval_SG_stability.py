@@ -144,7 +144,8 @@ delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.
 # Cached graphs:
 G = to_networkx_conv(data, to_undirected=True)
 
-save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
+#save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
+save_exp_flag = True
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
