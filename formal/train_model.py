@@ -19,6 +19,8 @@ elif args.expt_name == 'heterophily':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
 elif args.expt_name == 'triangle':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
+elif args.expt_name == 'fair':
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_fair.pickle', 'rb'))
 else:
     print('Invalid Input!!')
     exit(0)
@@ -37,7 +39,7 @@ best_f1=0
 for epoch in range(1, 1001):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
-    if f1 > best_fc:
+    if f1 > best_f1:
         best_f1 = f1
         torch.save(model.state_dict(), f'model_{args.expt_name}.pth')
 
