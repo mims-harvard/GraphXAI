@@ -100,7 +100,6 @@ def get_model(name):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
-parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
@@ -126,7 +125,8 @@ print(test_set)
 model = get_model(name = args.model).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load(args.model_path))
+mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+model.load_state_dict(torch.load(mpath))
 # model.eval()
 
 # gef_feat = []
