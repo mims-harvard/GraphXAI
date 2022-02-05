@@ -13,4 +13,4 @@ data = bah.get_graph(use_fixed_split=True)
 test_set = (data.test_mask).nonzero(as_tuple=True)[0]
 
 # Saves the test set to current directory:
-torch.save(open('test_inds_SG_homophilic.pt', 'wb'), test_set)
+torch.save(test_set, open('test_inds_SG_homophilic.pt', 'wb'))
