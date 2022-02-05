@@ -8,7 +8,7 @@ from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GC
 
 # ----------------------------
 my_base_graphxai = '/home/owq978/GraphXAI'
-data_path = 'data/ShapeGraph/unzipped/SG_HF_HF=1.pickle'
+data_path = 'data/ShapeGraph/unzipped/SG_homophilic.pickle'
 
 model_name = 'gin'
 model_path = 'formal/model_weights/model_homophily.pth'
@@ -33,7 +33,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 bah = torch.load(open(os.path.join(my_base_graphxai, data_path), 'rb'))
 data = bah.get_graph(use_fixed_split=True)
 
-model = get_model(model_name)
+model = get_model(model_name).to(device)
 model.load_state_dict(torch.load(os.path.join(my_base_graphxai, model_path)))
 
 delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
