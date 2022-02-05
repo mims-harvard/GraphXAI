@@ -13,6 +13,9 @@ my_root = os.path.join('/home/owq978/GraphXAI/',
     'data', 'ShapeGraph', 'unzipped',
 )
 
+# my_root = os.path.join('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data',
+#     'ShapeGraph', 'unzipped')
+
 attr_list = [
     'variant',
     'base_graph',
