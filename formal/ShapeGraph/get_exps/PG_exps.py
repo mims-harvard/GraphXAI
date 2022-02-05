@@ -19,10 +19,10 @@ data = bah.get_graph(use_fixed_split=True)
 test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt'))
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
-pred = model(data.x.to(device), data.edge_index.to(device)) # Model predictions
-
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
 model.load_state_dict(torch.load(mpath))
+
+pred = model(data.x.to(device), data.edge_index.to(device)) # Model predictions
 
 # Train entirety of PGExplainer:
 explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
