@@ -172,6 +172,8 @@ for node_idx in tqdm.tqdm(test_set):
 
     if save_exp_flag and not (have_exp):
         exp = explainer.get_explanation_node(**forward_kwargs)
+        if type(exp) == bool:
+            raise ValueError
         torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
