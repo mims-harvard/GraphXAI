@@ -190,6 +190,7 @@ for node_idx in tqdm.tqdm(test_set):
             delta = delta,
             sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
             device = device,
+            data = data,
             )
 
     gcf_feat.append(feat)
@@ -204,6 +205,8 @@ for node_idx in tqdm.tqdm(test_set):
             delta = delta,
             sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
             device = device,
+            G = G,
+            data = data,
             )
 
     ggf_feat.append(feat)

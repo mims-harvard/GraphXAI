@@ -382,12 +382,14 @@ def graph_exp_stability(generated_exp: Explanation, explainer,
     return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
 # check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
-def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: ShapeGraph, model, node_id, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu') -> float:
+def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: ShapeGraph, model, node_id, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu',
+    data = None) -> float:
     GECF_feat = None
     GECF_node = None
     GECF_edge = None
 
-    data = shape_graph.get_graph(use_fixed_split=True)
+    if data is None:
+        data = shape_graph.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
