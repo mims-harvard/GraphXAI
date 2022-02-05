@@ -99,7 +99,7 @@ def get_model(name):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
-parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
+parser.add_argument('--model_path', required=False, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
@@ -125,12 +125,13 @@ print(test_set)
 model = get_model(name = args.model).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load(args.model_path))
+mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+model.load_state_dict(torch.load(mpath))
 # model.eval()
 
-gef_feat = []
-gef_node = []
-gef_edge = []
+# gef_feat = []
+# gef_node = []
+# gef_edge = []
 
 # Get predictions
 pred = model(data.x.to(device), data.edge_index.to(device))
@@ -139,11 +140,10 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
 #delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
-#np.save(open(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'), 'wb'), np.array([delta]))
 delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'))[0]
 
 # Cached graphs:
-G = to_networkx_conv(data, to_undirected=True)
+#G = to_networkx_conv(data, to_undirected=True)
 
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
@@ -174,26 +174,26 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-    feat, node, edge = graph_exp_stability(
-            exp, 
-            explainer,
-            bah, 
-            node_id = node_idx, 
-            model = model,
-            delta = delta,
-            sens_idx = [bah.sensitive_feature],
-            device = device,
-            G = G,
-            data = data,
-            )
-    gef_feat.append(feat)
-    gef_node.append(node)
-    gef_edge.append(edge)
+    # feat, node, edge = graph_exp_stability(
+    #         exp, 
+    #         explainer,
+    #         bah, 
+    #         node_id = node_idx, 
+    #         model = model,
+    #         delta = delta,
+    #         sens_idx = [bah.sensitive_feature],
+    #         device = device,
+    #         G = G,
+    #         data = data,
+    #         )
+    # gef_feat.append(feat)
+    # gef_node.append(node)
+    # gef_edge.append(edge)
 
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
