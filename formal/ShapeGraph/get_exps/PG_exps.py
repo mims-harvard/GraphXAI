@@ -3,6 +3,7 @@ import ipdb
 import argparse, sys
 import random as rand
 import torch
+import sys; sys.path.append('/home/owq978/GraphXAI/formal')
 from metrics import *
 from graphxai.explainers import *
 from graphxai.datasets  import load_ShapeGraph
@@ -12,7 +13,7 @@ from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic
 
 my_base_graphxai = '/home/owq978/GraphXAI'
 
-bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
