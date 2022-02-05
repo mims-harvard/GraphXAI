@@ -171,7 +171,7 @@ for node_idx in tqdm.tqdm(test_set):
 
     exp = exp_exists(node_idx, path = save_exp_dir, get_exp = False) # More lightweight to just check, don't need to load here
 
-    if save_exp_flag:
+    if save_exp_flag and exp:
         torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
