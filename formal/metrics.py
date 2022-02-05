@@ -434,30 +434,30 @@ def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: Shap
                 pert_exp_mask[pert_exp_mask.topk(top_node)[1]] = 1
                 GECF_node = 1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item()
 
-    if generated_exp.edge_imp is not None:
-        org_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
+        if generated_exp.edge_imp is not None:
+            org_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
 
-        # Create a dictionary mapping edge ids to their importance
-        org_map = {}
-        for (i, edge) in enumerate(org_edges):
-            org_map[edge.item()] = generated_exp.edge_imp[i].item()
-                   
-        pert_edges = torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]
+            # Create a dictionary mapping edge ids to their importance
+            org_map = {}
+            for (i, edge) in enumerate(org_edges):
+                org_map[edge.item()] = generated_exp.edge_imp[i].item()
+                    
+            pert_edges = torch.where(pert_exp.enc_subgraph.edge_mask == True)[0]
 
-        # Create a dictionary mapping edge ids to their importance
-        pert_map = {}
-        for (i, edge) in enumerate(pert_edges):
-            pert_map[edge.item()] = pert_exp.edge_imp[i].item()
+            # Create a dictionary mapping edge ids to their importance
+            pert_map = {}
+            for (i, edge) in enumerate(pert_edges):
+                pert_map[edge.item()] = pert_exp.edge_imp[i].item()
 
-        all_edges = torch.from_numpy(np.union1d(org_edges.numpy(), pert_edges.numpy()))
-        ori_exp_mask = torch.zeros([len(all_edges)])             
-        pert_exp_mask = torch.zeros([len(all_edges)])
-        for i, e_id in enumerate(all_edges):
-            if e_id in org_edges:
-                ori_exp_mask[i] = org_map[e_id.item()]
-            if e_id in pert_edges:
-                pert_exp_mask[i] = pert_map[e_id.item()]
-        GECF_edge = 1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item()
+            all_edges = torch.from_numpy(np.union1d(org_edges.numpy(), pert_edges.numpy()))
+            ori_exp_mask = torch.zeros([len(all_edges)])             
+            pert_exp_mask = torch.zeros([len(all_edges)])
+            for i, e_id in enumerate(all_edges):
+                if e_id in org_edges:
+                    ori_exp_mask[i] = org_map[e_id.item()]
+                if e_id in pert_edges:
+                    pert_exp_mask[i] = pert_map[e_id.item()]
+            GECF_edge = 1 - F.cosine_similarity(ori_exp_mask.reshape(1, -1), pert_exp_mask.reshape(1, -1)).item()
 
     return [GECF_feat, GECF_node, GECF_edge]
 
