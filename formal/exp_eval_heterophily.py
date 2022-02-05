@@ -106,6 +106,7 @@ model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
 model.load_state_dict(torch.load('./model_weights/model_heterophily.pth'))
+# model.load_state_dict(torch.load('./model_SG_org_heto.pth'))
 
 gef_feat = []
 gef_node = []
@@ -127,7 +128,7 @@ for node_idx in tqdm.tqdm(inhouse):
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
-    if True:  # pred_class == data.y[node_idx]:
+    if pred_class == data.y[node_idx]:
 
         # Get explanation method
         if args.exp_method != 'pgex':
@@ -143,8 +144,8 @@ for node_idx in tqdm.tqdm(inhouse):
         gt_exp = bah.explanations[node_idx]
 
         # Save explanations
-        np.save(f'{args.save_dir}{args.exp_method}_{node_idx}.pickle', exp)
-        np.save(f'{args.save_dir}gt_{node_idx}.pickle', gt_exp)
+        # np.save(f'{args.save_dir}{args.exp_method}_{node_idx}.pickle', exp)
+        # np.save(f'{args.save_dir}gt_{node_idx}.pickle', gt_exp)
 
         # Calculate metrics
         feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])

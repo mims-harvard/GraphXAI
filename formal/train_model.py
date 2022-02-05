@@ -36,7 +36,7 @@ data = bah.get_graph(use_fixed_split=True)
 
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
-# model.load_state_dict(torch.load(f'./model_weights/model_{args.expt_name}.pth'))
+# model.load_state_dict(torch.load(f'./model_SG_org_heto.pth'))
 # f1, acc, precision, recall, auroc, auprc = test(model, data, get_auc=True)
 # print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
 # exit(0)
@@ -46,13 +46,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
 best_acc=0
-for epoch in range(1, 1001):
+for epoch in range(1, 11):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
     if acc > best_acc:
         best_acc = acc
         torch.save(model.state_dict(), f'./model_weights/model_{args.expt_name}.pth')
-    if epoch % 100 == 0:
+    if epoch % 1 == 0:
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
 # Testing performance
