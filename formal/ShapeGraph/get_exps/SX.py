@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 start_ind = args.start_ind
 
-bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -42,7 +42,6 @@ save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explan
 
 for node_idx in range_gen:
 
-    node_idx = node_idx.item()   
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0) 
 
     if exp_exists(node_idx, path = save_exp_dir, get_exp = False) or (pred_class != data.y[node_idx]):
