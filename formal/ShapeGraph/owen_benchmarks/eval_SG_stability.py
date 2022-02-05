@@ -11,6 +11,7 @@ from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
 my_base_graphxai = '/home/owq978/GraphXAI'
+#my_base_graphxai = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI'
 
 def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
     method = method.lower()

@@ -53,6 +53,8 @@ class IntegratedGradExplainer(_BaseExplainer):
             raise ValueError('Either label or y should be provided for Integrated Gradients')
 
         label = y[node_idx] if label is None else label 
+        if len(label.shape) == 0:
+            label = label.unsqueeze(dim=0)
 
         num_hops = num_hops if num_hops is not None else self.L
         khop_info = subset, sub_edge_index, mapping, _ = \
