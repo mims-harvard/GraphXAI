@@ -21,8 +21,9 @@ elif args.expt_name == 'heterophily':
 elif args.expt_name == 'triangle':
     bah = torch.load(open(owen_path + 'SG_triangles.pickle', 'rb'))
 else:
-    print('Invalid Input!!')
-    exit(0)
+    #print('Invalid Input!!')
+    bah = torch.load(open(owen_path + args.expt_name, 'rb'))
+    #exit(0)
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
