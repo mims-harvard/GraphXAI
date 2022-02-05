@@ -78,7 +78,6 @@ class PGMExplainer(_BaseExplainer):
 
             i += 1
             if i > 1000:
-                print('Over 100 iterations')
                 return MB
 
             count = 0

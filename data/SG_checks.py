@@ -9,9 +9,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 
 # Replace with your root
-my_root = os.path.join('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/',
+my_root = os.path.join('/home/owq978/GraphXAI/',
     'data', 'ShapeGraph', 'unzipped',
 )
+
+# my_root = os.path.join('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data',
+#     'ShapeGraph', 'unzipped')
 
 attr_list = [
     'variant',

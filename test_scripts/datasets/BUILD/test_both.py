@@ -18,20 +18,20 @@ SG = ShapeGraph(
     model_layers = 3,
     make_explanations=True,
     num_subgraphs = 1200,
-    prob_connection = 0.006,
+    prob_connection = 0.0075,
     subgraph_size = 11,
-    class_sep = 0.6,
+    class_sep = 0.3,
     n_informative = 4,
-    homophily_coef = 1,
+    homophily_coef = -1,
     n_clusters_per_class = 2,
     seed = 1456,
     verify = True,
-    attribute_sensitive_feature = True,
     add_sensitive_feature = True,
-    sens_attribution_noise = 0.75,
+    # attribute_sensitive_feature = True,
+    # sens_attribution_noise = 0.75,
 )
 
-SG.dump(fname = 'SG_fair.pickle')
+SG.dump(fname = 'SG_org_hf=-1.pickle')
 
 # SG = ShapeGraph(
 #     model_layers = 3,

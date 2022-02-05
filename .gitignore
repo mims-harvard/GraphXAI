@@ -8,3 +8,4 @@ data/ShapeGraph/SG_homophilic.pickle
 *.out
 *.err
 formal/ShapeGraph/owen_benchmarks/results
+formal/ShapeGraph/bigSG_explanations
