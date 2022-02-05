@@ -1,6 +1,6 @@
 import tqdm
 import ipdb
-import argparse, sys
+import os, argparse, sys
 import random as rand
 import torch
 import sys; sys.path.append('/home/owq978/GraphXAI/formal')
@@ -56,3 +56,5 @@ for node_idx in tqdm.tqdm(test_set):
     exp = explainer.get_explanation_node(**forward_kwargs)
     torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
+# Pickle the whole object:
+torch.save(explainer, open('PGExplainer.pickle', 'wb'))
