@@ -34,7 +34,7 @@ pred = model(data.x.to(device), data.edge_index.to(device)) # Model predictions
 explainer = SubgraphX(model, reward_method = 'gnn_score', num_hops = bah.model_layers)
 
 if start_ind < 0:
-    range_gen = range(len(test_set) - 1 - start_ind, len(test_set) // 2 - 4, -3)
+    range_gen = range(len(test_set) - 1 + start_ind, len(test_set) // 2 - 4, -3)
 else:
     range_gen = range(start_ind, len(test_set) // 2 + 4, 3)
 
