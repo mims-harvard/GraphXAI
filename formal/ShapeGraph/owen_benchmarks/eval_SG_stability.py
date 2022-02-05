@@ -100,7 +100,7 @@ def get_model(name):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
-parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
+#parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
@@ -121,13 +121,13 @@ data = bah.get_graph(use_fixed_split=True)
 test_set = (data.test_mask).nonzero(as_tuple=True)[0]
 np.random.shuffle(test_set.numpy())
 print(test_set)
+
 # Test on 3-layer basic GCN, 16 hidden dim:
-#model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 model = get_model(name = args.model).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load(args.model_path))
-# model.eval()
+mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+model.load_state_dict(torch.load(mpath))
 
 gef_feat = []
 gef_node = []
@@ -139,9 +139,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
-#delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
-#np.save(open(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'), 'wb'), np.array([delta]))
-delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'))[0]
+delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
 
 # Cached graphs:
 G = to_networkx_conv(data, to_undirected=True)
@@ -167,6 +165,7 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Get explanations
     exp = get_exp_method(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+
     if exp is None:
         exp = explainer.get_explanation_node(**forward_kwargs)
 
