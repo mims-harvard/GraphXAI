@@ -167,11 +167,11 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Get explanations
     #ipdb.set_trace()
-    exp = explainer.get_explanation_node(**forward_kwargs)
 
-    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = False) # More lightweight to just check, don't need to load here
+    have_exp = exp_exists(node_idx, path = save_exp_dir, get_exp = False) # More lightweight to just check, don't need to load here
 
-    if save_exp_flag and not (exp):
+    if save_exp_flag and not (have_exp):
+        exp = explainer.get_explanation_node(**forward_kwargs)
         torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
