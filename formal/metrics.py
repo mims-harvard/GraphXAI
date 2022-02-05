@@ -472,7 +472,9 @@ def stat_parity(org, pred, sens):
         return abs(parity_1-parity_2)
 
 # check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
-def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu') -> float:
+def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, 
+        node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu',
+        G = None, data = None) -> float:
 
     # Generate the predictions
     org_pred = []
@@ -486,10 +488,15 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
     GEGF_node = None
     GEGF_edge = None
 
-    data = shape_graph.get_graph()
+    if data is None:
+        data = shape_graph.get_graph()
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)
+
+    if G is None:
+        G = to_networkx_conv(data, to_undirected=True) # Cache graph to use in rewire_edges
+    data_for_rewire = Data(edge_index = EIDX, num_nodes = 1)
 
     # Number of neighborhood samples
     num_samples = 25
@@ -503,10 +510,11 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
             # perturb node features for node_id
             pert_x = X.clone()
             pert_x[node_id, :] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=sens_idx, device = device)
-            try:
-                pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1)
-            except:
-                continue
+            #try:
+            pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item(), num_nodes=1,
+                G = G, data = data_for_rewire)
+            # except:
+            #     continue
 
             # Get predictions
             out_x = torch.argmax(F.softmax(model(pert_x, pert_edge_index), dim=-1)[node_id]).item()
