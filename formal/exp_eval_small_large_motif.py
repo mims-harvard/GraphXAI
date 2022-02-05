@@ -115,9 +115,9 @@ model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Load model
 if args.expt_name == 'small':
-    model.load_state_dict(torch.load('model_triangle.pth'))
+    model.load_state_dict(torch.load('./model_weights/model_triangle.pth'))
 elif args.expt_name == 'large':
-    model.load_state_dict(torch.load('model_homophily.pth'))
+    model.load_state_dict(torch.load('./model_weights/model_homophily.pth'))
 else:
     OSError('Invalid argument!!')
 

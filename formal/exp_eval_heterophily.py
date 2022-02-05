@@ -98,15 +98,15 @@ bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pic
 
 data = bah.get_graph(use_fixed_split=True)
 
-inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-np.random.shuffle(inhouse.numpy())
-print(inhouse)
+inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
+# (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
+
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('model_heterophily.pth'))
-# model.eval()
+model.load_state_dict(torch.load('./model_weights/model_heterophily.pth'))
+model.eval()
 
 gef_feat = []
 gef_node = []
@@ -118,7 +118,7 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 if args.exp_method=='pgex':
-    explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=1, lr=0.1)
+    explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
     explainer.train_explanation_model(data.to(device))
 
 for node_idx in tqdm.tqdm(inhouse):
@@ -128,29 +128,35 @@ for node_idx in tqdm.tqdm(inhouse):
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
-    # Get explanation method
-    if args.exp_method != 'pgex':
-        explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
-    else:
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
-                        'edge_index': data.edge_index.to(device),
-                        'label': pred_class}
+    if pred_class == data.y[node_idx]:
 
-    # Get explanations
-    exp = explainer.get_explanation_node(**forward_kwargs)
+        # Get explanation method
+        if args.exp_method != 'pgex':
+            explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
+        else:
+            forward_kwargs={'node_idx': node_idx,
+                            'x': data.x.to(device),
+                            'edge_index': data.edge_index.to(device),
+                            'label': pred_class}
 
-    # Calculate metrics
-    feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+        # Get explanations
+        exp = explainer.get_explanation_node(**forward_kwargs)
+        gt_exp = bah.explanations[node_idx]
 
-    gef_feat.append(feat)
-    gef_node.append(node)
-    gef_edge.append(edge)
+        # Save explanations
+        np.save(f'{args.save_dir}{args.exp_method}_{node_idx}.pickle', exp)
+        np.save(f'{args.save_dir}gt_{node_idx}.pickle', gt_exp)
+
+        # Calculate metrics
+        feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+
+        gef_feat.append(feat)
+        gef_node.append(node)
+        gef_edge.append(edge)
 
 
 ############################
 # Saving the metric values
-# save_dir='./results_homophily/'
 np.save(f'{args.save_dir}{args.exp_method}_gef_feat.npy', gef_feat)
 np.save(f'{args.save_dir}{args.exp_method}_gef_node.npy', gef_node)
 np.save(f'{args.save_dir}{args.exp_method}_gef_edge.npy', gef_edge)

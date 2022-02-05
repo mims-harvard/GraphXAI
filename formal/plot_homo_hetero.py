@@ -21,12 +21,12 @@ def set_box_color(bp, color):
 
 
 # inits
-algos = ['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']
+algos = ['rand', 'grad', 'gcam'] #, 'gbp', 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']
 df_homo = []
 df_hete = []
 ty = 'node'
 # Loop over all datasets
-for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']):
+for ind, algo in enumerate(['rand', 'grad', 'gcam']):  # , 'gbp', 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']):
     temp_homo = np.load(f'./results_homophily/{algo}_gef_{ty}.npy', allow_pickle=True)
     if temp_homo[-1] is not None:
         df_homo.append(temp_homo)
@@ -38,10 +38,10 @@ for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'glime', 'ig', 'gnnex
     # print(f'{algo}: Homophily={df_homo[-1].mean()} | Heterophily={df_hete[-1].mean()}')
 
 ### print statistics
-for i, val in enumerate(df_homo):
-    print(f'Explanation method: {algos[i]}, MeanGEF={np.mean(val):.3f}, StdGEF={np.std(val):.3f}')
+#for i, val in enumerate(df_homo):
+#    print(f'Explanation method: {algos[i]}, MeanGEF={np.mean(val):.3f}, StdGEF={np.std(val):.3f}')
 
-exit(0)
+# exit(0)
     
 # plotting distributions
 fig, ax = plt.subplots(figsize=(20, len(df_homo)))
@@ -65,7 +65,7 @@ for median in xnorm['means']:
 # draw temporary red and blue lines and use them to create a legend
 plt.plot([], c='#77FF77', label='Homophily')  # Triangle motifs')
 plt.plot([], c='#009900', label='Heterophily')  # oause motifs')
-plt.xticks(np.array(range(0, len(algos)))/8, ['Random', 'Grad', 'GradCAM', 'GradBP', 'IG', 'GNNEx', 'PGMEx', 'PGEx'])
+plt.xticks(np.array(range(0, len(algos)))/8, ['Random', 'Grad', 'GradCAM'])  # , 'GradBP', 'IG', 'GNNEx', 'PGMEx', 'PGEx'])
 ax.set_xlim(-0.05, (len(algos)/8)+0.013)
 # plt.yticks(range(0, 1, 0.1), fontsize=36)  # len(df_small)**2, 10), fontsize=36)
 plt.ylabel('Graph Explanation faithfulness')
