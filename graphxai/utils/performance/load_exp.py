@@ -16,10 +16,11 @@ def exp_exists(node_idx, path = '', get_exp = False):
 
     if get_exp:
         if os.path.exists(full_path):
-            return None
-        else:
             # Get the explanation:
             t = torch.load(open(full_path, 'rb'))
             return t
+        else:
+            return None
+
     else:
         return os.path.exists(full_path)
