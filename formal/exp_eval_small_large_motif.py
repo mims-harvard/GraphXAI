@@ -101,15 +101,17 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if args.expt_name == 'small':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
 elif args.expt_name == 'large':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
 else:
     OSError('Invalid argument!!')
 
 data = bah.get_graph(use_fixed_split=True)
 
-inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-np.random.shuffle(inhouse.numpy())
-print(inhouse)
+inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
+# inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
+# np.random.shuffle(inhouse.numpy())
+# print(inhouse)
+
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 

@@ -94,7 +94,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -106,7 +106,6 @@ model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
 model.load_state_dict(torch.load('./model_weights/model_heterophily.pth'))
-model.eval()
 
 gef_feat = []
 gef_node = []
@@ -128,7 +127,7 @@ for node_idx in tqdm.tqdm(inhouse):
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
-    if pred_class == data.y[node_idx]:
+    if True:  # pred_class == data.y[node_idx]:
 
         # Get explanation method
         if args.exp_method != 'pgex':
