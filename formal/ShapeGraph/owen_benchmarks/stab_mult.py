@@ -103,8 +103,11 @@ def get_model(name):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
+parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
+parser.add_argument('--num_splits', default=1, type=int, help='Number of jobs that will run this explainer over the test set; should be fixed for multiple jobs')
+parser.add_argument('--my_split', default = 0, type=int, help='Split number for the given num_splits; goes from [0,num_splits), e.g. 0, 1, 2 for num_splits=3')
 args = parser.parse_args()
 
 seed_value=912
@@ -121,9 +124,20 @@ bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/S
 data = bah.get_graph(use_fixed_split=True)
 
 #inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-test_set = (data.test_mask).nonzero(as_tuple=True)[0]
-np.random.shuffle(test_set.numpy())
-print(test_set)
+#test_set = (data.test_mask).nonzero(as_tuple=True)[0]
+test_set = torch.load(open(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'test_inds_SG_homophilic.pt'), 'rb'))
+#np.random.shuffle(test_set.numpy())
+#print(test_set)
+
+assert args.my_split < args.num_splits, 'My split must be less than num splits'
+
+partition_size = len(test_set) // args.num_splits
+if args.my_split == (args.num_splits - 1):
+    my_test_inds = test_set[(partition_size * args.my_split):] # Make sure to cover everything
+else:
+    my_test_inds = test_set[(partition_size * args.my_split):(partition_size * (args.my_split + 1))]
+
+print('my inds', my_test_inds)
 
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = get_model(name = args.model).to(device)
@@ -132,9 +146,9 @@ model = get_model(name = args.model).to(device)
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
 model.load_state_dict(torch.load(mpath))
 
-gef_feat = []
-gef_node = []
-gef_edge = []
+gef_feat = dict()
+gef_node = dict()
+gef_edge = dict()
 
 # Get predictions
 pred = model(data.x.to(device), data.edge_index.to(device))
@@ -152,7 +166,7 @@ save_exp_flag = True
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set):
+for node_idx in tqdm.tqdm(my_test_inds):
 
     node_idx = node_idx.item()
 
@@ -191,14 +205,19 @@ for node_idx in tqdm.tqdm(test_set):
             G = G,
             data = data,
             )
-    gef_feat.append(feat)
-    gef_node.append(node)
-    gef_edge.append(edge)
+    
+    # Key on node_idx:
+    gef_feat[node_idx] = (feat)
+    gef_node[node_idx] = (node)
+    gef_edge[node_idx] = (edge)
 
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat_{args.my_split}.npy'), gef_feat)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node_{args.my_split}.npy'), gef_node)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge_{args.my_split}.npy'), gef_edge)

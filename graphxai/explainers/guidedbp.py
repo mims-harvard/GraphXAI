@@ -14,7 +14,7 @@ def clip_hook(grad):
 
 class GuidedBP(_BaseDecomposition):
 
-    def __init__(self, model, criterion = F.cross_entropy):
+    def __init__(self, model, criterion = F.cross_entropy, enforce_requires_grad = True):
         '''
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -28,6 +28,8 @@ class GuidedBP(_BaseDecomposition):
         self.L = len([module for module in self.model.modules() if isinstance(module, MessagePassing)])
 
         self.registered_hooks = []
+
+        self.enforce_requires_grad = enforce_requires_grad
 
     def get_explanation_node(self, 
                 x: torch.Tensor, 
@@ -66,11 +68,12 @@ class GuidedBP(_BaseDecomposition):
         '''
 
         # Run whole-graph prediction:
-        try:
-            x = x.detach().clone()
-            x.requires_grad = True
-        except:
-            pass
+        if self.enforce_requires_grad:
+            try:
+                x = x.detach().clone()
+                x.requires_grad = True
+            except:
+                pass
         assert x.requires_grad, 'x must have requires_grad == True'
 
         # Perform the guided backprop:
