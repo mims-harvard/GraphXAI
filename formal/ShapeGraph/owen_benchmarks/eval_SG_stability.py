@@ -164,7 +164,7 @@ for node_idx in tqdm.tqdm(test_set):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    exp = get_exp_method(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
 
     if exp is None:
         exp = explainer.get_explanation_node(**forward_kwargs)
