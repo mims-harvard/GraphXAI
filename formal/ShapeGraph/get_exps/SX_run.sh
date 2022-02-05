@@ -4,9 +4,9 @@
 #SBATCH -p gpu
 #SBATCH --gres=gpu:1
 #SBATCH --mem=10G
-#SBATCH -o SUBX.out
-#SBATCH -e SUBX.err
-#SBATCH -J SUBX_exps
+#SBATCH -o SUBX-4.out
+#SBATCH -e SUBX-4.err
+#SBATCH -J SUBX-4
 
 source activate GXAI
-python3 SX_exps.py --start_ind 0
+python3 SX.py --start_ind -4
