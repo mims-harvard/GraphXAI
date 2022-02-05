@@ -97,7 +97,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]  
@@ -130,7 +130,7 @@ for node_idx in tqdm.tqdm(inhouse):
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
-    if pred_class == data.y[node_idx]:
+    if True:  # pred_class == data.y[node_idx]:
 
         # Get explanation method
         if args.exp_method != 'pgex':

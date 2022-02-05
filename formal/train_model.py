@@ -15,9 +15,9 @@ args = parser.parse_args()
 
 # Load ShapeGraph dataset
 if args.expt_name == 'homophily':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophilic.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
 elif args.expt_name == 'heterophily':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophilic.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophily.pickle', 'rb'))
 elif args.expt_name == 'triangle':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
 elif args.expt_name == 'fair':
@@ -27,10 +27,10 @@ else:
     exit(0)
 
 # Fix seed
-seed_value=9
-rand.seed(seed_value)
-np.random.seed(seed_value)
-torch.manual_seed(seed_value)
+# seed_value=9
+# rand.seed(seed_value)
+# np.random.seed(seed_value)
+# torch.manual_seed(seed_value)
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -45,14 +45,14 @@ model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
-best_auroc=0
+best_acc=0
 for epoch in range(1, 1001):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
-    if auroc > best_auroc:
-        best_auroc = auroc
+    if acc > best_acc:
+        best_acc = acc
         torch.save(model.state_dict(), f'./model_weights/model_{args.expt_name}.pth')
-    if epoch % 200 == 0:
+    if epoch % 100 == 0:
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
 # Testing performance
