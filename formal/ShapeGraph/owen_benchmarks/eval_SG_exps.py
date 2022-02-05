@@ -112,7 +112,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophily.pickle'), 'rb'))
+bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophilic.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
