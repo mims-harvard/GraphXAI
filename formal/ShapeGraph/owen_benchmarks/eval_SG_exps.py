@@ -7,6 +7,7 @@ from metrics import *
 from graphxai.explainers import *
 from graphxai.datasets  import load_ShapeGraph
 from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
 my_base_graphxai = '/home/owq978/GraphXAI'
@@ -139,13 +140,15 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
 #delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
-delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_homophily_delta.npy'))[0]
+delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
 
 # Cached graphs:
 #G = to_networkx_conv(data, to_undirected=True)
 
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
+
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
@@ -166,10 +169,10 @@ for node_idx in tqdm.tqdm(test_set):
     #ipdb.set_trace()
     exp = explainer.get_explanation_node(**forward_kwargs)
 
+    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = False) # More lightweight to just check, don't need to load here
+
     if save_exp_flag:
-        # Only saving, no loading here
-        torch.save(exp, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 
-            args.exp_method.upper(), 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
+        torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
