@@ -257,7 +257,7 @@ class GraphDataset:
             self,
             index,
         ):
-        data_list = [self.graphs[i] for i in index]
+        data_list = [self.graphs[i].to(self.device) for i in index]
         exp_list = [self.explanations[i] for i in index]
 
         return data_list, exp_list
@@ -274,7 +274,7 @@ class GraphDataset:
         for i in range(len(data_list)):
             data_list[i].exp_key = [i]
 
-        loader = DataLoader(data_list, batch_size = batch_size, shuffle = True).to(self.device)
+        loader = DataLoader(data_list, batch_size = batch_size, shuffle = True)
 
         return loader, exp_list
 
