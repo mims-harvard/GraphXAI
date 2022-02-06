@@ -64,10 +64,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
     elif method=='pgex':
-        #exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        exp_method = torch.load(os.path.join('/home/owq978/GraphXAI/formal/ShapeGraph/get_exps/PGExplainer.pickle'))
-        # By unpickling, we know we've already trained on it
-        #exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
+        exp_method=PGEX
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
@@ -107,6 +104,8 @@ parser.add_argument('--model', required=True, help = 'Name of model to train (GI
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 args = parser.parse_args()
 
+    
+
 seed_value=912
 rand.seed(seed_value)
 np.random.seed(seed_value)
@@ -131,6 +130,11 @@ model = get_model(name = args.model).to(device)
 # Get prediction of a node in the 2-house class:
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
 model.load_state_dict(torch.load(mpath))
+
+# Pre-train PGEX before running:
+if args.exp_method.lower() == 'pgex':
+    PGEX=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
+    PGEX.train_explanation_model(data.to(device))
 
 gef_feat = []
 gef_node = []
@@ -170,10 +174,10 @@ for node_idx in tqdm.tqdm(test_set):
     exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
     #print(exp)
 
-    if exp is None:
+    if (exp is None) or args.exp_method.lower() == 'pgex':
         exp = explainer.get_explanation_node(**forward_kwargs)
 
-        if save_exp_flag:
+        if save_exp_flag and (args.exp_method.lower() != 'pgex'):
             # Only saving, no loading here
             torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
