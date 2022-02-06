@@ -167,10 +167,11 @@ G = to_networkx_conv(data, to_undirected=True)
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
 save_dir = 'SUBX_results'
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 itrack = 0
+SUBX = 'SUBX'
 for node_idx in tqdm.tqdm(my_test_inds):
 
     node_idx = node_idx.item()
@@ -236,25 +237,25 @@ for node_idx in tqdm.tqdm(my_test_inds):
 
     if (itrack % 25) == 0:
         if not args.ignore_cf:
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_feat_{args.my_split}.npy'), gcf_feat)
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_node_{args.my_split}.npy'), gcf_node)
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_edge_{args.my_split}.npy'), gcf_edge)
+            np.save(os.path.join(save_dir, f'{SUBX}_GCF_feat_{args.my_split}.npy'), gcf_feat)
+            np.save(os.path.join(save_dir, f'{SUBX}_GCF_node_{args.my_split}.npy'), gcf_node)
+            np.save(os.path.join(save_dir, f'{SUBX}_GCF_edge_{args.my_split}.npy'), gcf_edge)
 
         if not args.ignore_group:
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_feat_{args.my_split}.npy'), ggf_feat)
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_node_{args.my_split}.npy'), ggf_node)
-            np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_edge_{args.my_split}.npy'), ggf_edge)
+            np.save(os.path.join(save_dir, f'{SUBX}_GGF_feat_{args.my_split}.npy'), ggf_feat)
+            np.save(os.path.join(save_dir, f'{SUBX}_GGF_node_{args.my_split}.npy'), ggf_node)
+            np.save(os.path.join(save_dir, f'{SUBX}_GGF_edge_{args.my_split}.npy'), ggf_edge)
 
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
 if not args.ignore_cf:
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_feat_{args.my_split}.npy'), gcf_feat)
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_node_{args.my_split}.npy'), gcf_node)
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GCF_edge_{args.my_split}.npy'), gcf_edge)
+    np.save(os.path.join(save_dir, f'{SUBX}_GCF_feat_{args.my_split}.npy'), gcf_feat)
+    np.save(os.path.join(save_dir, f'{SUBX}_GCF_node_{args.my_split}.npy'), gcf_node)
+    np.save(os.path.join(save_dir, f'{SUBX}_GCF_edge_{args.my_split}.npy'), gcf_edge)
 
 if not args.ignore_group:
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_feat_{args.my_split}.npy'), ggf_feat)
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_node_{args.my_split}.npy'), ggf_node)
-    np.save(os.path.join(save_dir, f'{args.exp_method}_GGF_edge_{args.my_split}.npy'), ggf_edge)
+    np.save(os.path.join(save_dir, f'{SUBX}_GGF_feat_{args.my_split}.npy'), ggf_feat)
+    np.save(os.path.join(save_dir, f'{SUBX}_GGF_node_{args.my_split}.npy'), ggf_node)
+    np.save(os.path.join(save_dir, f'{SUBX}_GGF_edge_{args.my_split}.npy'), ggf_edge)
