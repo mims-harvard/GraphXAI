@@ -136,8 +136,6 @@ if args.my_split == (args.num_splits - 1):
 else:
     my_test_inds = test_set[(partition_size * args.my_split):(partition_size * (args.my_split + 1))]
 
-print('my inds', my_test_inds)
-
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = get_model(name = args.model).to(device)
 
