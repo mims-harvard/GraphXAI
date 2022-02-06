@@ -46,13 +46,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
 best_acc=0
-for epoch in range(1, 11):
+for epoch in range(1, 201):
     loss = train(model, optimizer, criterion, data)
     f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
     if acc > best_acc:
         best_acc = acc
         torch.save(model.state_dict(), f'./model_weights/model_{args.expt_name}.pth')
-    if epoch % 1 == 0:
+    if epoch % 10 == 0:
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
 # Testing performance

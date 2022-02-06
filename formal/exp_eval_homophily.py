@@ -113,6 +113,12 @@ model.load_state_dict(torch.load('./model_weights/model_homophily.pth'))
 gef_feat = []
 gef_node = []
 gef_edge = []
+gcf_feat = []
+gcf_node = []
+gcf_edge = []
+gea_feat = []
+gea_node = []
+gea_edge = []
 
 # Get predictions
 pred = model(data.x.to(device), data.edge_index.to(device))
@@ -123,6 +129,7 @@ if args.exp_method=='pgex':
     explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
     explainer.train_explanation_model(data.to(device))
 
+delta = np.load('./model_homophily_delta.npy')[0]
 
 for node_idx in tqdm.tqdm(inhouse):
 
@@ -146,20 +153,32 @@ for node_idx in tqdm.tqdm(inhouse):
         gt_exp = bah.explanations[node_idx]
 
         # Save explanations
-        # np.save(f'{save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
-        # np.save(f'{save_dir}/gt_{node_idx}.pickle', gt_exp)
+        np.save(f'{save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
+        np.save(f'{save_dir}/gt_{node_idx}.pickle', gt_exp)
+
+        # exp = np.load(f'{save_dir}/{args.exp_method}_{node_idx}.pickle.npy', allow_pickle=True).ravel()[0]
+        # gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
 
         # Calculate metrics
-        # feat, node, edge = graph_exp_acc(gt_exp, exp)
+        feat, node, edge = graph_exp_acc(gt_exp, exp)
         # feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
-        feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+        # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+        # feat, node, edge = graph_exp_cf_fairness(exp, explainer, bah, model, node_idx, delta, [bah.sensitive_feature], device=device)
 
-        gef_feat.append(feat)
-        gef_node.append(node)
-        gef_edge.append(edge)
+        gea_feat.append(feat)
+        gea_node.append(node)
+        gea_edge.append(edge)
+
+        # gcf_feat.append(feat)
+        # gcf_node.append(node)
+        # gcf_edge.append(edge)
+
+#        gef_feat.append(feat)
+#        gef_node.append(node)
+#        gef_edge.append(edge)
 
 ############################
 # Saving the metric values
-np.save(f'{save_dir}/{args.exp_method}_gef_feat.npy', gef_feat)
-np.save(f'{save_dir}/{args.exp_method}_gef_node.npy', gef_node)
-np.save(f'{save_dir}/{args.exp_method}_gef_edge.npy', gef_edge)
+np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
+np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
+np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)
