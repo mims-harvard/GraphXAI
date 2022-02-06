@@ -101,7 +101,10 @@ def get_model(name):
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
+parser.add_argument('--', default='both', help='which method to use')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
+parser.add_argument('--ignore_cf', action = 'store_true')
+parser.add_argument('--ignore_group', action = 'store_true')
 parser.add_argument('--save_dir', default='./fairness_results/', help='folder for saving results')
 args = parser.parse_args()
 
@@ -180,37 +183,39 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-    feat, node, edge = graph_exp_cf_fairness(
-            exp,
-            explainer, 
-            bah,
-            model = model,
-            node_id = node_idx, 
-            delta = delta,
-            sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
-            device = device,
-            data = data,
-            )
+    if not args.ignore_cf:
+        feat, node, edge = graph_exp_cf_fairness(
+                exp,
+                explainer, 
+                bah,
+                model = model,
+                node_id = node_idx, 
+                delta = delta,
+                sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
+                device = device,
+                data = data,
+                )
 
-    gcf_feat.append(feat)
-    gcf_node.append(node)
-    gcf_edge.append(edge)
+        gcf_feat.append(feat)
+        gcf_node.append(node)
+        gcf_edge.append(edge)
 
-    feat, node, edge = graph_exp_group_fairness(
-            exp,
-            bah,
-            node_id = node_idx, 
-            model = model,
-            delta = delta,
-            sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
-            device = device,
-            G = G,
-            data = data,
-            )
+    if not args.ignore_group:
+        feat, node, edge = graph_exp_group_fairness(
+                exp,
+                bah,
+                node_id = node_idx, 
+                model = model,
+                delta = delta,
+                sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
+                device = device,
+                G = G,
+                data = data,
+                )
 
-    ggf_feat.append(feat)
-    ggf_node.append(node)
-    ggf_edge.append(edge)
+        ggf_feat.append(feat)
+        ggf_node.append(node)
+        ggf_edge.append(edge)
 
 
 # print(ggf_feat)
@@ -225,10 +230,13 @@ for node_idx in tqdm.tqdm(test_set):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
 
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)
+if not args.ignore_cf:
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
+
+if not args.ignore_group:
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)
