@@ -50,12 +50,10 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, de
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
+                        
     elif method=='pgex':
-        exp_method=PGEX
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
-                        'edge_index': data.edge_index.to(device),
-                        'label': pred_class}
+        raise ValueError('PGEX does not support graph-level explanations')
+
     elif method=='rand':
         exp_method = RandomExplainer(model)
         forward_kwargs={'x': data.x.to(device),
