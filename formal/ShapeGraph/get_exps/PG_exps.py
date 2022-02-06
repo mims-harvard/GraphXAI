@@ -28,6 +28,7 @@ pred = model(data.x.to(device), data.edge_index.to(device)) # Model predictions
 # Train entirety of PGExplainer:
 explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
 explainer.train_explanation_model(data.to(device))
+torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph/get_exps', 'PGExplainer.pt'), 'wb'))
 
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'PGEX')
 
@@ -57,4 +58,4 @@ for node_idx in tqdm.tqdm(test_set):
     torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
 # Pickle the whole object:
-torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph/get_exps', 'PGExplainer.pickle'), 'wb'))
+#torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph/get_exps', 'PGExplainer.pt'), 'wb'))

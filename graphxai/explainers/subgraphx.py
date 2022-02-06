@@ -150,6 +150,9 @@ class SubgraphX(_BaseExplainer):
                 3. the `edge_index` mask indicating which edges were preserved 
         '''
 
+        if y is not None:
+            label = y[node_idx] # Get node_idx of label
+
         if label is None:
             self.model.eval()
             pred = self.model(x.to(device), edge_index.to(device), **forward_kwargs)

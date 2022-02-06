@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 1
-#SBATCH -t 0-16:00
-#SBATCH -p gpu
+#SBATCH -t 0-24:00
+#SBATCH -p gpu_quad
 #SBATCH --gres=gpu:1
 #SBATCH --mem=10G
 #SBATCH -o eval_PGEX.out

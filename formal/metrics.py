@@ -281,11 +281,10 @@ def intersection(lst1, lst2):
 def graph_exp_stability(generated_exp: Explanation, explainer, 
         shape_graph: ShapeGraph, node_id, model, delta, sens_idx, 
         top_k=0.25, rep='softmax', device = "cpu",
-        G = None, data = None) -> float:
+        G = None, data = None, num_run = 25) -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
-    num_run = 25
 
     if data is None:
         data = shape_graph.get_graph(use_fixed_split=True)
@@ -449,8 +448,8 @@ def graph_exp_cf_fairness(generated_exp: Explanation, gnnexpr, shape_graph: Shap
                 pert_map[edge.item()] = pert_exp.edge_imp[i].item()
 
             all_edges = torch.from_numpy(np.union1d(org_edges.cpu().numpy(), pert_edges.cpu().numpy())).to(device)
-            ori_exp_mask = torch.zeros([len(all_edges)])             
-            pert_exp_mask = torch.zeros([len(all_edges)])
+            ori_exp_mask = torch.zeros([len(all_edges)]).to(device)
+            pert_exp_mask = torch.zeros([len(all_edges)]).to(device)
             for i, e_id in enumerate(all_edges):
                 if e_id in org_edges:
                     ori_exp_mask[i] = org_map[e_id.item()]
@@ -477,7 +476,7 @@ def stat_parity(org, pred, sens):
 
 def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, 
         node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu',
-        G = None, data = None) -> float:
+        G = None, data = None, num_samples = 10) -> float:
 
     # Generate the predictions
     org_pred = []
@@ -503,6 +502,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
 
     # Number of neighborhood samples
     num_samples = 10
+
     for i in range(num_samples):
         if i == 0:
             # predictions for the original features
@@ -514,8 +514,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
             pert_x = X.clone()
             pert_x[node_id, :] = perturb_node_features(x=pert_x, node_idx=node_id, pert_feat=torch.arange(pert_x.shape[1]), bin_dims=[sens_idx], device = device)
             #try:
-            pert_edge_index = rewire_edges(EIDX, node_idx=node_id, num_nodes=1,
-                G = G, data = data_for_rewire).to(device)
+            pert_edge_index = rewire_edges(EIDX, node_idx=node_id.item() if isinstance(node_id, torch.Tensor) else node_id, num_nodes=1, G = G, data = data_for_rewire).to(device)
             # except:
             #     continue
 
@@ -548,7 +547,7 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
                 # Getting the softmax vector for the perturbed graph
                 # Removing the unimportant nodes by masking
                 pert_x_node = pert_x.clone()
-                pert_x_node[rem_nodes] = torch.zeros_like(pert_x_node[rem_nodes])
+                pert_x_node[rem_nodes] = torch.zeros_like(pert_x_node[rem_nodes]).to(device)
                 out_exp_x = torch.argmax(F.softmax(model(pert_x_node, pert_edge_index), dim=-1)[node_id]).item()
                 sens_node.append(pert_x_node[node_id, sens_idx].item())
                 exp_pred_node.append(out_exp_x)
@@ -582,5 +581,4 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
         GGF_node = stat_parity(np.array(org_pred), np.array(exp_pred_node), np.array(sens_node))
     if len(sens_edge) > 0:
         GGF_edge = stat_parity(np.array(org_pred), np.array(exp_pred_edge), np.array(sens_edge))
-
     return [GGF_feat, GGF_node, GGF_edge]
