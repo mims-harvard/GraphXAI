@@ -5,7 +5,7 @@ from graphxai.explainers import *
 from graphxai.datasets import Mutagenicity, Benzene, FluorideCarbonyl
 from graphxai.gnn_models.graph_classification import GIN_3layer, GCN_3layer
 
-def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, device):
+def get_exp_method(method, model, criterion, pred_class, data, device):
     method = method.lower()
     if method=='gnnex':
         raise ValueError('GNNEX does not support graph-level explanations')
@@ -13,22 +13,22 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, de
     elif method=='grad':
         exp_method = GradExplainer(model, criterion = criterion)
         forward_kwargs={'x': data.x.to(device),
-                        'y': data.y.to(device),
-                        'node_idx': int(node_idx),
+                        'label': data.y.to(device),
                         'edge_index': data.edge_index.to(device)}
+
     elif method=='gcam':
         exp_method = GradCAM(model, criterion = criterion)
         forward_kwargs={'x':data.x.to(device),
-                        'y': data.y.to(device),
-                        'node_idx': int(node_idx),
+                        'label': data.y.to(device),
                         'edge_index': data.edge_index.to(device),
-                        'average_variant': [True]}
+                        'average_variant': True}
+
     elif method=='gbp':
         exp_method = GuidedBP(model, criterion = criterion)
         forward_kwargs={'x': data.x.to(device),
                         'y': data.y.to(device),
-                        'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
+
     elif method=='glime':
         raise ValueError('GLIME does not support graph-level explanations')
 
@@ -36,21 +36,13 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, de
         exp_method = IntegratedGradExplainer(model, criterion = criterion)
         forward_kwargs = {'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
-                        'node_idx': int(node_idx),
                         'label': pred_class}
-    elif method=='glrp':
-        exp_method = GNN_LRP(model)
-        forward_kwargs={'x': data.x.to(device),
-                        'edge_index': data.edge_index.to(device),
-                        'node_idx': node_idx,
-                        'label': pred_class,
-                        'edge_aggregator':torch.sum}
+
     elif method=='pgmex':
         exp_method=PGMExplainer(model, explain_graph=False, p_threshold=0.1)
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
+        forward_kwargs={'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
-                        'top_k_nodes': 10}
+                        'top_k_nodes': None}
 
     elif method=='pgex':
         raise ValueError('PGEX does not support graph-level explanations')
@@ -58,12 +50,11 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, de
     elif method=='rand':
         exp_method = RandomExplainer(model)
         forward_kwargs={'x': data.x.to(device),
-                        'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
+                        
     elif method=='subx':
-        exp_method = SubgraphX(model, reward_method = 'gnn_score', num_hops = bah.model_layers)
-        forward_kwargs={'node_idx': node_idx,
-                        'x': data.x.to(device),
+        exp_method = SubgraphX(model, reward_method = 'gnn_score', num_hops = 3)
+        forward_kwargs={'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'label': pred_class,
                         'max_nodes': 15}
