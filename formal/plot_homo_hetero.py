@@ -21,12 +21,12 @@ def set_box_color(bp, color):
 
 
 # inits
-algos = ['rand', 'grad', 'gcam', 'gbp']  # , 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']
+algos = ['rand', 'grad', 'gcam', 'gbp']  # , 'ig', 'gnnex', 'pgmex', 'pgex']
 df_homo = []
 df_hete = []
 ty = 'node'
 # Loop over all datasets
-for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp']):  # , 'glime', 'ig', 'gnnex', 'pgmex', 'pgex']):
+for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp']):   # , 'ig', 'gnnex', 'pgmex', 'pgex']):
     temp_homo = np.load(f'./results_homophily/{algo}_gef_{ty}.npy', allow_pickle=True)
     if temp_homo[-1] is not None:
         df_homo.append(temp_homo)
