@@ -14,16 +14,33 @@ from graphxai.datasets import load_ShapeGraph, ShapeGraph
 root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 #SG = load_ShapeGraph(number=1, root = root_data)
 
+# SG = ShapeGraph(
+#     model_layers = 3,
+#     make_explanations=True,
+#     num_subgraphs = 1200,
+#     prob_connection = 0.0075,
+#     subgraph_size = 11,
+#     class_sep = 0.3,
+#     n_informative = 4,
+#     homophily_coef = -1,
+#     n_clusters_per_class = 2,
+#     seed = 1456,
+#     verify = True,
+#     add_sensitive_feature = True,
+#     # attribute_sensitive_feature = True,
+#     # sens_attribution_noise = 0.75,
+# )
+
 SG = ShapeGraph(
     model_layers = 3,
     make_explanations=True,
-    num_subgraphs = 1200,
-    prob_connection = 0.0075,
+    num_subgraphs = 200,
+    prob_connection = 0.045,
     subgraph_size = 11,
     class_sep = 0.3,
     n_informative = 4,
     homophily_coef = -1,
-    n_clusters_per_class = 2,
+    n_clusters_per_class = 1,
     seed = 1456,
     verify = True,
     add_sensitive_feature = True,
@@ -31,7 +48,7 @@ SG = ShapeGraph(
     # sens_attribution_noise = 0.75,
 )
 
-SG.dump(fname = 'SG_org_hf=-1.pickle')
+SG.dump(fname = 'SG_small_hf=-1.pickle')
 
 # SG = ShapeGraph(
 #     model_layers = 3,
