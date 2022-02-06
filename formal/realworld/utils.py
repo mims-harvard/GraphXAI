@@ -51,7 +51,7 @@ def get_exp_method(method, model, criterion, pred_class, data, device):
         exp_method = RandomExplainer(model)
         forward_kwargs={'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device)}
-                        
+
     elif method=='subx':
         exp_method = SubgraphX(model, reward_method = 'gnn_score', num_hops = 3)
         forward_kwargs={'x': data.x.to(device),
@@ -78,9 +78,9 @@ def get_model(name):
     # All datasets have same numbers of input_feat: 14
 
     if name.lower() == 'gcn':
-        model = GCN_3layer(32, input_feat = 14, classes = 2)
+        model = GCN_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
     elif name.lower() == 'gin':
-        model = GIN_3layer(32, input_feat = 14, classes = 2)
+        model = GIN_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
     else:
         OSError('Invalid model!')
     return model
