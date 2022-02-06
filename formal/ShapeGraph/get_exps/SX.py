@@ -21,6 +21,7 @@ start_ind = args.start_ind
 bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Test set remains static
 test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt'))
