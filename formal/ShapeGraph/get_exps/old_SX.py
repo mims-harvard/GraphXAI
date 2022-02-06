@@ -40,9 +40,7 @@ else:
 
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
 
-for i in tqdm.tqdm(range_gen):
-
-    node_idx = test_set[i]
+for node_idx in tqdm.tqdm(range_gen):
 
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0) 
 
