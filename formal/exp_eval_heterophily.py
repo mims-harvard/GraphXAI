@@ -78,7 +78,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
-parser.add_argument('--save_dir', default='./results_heterophily/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./results_small_heterophily/', help='folder for saving results')
 args = parser.parse_args()
 
 # Folder to collect epoch results
@@ -94,7 +94,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_heterophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -105,7 +105,7 @@ inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('./model_weights/model_heterophily.pth'))
+model.load_state_dict(torch.load('./model_weights/model_small_heterophily.pth'))
 # model.load_state_dict(torch.load('./model_SG_org_heto.pth'))
 
 gef_feat = []
