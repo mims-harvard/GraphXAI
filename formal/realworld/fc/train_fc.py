@@ -36,5 +36,5 @@ for epoch in range(1, 101):
 
     print(f'Epoch: {epoch:03d}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
 
-f1, precision, recall, auprc, auroc = test(model, test_loader)
+f1, acc, precision, recall, auprc, auroc = test(model, test_loader)
 print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')

@@ -15,7 +15,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load data: ------------------------------------------
 #dataset = Benzene(split_sizes = (0.8, 0.2, 0), seed = seed)
-dataset = get_dataset('benzene', device = device)
+dataset = get_dataset('mutagenicity', device = device)
 train_loader, _ = dataset.get_train_loader(batch_size = 64)
 test_loader, _ = dataset.get_test_loader()
 val_loader, _ = dataset.get_val_loader()
@@ -36,5 +36,5 @@ for epoch in range(1, 101):
 
     print(f'Epoch: {epoch:03d}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
 
-f1, precision, recall, auprc, auroc = test(model, test_loader)
+f1, acc, precision, recall, auprc, auroc = test(model, test_loader)
 print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
