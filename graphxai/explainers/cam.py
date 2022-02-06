@@ -345,7 +345,7 @@ class GradCAM(_BaseDecomposition):
             label = pred.argmax(dim=1).item()
 
         # Execute forward pass:
-        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long), edge_index, forward_kwargs)
+        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long).to(x.device), edge_index, forward_kwargs)
 
         # Calculate predicted class and steps through model:
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)
