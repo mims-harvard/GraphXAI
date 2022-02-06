@@ -148,7 +148,7 @@ def graph_exp_faith_graph(generated_exp: Explanation, dataset: GraphDataset,
     GEF_edge = None
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
-    exp_subgraph = generated_exp.enc_subgraph
+    #exp_graph = generated_exp.graph
 
     data = dataset.get_graph(use_fixed_split=True)
     X = data.x.to(device)
