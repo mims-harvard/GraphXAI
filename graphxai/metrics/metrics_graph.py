@@ -132,7 +132,7 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -
     return [JAC_feat, JAC_node, JAC_edge]
 
 
-def graph_exp_faith_graph(generated_exp: Explanation, dataset: GraphDataset, 
+def graph_exp_faith_graph(generated_exp: Explanation, data: Data, 
         model, sens_idx: List[int]= [], top_k: float = 0.25,
         forward_kwargs = {}) -> float:
     '''
@@ -150,7 +150,7 @@ def graph_exp_faith_graph(generated_exp: Explanation, dataset: GraphDataset,
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
     #exp_graph = generated_exp.graph
 
-    data = dataset.get_graph(use_fixed_split=True)
+    #data = dataset.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)

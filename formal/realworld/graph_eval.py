@@ -92,7 +92,7 @@ for idx in tqdm(test_inds):
 
     if args.faithfulness:
         # Faithfulness:
-        _, node_faith, edge_faith = graph_exp_faith_graph(exp, dataset, model, forward_kwargs = add_args)
+        _, node_faith, edge_faith = graph_exp_faith_graph(exp, data, model, forward_kwargs = add_args)
 
         gef_node.append(node_faith)
         gef_edge.append(edge_faith)
