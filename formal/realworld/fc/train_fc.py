@@ -25,6 +25,7 @@ model = GIN_3layer(14, 32, 2).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+best_f1 = 0
 for epoch in range(1, 101):
     train(model, optimizer, criterion, train_loader)
     #f1, prec, rec, auprc, auroc = test(model, test_loader)
@@ -32,9 +33,9 @@ for epoch in range(1, 101):
 
     if f1 > best_f1:
         best_f1 = f1
-        torch.save(model.state_dict(), os.path.join('model_weights', f'GIN_benzene.pth'))
+        torch.save(model.state_dict(), os.path.join('model_weights', f'GIN_fc.pth'))
 
     print(f'Epoch: {epoch:03d}, Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
 
-f1, acc, precision, recall, auprc, auroc = test(model, test_loader)
+f1, precision, recall, auprc, auroc = test(model, test_loader)
 print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')
