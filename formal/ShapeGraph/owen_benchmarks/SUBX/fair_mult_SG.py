@@ -169,6 +169,30 @@ save_exp_flag = True
 save_dir = 'SUBX_results'
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
 
+# Check if saved dictionaries already exist:
+#np.save(os.path.join(save_dir, f'{SUBX}_GCF_feat_{args.my_split}.npy'), gcf_feat)
+GCFdicts_exist = sum([int(os.path.exists(os.path.join(save_dir, f'SUBX_GCF_{w}_{args.my_split}.npy'))) for w in ['feat', 'node', 'edge']])
+GGFdicts_exist = sum([int(os.path.exists(os.path.join(save_dir, f'SUBX_GGF_{w}_{args.my_split}.npy'))) for w in ['feat', 'node', 'edge']])
+
+L = []
+if os.path.exists(save_dir):
+    L = os.listdir(save_dir)
+
+already_used = set()
+for l in L:
+    # Load in the already used test inds:
+    if l[-4:] != '.npy':
+        continue
+
+    try:
+        f = np.load(open(os.path.join(save_dir, f), 'rb'), allow_pickle=True)
+        all_keys = f.item().keys()
+        for k in all_keys:
+            already_used.add(int(k)) # Can handle repeated elements
+    except:
+        continue
+
+
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 itrack = 0
 SUBX = 'SUBX'
@@ -181,6 +205,9 @@ for node_idx in tqdm.tqdm(my_test_inds):
 
     if pred_class != data.y[node_idx]:
         # Don't evaluate if the prediction is incorrect
+        continue
+
+    if node_idx in already_used: # We've already calculated scores
         continue
 
     # Get explanation method
