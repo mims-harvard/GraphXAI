@@ -1,4 +1,4 @@
-import os, sys; sys.path.append()
+import os, sys
 import argparse, random
 import numpy as np
 import torch
@@ -6,6 +6,7 @@ import torch
 from utils import get_model, get_exp_method, get_dataset
 
 from graphxai.datasets import Benzene
+from graphxai.metrics.metrics_graph import graph_exp_acc_graph, graph_exp_faith_graph
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
@@ -29,14 +30,20 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Get dataset:
 dataset = get_dataset(args.dataset, device = device)
+test_inds = dataset.test_index # Index of testing objects
 
-test_inds = dataset.test_index
+# Set up model:
+model = get_model(args.model)
 
 # Load model:
 # Construct path to model:
 mpath = os.path.join(args.dataset, 'model_weights', '{}_{}.pth'.format(args.model.upper(), args.dataset))
+model.load_state_dict(torch.load(mpath))
 
-
+criterion = torch.nn.CrossEntropyLoss().to(device)
 
 for idx in test_inds:
-    pass
+    # Gets graph:
+    data = dataset.graphs[idx].to(device)
+
+    pred = model(data.x, data.edge_index, batch = torch.zeros((1,)).long()).reshape(-1, 1).argmax(dim=0)
