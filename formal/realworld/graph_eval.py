@@ -75,7 +75,7 @@ for idx in tqdm(test_inds):
         continue
 
     # Try to load from existing dir:
-    exp = exp_exists_graph(idx, path = exp_loc)
+    exp = exp_exists_graph(idx, path = exp_loc, get_exp = True)
 
     if exp is None:
         explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device)
