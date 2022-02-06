@@ -32,9 +32,9 @@ def exp_exists_graph(idx, path = '', get_exp = False):
     '''
 
     if isinstance(idx, torch.Tensor):
-        node_idx = idx.item()
+        idx = idx.item()
 
-    fname = 'exp_{:0>5d}.pt'.format(node_idx)
+    fname = 'exp_{:0>5d}.pt'.format(idx)
     
     full_path = os.path.join(path, fname)
 

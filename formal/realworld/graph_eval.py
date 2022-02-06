@@ -59,6 +59,8 @@ add_args = {
     'batch': torch.zeros((1,)).long()
 }
 
+exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
+
 for idx in tqdm(test_inds):
     # Gets graph, ground truth explanation:
     data, gt_exp = dataset[idx]
@@ -71,11 +73,13 @@ for idx in tqdm(test_inds):
         continue
 
     # Try to load from existing dir:
-    exp = exp_exists_graph(idx, path = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper()))
+    exp = exp_exists_graph(idx, path = exp_loc)
 
     if exp is None:
         explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device)
         exp = explainer.get_explanation_node(**forward_kwargs)
+
+        torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))
 
     if args.accuracy:
         # Accuracy:
