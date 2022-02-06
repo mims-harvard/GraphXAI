@@ -48,7 +48,7 @@ criterion = torch.nn.CrossEntropyLoss()
 best_acc=0
 for epoch in range(1, 201):
     loss = train(model, optimizer, criterion, data)
-    f1, acc, precision, recall, auroc, auprc = val(model, data, get_auc=True)
+    ff1, acc, precision, recall, auprc, auroc = val(model, data, get_auc=True)
     if acc > best_acc:
         best_acc = acc
         torch.save(model.state_dict(), f'./model_weights/model_{args.expt_name}.pth')
@@ -56,5 +56,5 @@ for epoch in range(1, 201):
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
 # Testing performance
-f1, acc, precision, recall, auroc, auprc = test(model, data, get_auc=True)
+f1, acc, precision, recall, auprc, auroc = test(model, data, get_auc=True)
 print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')

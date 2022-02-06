@@ -1,3 +1,4 @@
+import os
 import torch
 from graphxai.explainers import *
 
@@ -50,7 +51,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class, data, de
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
-                        
+
     elif method=='pgex':
         raise ValueError('PGEX does not support graph-level explanations')
 
@@ -92,3 +93,19 @@ def get_model(name):
     else:
         OSError('Invalid model!')
     return model
+
+default_root = '~/GraphXAI/formal/real_world'
+def get_dataset(name, root = default_root, device = None):
+    '''
+    Args:
+        root: Only needed if using Mutagenicity
+    '''
+
+    if name.lower() == 'benzene':
+        return Benzene(split_sizes = (0.7,0.15,0.15), seed = 1234, device = device)
+
+    elif (name.lower() == 'fc') or (name.lower() == 'fluoridecarbonyl'):
+        return FluorideCarbonyl(split_sizes = (0.7, 0.15, 0.15), seed = 1234, device = device)
+
+    elif (name.lower() == 'mutagenicity') or (name.lower() == 'mutag'): 
+        return Mutagenicity(root = os.path.join(root, 'data'), split_sizes = (0.7, 0.15, 0.15), seed = 1234, device = device)

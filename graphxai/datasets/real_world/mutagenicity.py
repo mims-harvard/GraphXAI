@@ -42,10 +42,13 @@ class Mutagenicity(GraphDataset):
         generate: bool = True,
         split_sizes = (0.7, 0.2, 0.1),
         seed = None,
-        test_debug = False
+        test_debug = False,
+        device = None,
         ):
 
-        self.graphs = TUDataset(root=root, name='Mutagenicity')
+        self.device = device
+
+        self.graphs = TUDataset(root=root, name='Mutagenicity').to(self.device)
         # self.graphs retains all qualitative and quantitative attributes from PyG
 
         self.__make_explanations(test_debug)

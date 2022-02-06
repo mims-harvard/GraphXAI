@@ -3,7 +3,9 @@ import argparse, random
 import numpy as np
 import torch
 
-from utils import get_model, get_exp_method
+from utils import get_model, get_exp_method, get_dataset
+
+from graphxai.datasets import Benzene
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
@@ -17,4 +19,13 @@ random.seed(seed_value)
 np.random.seed(seed_value)
 torch.manual_seed(seed_value)
 
-# Get testing set:
+# Get dataset:
+dataset = get_dataset('benzene')
+
+test_inds = dataset.test_index
+
+# Load model:
+
+
+for idx in test_inds:
+    pass

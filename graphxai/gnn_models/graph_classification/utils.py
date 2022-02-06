@@ -37,26 +37,27 @@ def test_old(model: torch.nn.Module, data_loader: DataLoader):
 
 
 def test(model: torch.nn.Module, data_loader: DataLoader):
-    model.eval()
-    GT = np.zeros(len(data_loader))
-    preds = np.zeros(len(data_loader))
-    probas = np.zeros(len(data_loader))
+    with torch.no_grad():
+        model.eval()
+        GT = np.zeros(len(data_loader))
+        preds = np.zeros(len(data_loader))
+        probas = np.zeros(len(data_loader))
 
-    i = 0
-    for data in data_loader:
-        out = model(data.x, data.edge_index, data.batch)
-        pred = out.argmax(dim=1).item()
-        GT[i] = data.y.item()
-        preds[i] = pred
+        i = 0
+        for data in data_loader:
+            out = model(data.x, data.edge_index, data.batch)
+            pred = out.argmax(dim=1).item()
+            GT[i] = data.y.item()
+            preds[i] = pred
 
-        probas[i] = out.softmax(dim=1).squeeze()[1].detach().clone().numpy()
+            probas[i] = out.softmax(dim=1).squeeze()[1].detach().clone().cpu().numpy()
 
-        i += 1
+            i += 1
 
-    f1 = f1_score(GT, preds)
-    precision = precision_score(GT, preds)
-    recall = recall_score(GT, preds)
-    auprc = metrics.average_precision_score(GT, probas)
-    auroc = metrics.roc_auc_score(GT, probas)
+        f1 = f1_score(GT, preds)
+        precision = precision_score(GT, preds)
+        recall = recall_score(GT, preds)
+        auprc = metrics.average_precision_score(GT, probas)
+        auroc = metrics.roc_auc_score(GT, probas)
 
-    return f1, precision, recall, auprc, auroc
+        return f1, precision, recall, auprc, auroc

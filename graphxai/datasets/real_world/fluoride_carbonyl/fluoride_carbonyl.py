@@ -18,7 +18,8 @@ class FluorideCarbonyl(GraphDataset):
             self,
             split_sizes = (0.7, 0.2, 0.1),
             seed = None,
-            data_path: str = fc_data_dir
+            data_path: str = fc_data_dir,
+            device = None,
         ):
         '''
         Args:
@@ -27,7 +28,9 @@ class FluorideCarbonyl(GraphDataset):
             data_path (str, optional):
         '''
         
+        self.device = device
+
         self.graphs, self.explanations, self.zinc_ids = \
             load_graphs(data_path, os.path.join(data_path, fc_smiles_df))
 
-        super().__init__(name = 'FluorideCarbonyl', seed = seed, split_sizes = split_sizes)
+        super().__init__(name = 'FluorideCarbonyl', seed = seed, split_sizes = split_sizes, device = device)
