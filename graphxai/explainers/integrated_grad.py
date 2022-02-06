@@ -101,6 +101,7 @@ class IntegratedGradExplainer(_BaseExplainer):
                               x: torch.Tensor, 
                               y: torch.Tensor = None,
                               label: torch.Tensor = None,
+                              node_agg = torch.sum,
                               forward_kwargs={}):
         """
         Explain a whole-graph prediction.
@@ -145,8 +146,10 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
-        integrated_gradients = (x - baseline) * avg_grads
+        integrated_gradients = node_agg((x - baseline) * avg_grads, dim=0)
         #exp['feature_imp'] = integrated_gradients
+
+        print('IG shape', integrated_gradients.shape)
 
         exp = Explanation(
             node_imp = integrated_gradients,

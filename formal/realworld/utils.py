@@ -39,7 +39,7 @@ def get_exp_method(method, model, criterion, pred_class, data, device):
                         'label': pred_class}
 
     elif method=='pgmex':
-        exp_method=PGMExplainer(model, explain_graph=False, p_threshold=0.1)
+        exp_method=PGMExplainer(model, explain_graph=True, p_threshold=0.1)
         forward_kwargs={'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': None}
