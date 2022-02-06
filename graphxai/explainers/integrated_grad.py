@@ -146,7 +146,7 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
-        integrated_gradients = node_agg((x - baseline) * avg_grads, dim=0)
+        integrated_gradients = node_agg((x - baseline) * avg_grads, dim=1)
         #exp['feature_imp'] = integrated_gradients
 
         print('IG shape', integrated_gradients.shape)
