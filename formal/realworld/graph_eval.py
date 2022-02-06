@@ -44,6 +44,8 @@ model = get_model(args.model)
 mpath = os.path.join(args.dataset, 'model_weights', '{}_{}.pth'.format(args.model.upper(), args.dataset))
 model.load_state_dict(torch.load(mpath))
 
+model = model.to(device)
+
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 gea_node = []
@@ -67,7 +69,7 @@ for idx in tqdm(test_inds):
 
     data = data.to(device)
 
-    pred_class = model(data.x, data.edge_index, **add_args).reshape(-1, 1).argmax(dim=0)
+    pred_class = model(data.x.to(device), data.edge_index.to(device), **add_args).reshape(-1, 1).argmax(dim=0)
 
     if pred_class != data.y.item():
         continue
