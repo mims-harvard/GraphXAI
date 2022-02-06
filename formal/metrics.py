@@ -281,11 +281,10 @@ def intersection(lst1, lst2):
 def graph_exp_stability(generated_exp: Explanation, explainer, 
         shape_graph: ShapeGraph, node_id, model, delta, sens_idx, 
         top_k=0.25, rep='softmax', device = "cpu",
-        G = None, data = None) -> float:
+        G = None, data = None, num_run = 25) -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
-    num_run = 25
 
     if data is None:
         data = shape_graph.get_graph(use_fixed_split=True)
@@ -476,7 +475,7 @@ def stat_parity(org, pred, sens):
 # check_delta(x, edge_index, model, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2)
 def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, 
         node_id, model, delta, sens_idx, top_k=0.25, rep='softmax', device = 'cpu',
-        G = None, data = None) -> float:
+        G = None, data = None, num_samples = 10) -> float:
 
     # Generate the predictions
     org_pred = []
@@ -501,7 +500,6 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
     data_for_rewire = Data(edge_index = EIDX, num_nodes = 1)
 
     # Number of neighborhood samples
-    num_samples = 10
     for i in range(num_samples):
         if i == 0:
             # predictions for the original features
