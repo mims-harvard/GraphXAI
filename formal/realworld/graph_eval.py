@@ -79,7 +79,7 @@ for idx in tqdm(test_inds):
 
     if exp is None:
         explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device)
-        exp = explainer.get_explanation_node(**forward_kwargs)
+        exp = explainer.get_explanation_graph(**forward_kwargs)
 
         torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))
 
