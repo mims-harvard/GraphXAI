@@ -98,11 +98,13 @@ class RandomExplainer(_BaseExplainer):
 
         # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
-        node_imp = aggregate_node_imp(rand_mask * torch.randn_like(x), dim=1)
+        randn = torch.randn_like(x).to(x.device)
+
+        node_imp = aggregate_node_imp(rand_mask * randn, dim=1)
 
         exp = Explanation(
             node_imp = node_imp,
-            edge_imp = torch.randn(edge_index[0, :].shape)
+            edge_imp = torch.randn(edge_index[0, :].shape).to(edge_index.device)
         )
 
         exp.set_whole_graph(Data(x=x, edge_index = edge_index))
