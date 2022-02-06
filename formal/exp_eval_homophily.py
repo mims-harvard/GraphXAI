@@ -78,7 +78,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
-parser.add_argument('--save_dir', default='results_homophily', help='folder for saving results')
+parser.add_argument('--save_dir', default='results_small_homophily', help='folder for saving results')
 args = parser.parse_args()
 
 # Folder to collect epoch snapshots
@@ -97,7 +97,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_homophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]  
@@ -107,7 +107,7 @@ inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('./model_weights/model_homophily.pth'))
+model.load_state_dict(torch.load('./model_weights/model_small_homophily.pth'))
 # model.load_state_dict(torch.load('./model_SG_org_homo.pth'))
 
 gef_feat = []
@@ -150,19 +150,19 @@ for node_idx in tqdm.tqdm(inhouse):
                             'label': pred_class}
         # Get explanations
         exp = explainer.get_explanation_node(**forward_kwargs)
-        gt_exp = bah.explanations[node_idx]
+        # gt_exp = bah.explanations[node_idx]
 
         # Save explanations
-        np.save(f'{save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
-        np.save(f'{save_dir}/gt_{node_idx}.pickle', gt_exp)
+        # np.save(f'{save_dir}/{args.exp_method}_{node_idx}.pickle', exp)
+        # np.save(f'{save_dir}/gt_{node_idx}.pickle', gt_exp)
 
         # exp = np.load(f'{save_dir}/{args.exp_method}_{node_idx}.pickle.npy', allow_pickle=True).ravel()[0]
         # gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
 
         # Calculate metrics
-        feat, node, edge = graph_exp_acc(gt_exp, exp)
+        # feat, node, edge = graph_exp_acc(gt_exp, exp)
         # feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
-        # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+        feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
         # feat, node, edge = graph_exp_cf_fairness(exp, explainer, bah, model, node_idx, delta, [bah.sensitive_feature], device=device)
 
         gea_feat.append(feat)
@@ -179,6 +179,6 @@ for node_idx in tqdm.tqdm(inhouse):
 
 ############################
 # Saving the metric values
-np.save(f'{save_dir}/{args.exp_method}_gea_feat.npy', gea_feat)
-np.save(f'{save_dir}/{args.exp_method}_gea_node.npy', gea_node)
-np.save(f'{save_dir}/{args.exp_method}_gea_edge.npy', gea_edge)
+np.save(f'{save_dir}/{args.exp_method}_gef_feat.npy', gea_feat)
+np.save(f'{save_dir}/{args.exp_method}_gef_node.npy', gea_node)
+np.save(f'{save_dir}/{args.exp_method}_gef_edge.npy', gea_edge)

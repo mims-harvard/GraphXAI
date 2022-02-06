@@ -15,9 +15,9 @@ args = parser.parse_args()
 
 # Load ShapeGraph dataset
 if args.expt_name == 'homophily':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_homophily.pickle', 'rb'))
 elif args.expt_name == 'heterophily':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophily.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_heterophily.pickle', 'rb'))
 elif args.expt_name == 'triangle':
     bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
 elif args.expt_name == 'fair':
@@ -46,12 +46,12 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
 
 best_acc=0
-for epoch in range(1, 201):
+for epoch in range(1, 501):
     loss = train(model, optimizer, criterion, data)
     ff1, acc, precision, recall, auprc, auroc = val(model, data, get_auc=True)
     if acc > best_acc:
         best_acc = acc
-        torch.save(model.state_dict(), f'./model_weights/model_{args.expt_name}.pth')
+        torch.save(model.state_dict(), f'./model_weights/model_small_{args.expt_name}.pth')
     if epoch % 10 == 0:
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
