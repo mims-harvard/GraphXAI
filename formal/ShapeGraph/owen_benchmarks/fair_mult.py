@@ -65,7 +65,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'top_k_nodes': 10}
     elif method=='pgex':
         #exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        exp_method = torch.load(os.path.join('/home/owq978/GraphXAI/formal/ShapeGraph/get_exps/PGExplainer.pickle'))
+        #exp_method = torch.load(os.path.join('/home/owq978/GraphXAI/formal/ShapeGraph/get_exps/PGExplainer.pickle'))
         # By unpickling, we know we've already trained on it
         #exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
         forward_kwargs={'node_idx': node_idx,
@@ -104,6 +104,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
+parser.add_argument('--ignore_cf', action = 'store_true')
+parser.add_argument('--ignore_group', action = 'store_true')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 parser.add_argument('--num_splits', default=1, type=int, help='Number of jobs that will run this explainer over the test set; should be fixed for multiple jobs')
 parser.add_argument('--my_split', default = 0, type=int, help='Split number for the given num_splits; goes from [0,num_splits), e.g. 0, 1, 2 for num_splits=3')
@@ -193,46 +195,50 @@ for node_idx in tqdm.tqdm(my_test_inds):
             torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
-    feat, node, edge = graph_exp_cf_fairness(
-            exp,
-            explainer, 
-            bah,
-            model = model,
-            node_id = node_idx, 
-            delta = delta,
-            sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
-            device = device,
-            data = data,
-            )
+    if not args.ignore_cf:
+        feat, node, edge = graph_exp_cf_fairness(
+                exp,
+                explainer, 
+                bah,
+                model = model,
+                node_id = node_idx, 
+                delta = delta,
+                sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
+                device = device,
+                data = data,
+                )
 
-    gcf_feat[node_idx] = (feat)
-    gcf_node[node_idx] = (node)
-    gcf_edge[node_idx] = (edge)
+        gcf_feat[node_idx] = (feat)
+        gcf_node[node_idx] = (node)
+        gcf_edge[node_idx] = (edge)
 
-    feat, node, edge = graph_exp_group_fairness(
-            exp,
-            bah,
-            node_id = node_idx, 
-            model = model,
-            delta = delta,
-            sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
-            device = device,
-            G = G,
-            data = data,
-            )
+    if not args.ignore_group:
+        feat, node, edge = graph_exp_group_fairness(
+                exp,
+                bah,
+                node_id = node_idx, 
+                model = model,
+                delta = delta,
+                sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
+                device = device,
+                G = G,
+                data = data,
+                )
 
-    ggf_feat[node_idx] = (feat)
-    ggf_node[node_idx] = (node)
-    ggf_edge[node_idx] = (edge)
+        ggf_feat[node_idx] = (feat)
+        ggf_node[node_idx] = (node)
+        ggf_edge[node_idx] = (edge)
 
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
+if not args.ignore_cf:
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat_{args.my_split}.npy'), gcf_feat)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node_{args.my_split}.npy'), gcf_node)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge_{args.my_split}.npy'), gcf_edge)
 
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)
+if not args.ignore_group:
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat_{args.my_split}.npy'), ggf_feat)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node_{args.my_split}.npy'), ggf_node)
+    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge_{args.my_split}.npy'), ggf_edge)

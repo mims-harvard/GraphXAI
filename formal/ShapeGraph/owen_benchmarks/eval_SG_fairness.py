@@ -64,8 +64,9 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'edge_index': data.edge_index.to(device),
                         'top_k_nodes': 10}
     elif method=='pgex':
-        exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
+        exp_method=PGEX
+        #exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
+        #exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
@@ -131,6 +132,11 @@ model = get_model(name = args.model).to(device)
 # Get prediction of a node in the 2-house class:
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
 model.load_state_dict(torch.load(mpath))
+
+# Pre-train PGEX before running:
+if args.exp_method.lower() == 'pgex':
+    PGEX=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
+    PGEX.train_explanation_model(data.to(device))
 
 gcf_feat = []
 gcf_node = []
