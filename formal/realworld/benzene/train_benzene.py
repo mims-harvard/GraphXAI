@@ -25,6 +25,7 @@ model = GIN_3layer(14, 32, 2).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
+best_f1 = 0
 for epoch in range(1, 101):
     train(model, optimizer, criterion, train_loader)
     #f1, prec, rec, auprc, auroc = test(model, test_loader)
