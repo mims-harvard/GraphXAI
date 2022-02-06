@@ -1,6 +1,6 @@
 import tqdm
 import ipdb
-import argparse, sys; sys.path.append('../..')
+import argparse, sys; sys.path.append('/home/owq978/GraphXAI/formal')
 import random as rand
 import torch
 from metrics import *
