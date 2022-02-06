@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -c 1
-#SBATCH -t 0-12:00
+#SBATCH -t 0-24:00
 #SBATCH -p gpu_quad
 #SBATCH --gres=gpu:1
-#SBATCH --mem=10G
-#SBATCH -o fair_PGEX.out
-#SBATCH -e fair_PGEX.err
+#SBATCH --mem=50G
+#SBATCH -o fair_outs/PGEX_fair.out
+#SBATCH -e fair_outs/PGEX_fair.err
 #SBATCH -J PGEX_fair
 
 source activate GXAI
