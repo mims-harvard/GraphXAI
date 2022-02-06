@@ -2,6 +2,7 @@ import os, sys
 import argparse, random
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from utils import get_model, get_exp_method, get_dataset
 
@@ -58,7 +59,7 @@ add_args = {
     'batch': torch.zeros((1,)).long()
 }
 
-for idx in test_inds:
+for idx in tqdm(test_inds):
     # Gets graph, ground truth explanation:
     data, gt_exp = dataset[idx]
 
