@@ -263,8 +263,8 @@ class SubgraphX(_BaseExplainer):
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
         exp = Explanation(
-            node_imp = node_mask,
-            edge_imp = edge_mask
+            node_imp = node_mask.float(),
+            edge_imp = edge_mask.float()
         )
         # exp.node_imp = node_mask
         # exp.edge_imp = edge_mask
