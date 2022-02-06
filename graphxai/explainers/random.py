@@ -71,7 +71,8 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor, 
             edge_index: torch.Tensor,
             num_nodes : int = None,
-            aggregate_node_imp = torch.sum):
+            aggregate_node_imp = torch.sum,
+            forward_kwargs = {}):
         """
         Get the explanation for the whole graph.
 
