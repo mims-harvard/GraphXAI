@@ -128,7 +128,7 @@ class IntegratedGradExplainer(_BaseExplainer):
         label = y if label is None else label 
 
         self.model.eval()
-        grads = torch.zeros(steps+1, *x.shape)
+        grads = torch.zeros(steps+1, *x.shape).to(x.device)
         baseline = torch.zeros_like(x).to(x.device)  # TODO: baseline all 0s, all 1s, ...?
         for i in range(steps+1):
             with torch.no_grad():
