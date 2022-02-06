@@ -124,7 +124,7 @@ def k_hop_subgraph_with_default_whole_graph(
         if isinstance(node_idx, (int, list, tuple)):
             node_idx = torch.tensor([node_idx], device=row.device, dtype=torch.int64).flatten()
         elif isinstance(node_idx, torch.Tensor) and len(node_idx.shape) == 0:
-            node_idx = torch.tensor([node_idx])
+            node_idx = torch.tensor([node_idx], device=row.device)
         else:
             node_idx = node_idx.to(row.device)
 

@@ -21,10 +21,9 @@ start_ind = args.start_ind
 bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Test set remains static
-test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt')).numpy()
+test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt'))
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
@@ -41,10 +40,7 @@ else:
 
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
 
-for i in tqdm.tqdm(range_gen):
-
-    #node_idx = torch.tensor(test_set[i]).to(device)
-    node_idx = test_set[i]
+for node_idx in tqdm.tqdm(range_gen):
 
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0) 
 
