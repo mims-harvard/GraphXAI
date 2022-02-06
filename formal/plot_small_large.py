@@ -32,7 +32,7 @@ for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex
         df_small.append(temp_small)
     else:
         algos.remove(algo)
-    temp_large = np.load(f'./results_large/{algo}_gef_{ty}.npy', allow_pickle=True)
+    temp_large = np.load(f'./results_homophily/{algo}_gef_{ty}.npy', allow_pickle=True)
     if temp_large[-1] is not None:
         df_large.append(temp_large)
     # print(f'{algo}: Small={df_small[-1].mean()} | Large={df_large[-1].mean()}')
