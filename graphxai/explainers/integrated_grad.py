@@ -129,7 +129,7 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         self.model.eval()
         grads = torch.zeros(steps+1, *x.shape)
-        baseline = torch.zeros_like(x)  # TODO: baseline all 0s, all 1s, ...?
+        baseline = torch.zeros_like(x).to(x.device)  # TODO: baseline all 0s, all 1s, ...?
         for i in range(steps+1):
             with torch.no_grad():
                 temp_x = baseline + (float(i)/steps) * (x.clone()-baseline)
