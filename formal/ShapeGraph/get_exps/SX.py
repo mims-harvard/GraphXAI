@@ -43,7 +43,7 @@ save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explan
 
 for i in tqdm.tqdm(range_gen):
 
-    node_idx = test_set[i]
+    node_idx = torch.tensor(test_set[i]).to(device)
 
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0) 
 
