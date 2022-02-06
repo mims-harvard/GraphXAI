@@ -93,7 +93,7 @@ class RandomExplainer(_BaseExplainer):
         #exp = {k: None for k in EXP_TYPES}
 
         n = maybe_num_nodes(edge_index, None) if num_nodes is None else num_nodes
-        rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1))
+        rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1)).to(x.device)
         # exp['feature_imp'] = rand_mask * torch.randn_like(x)
 
         # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
