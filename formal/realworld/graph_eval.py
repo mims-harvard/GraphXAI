@@ -58,7 +58,7 @@ GEA_PATH = os.path.join(args.dataset, 'results', 'accuracy')
 GEF_PATH = os.path.join(args.dataset, 'results', 'faithfulness')
 
 add_args = {
-    'batch': torch.zeros((1,)).long()
+    'batch': torch.zeros((1,)).long().to(device)
 }
 
 exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
