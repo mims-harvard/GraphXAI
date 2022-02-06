@@ -154,7 +154,7 @@ save_exp_flag = True
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set[:5]):
+for node_idx in tqdm.tqdm(test_set):
 
     node_idx = node_idx.item()
 
