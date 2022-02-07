@@ -8,3 +8,7 @@ data/ShapeGraph/SG_homophilic.pickle
 *.out
 *.err
 formal/ShapeGraph/bigSG_explanations
+formal/realworld/mutag/EXPS
+formal/realworld/fc/EXPS
+formal/realworld/benzene/EXPS
+

@@ -48,7 +48,7 @@ class Mutagenicity(GraphDataset):
 
         self.device = device
 
-        self.graphs = TUDataset(root=root, name='Mutagenicity').to(self.device)
+        self.graphs = TUDataset(root=root, name='Mutagenicity')
         # self.graphs retains all qualitative and quantitative attributes from PyG
 
         self.__make_explanations(test_debug)
@@ -56,7 +56,7 @@ class Mutagenicity(GraphDataset):
         # Filter based on label-explanation validity:
         self.__filter_dataset()
 
-        super().__init__(name = 'Mutagenicity', seed = seed, split_sizes = split_sizes)
+        super().__init__(name = 'Mutagenicity', seed = seed, split_sizes = split_sizes, device = device)
 
 
     def __make_explanations(self, test: bool = False):
