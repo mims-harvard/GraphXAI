@@ -43,6 +43,7 @@ class CAM(_BaseDecomposition):
                 node_idx: int, 
                 edge_index: torch.Tensor, 
                 label: int = None,  
+                y = None,
                 forward_kwargs: dict = {},
                 directed: bool = False
             ) -> Explanation:
@@ -76,7 +77,10 @@ class CAM(_BaseDecomposition):
             edge_index = to_undirected(edge_index)
 
         if label is None:
-            label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item())
+            if y is None:
+                label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item())
+            else:
+                label = y[node_idx]
 
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
