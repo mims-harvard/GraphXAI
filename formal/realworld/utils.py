@@ -16,6 +16,12 @@ def get_exp_method(method, model, criterion, pred_class, data, device):
                         'label': data.y.to(device),
                         'edge_index': data.edge_index.to(device)}
 
+    elif method == 'cam':
+        exp_method = CAM(model, activation = lambda x: torch.argmax(x, dim=1))
+        forward_kwargs={'x':data.x.to(device),
+                        'label': data.y.to(device),
+                        'edge_index': data.edge_index.to(device)}
+
     elif method=='gcam':
         exp_method = GradCAM(model, criterion = criterion)
         forward_kwargs={'x':data.x.to(device),

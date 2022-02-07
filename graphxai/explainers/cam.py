@@ -59,7 +59,7 @@ class CAM(_BaseDecomposition):
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
-            directed (bool, optional): 
+            directed (bool, optional): If True, graph is directed.
 
         :rtype: :class:`graphxai.Explanation`
 
