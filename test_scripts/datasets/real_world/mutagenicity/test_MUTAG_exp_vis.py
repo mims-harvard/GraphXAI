@@ -17,7 +17,9 @@ atom_map = {0: 'C', 4: 'N', 1: 'O', 3: 'H'}
 
 L = random.sample(list(range(len(mutag))), k = 20)
 
-L = [1425, 1426]
+print('len', len(mutag))
+
+# L = [1425, 1426]
 
 for i in L:
     g, exp = mutag[i]
@@ -39,8 +41,11 @@ for i in L:
         node_label[j] = to_map
 
     #nx.draw_networkx_labels(G, pos, node_label, font_color = 'white')
-    plt.title(f'Mol. {i}')
+    plt.title(f'Mol. {i}, Label = {mutag.graphs[i].y.item()}')
     plt.show()
 
     # if i > 10:
     #     exit()
+print('Class imbalance:')
+print('Label==0:', np.sum([mutag.graphs[i].y.item() == 0 for i in range(len(mutag))]))
+print('Label==1:', np.sum([mutag.graphs[i].y.item() == 1 for i in range(len(mutag))]))
