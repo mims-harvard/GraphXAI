@@ -175,8 +175,8 @@ for node_idx in tqdm.tqdm(test_set):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    #exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
-    exp = None
+    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    #exp = None
     #print(exp)
 
     if (exp is None) or args.exp_method.lower() == 'pgex':
