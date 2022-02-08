@@ -81,12 +81,12 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
     elif method=='subx':
-        exp_method = SubgraphX(model, reward_method = 'gnn_score', num_hops = bah.model_layers)
+        exp_method = SubgraphX(model, reward_method = 'gnn_score', num_hops = bah.model_layers, rollout=5)
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
                         'label': pred_class,
-                        'max_nodes': 15}
+                        'max_nodes': 10}
     else:
         OSError('Invalid argument!!')
     return exp_method, forward_kwargs
@@ -177,7 +177,8 @@ for node_idx in tqdm.tqdm(test_set):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    #exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    exp = None
     #print(exp)
 
     if (exp is None) or args.exp_method.lower() == 'pgex':

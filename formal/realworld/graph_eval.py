@@ -64,6 +64,10 @@ add_args = {
 exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
 
 for idx in tqdm(test_inds):
+
+    if idx == 1425:
+        continue
+
     # Gets graph, ground truth explanation:
     data, gt_exp = dataset[idx]
 
@@ -82,6 +86,8 @@ for idx in tqdm(test_inds):
         exp = explainer.get_explanation_graph(**forward_kwargs)
 
         torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))
+
+    print('ind', idx)
 
     if args.accuracy:
         # Accuracy:
