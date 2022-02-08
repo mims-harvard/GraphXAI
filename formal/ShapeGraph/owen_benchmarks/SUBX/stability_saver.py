@@ -196,7 +196,7 @@ for node_idx in tqdm.tqdm(my_test_inds):
     exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
     #print(exp)
 
-    if exp is not None:
+    if exp is None:
         exp = explainer.get_explanation_node(**forward_kwargs)
 
         if save_exp_flag and (args.exp_method.lower() != 'pgex'):
