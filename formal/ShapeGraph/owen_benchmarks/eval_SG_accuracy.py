@@ -138,7 +138,7 @@ model.load_state_dict(torch.load(mpath))
 
 # Pre-train PGEX before running:
 if args.exp_method.lower() == 'pgex':
-    if args.ignore_training:
+    if not args.ignore_training:
         PGEX=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
         PGEX.train_explanation_model(data.to(device))
     else:
