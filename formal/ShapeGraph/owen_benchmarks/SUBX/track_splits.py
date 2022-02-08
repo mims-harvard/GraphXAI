@@ -37,7 +37,7 @@ def count_sym_diff():
     not_saved = set_spl - fnums
 
     # Bin the split:
-    bins = np.arange(0, num_in_split, args.num_splits)
+    bins = np.arange(0, num_in_split, num_in_split // args.num_splits)
 
     for i in range(bins.shape[0]):
         # Count how many numbers in this split are in not_saved:
