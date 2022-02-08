@@ -18,6 +18,8 @@ def get_file_nums():
     saved_nums = []
 
     for f in flist:
+        if f[-4:] != '.npy':
+            continue
         n = os.path.abspath(f)
         num = int(n[-9:-4])
 
@@ -47,3 +49,5 @@ def count_sym_diff():
         len_in_split = len(bin_range.intersection(not_saved))
 
         print('\t Split {}: {}'.format(i, len_in_split))
+
+count_sym_diff()
