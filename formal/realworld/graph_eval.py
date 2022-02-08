@@ -87,8 +87,6 @@ for idx in tqdm(test_inds):
 
         torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))
 
-    print('ind', idx)
-
     if args.accuracy:
         # Accuracy:
         _, node_acc, edge_acc = graph_exp_acc_graph(gt_exp, exp)

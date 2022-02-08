@@ -88,7 +88,7 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -
             true_nodes = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
             #true_nodes = [exp.graph.nodes[i].item() for i in relative_positives]
             #for i, node in enumerate(exp_graph.nodes):
-            print('x shape {} \t node_imp shape {}'.format(exp_graph.x.shape, generated_exp.node_imp.shape))
+            #print('x shape {} \t node_imp shape {}'.format(exp_graph.x.shape, generated_exp.node_imp.shape))
             for node in range(exp_graph.x.shape[0]):
                 # Restore original node numbering
                 positive = generated_exp.node_imp[node].item() > thresh_node
