@@ -172,7 +172,7 @@ save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explan
 ETYPES = ['feat', 'node', 'edge']
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
-for node_idx in tqdm.tqdm(test_set):
+for node_idx in tqdm.tqdm(my_test_inds):
 
     ges_feat = dict()
     ges_node = dict()
