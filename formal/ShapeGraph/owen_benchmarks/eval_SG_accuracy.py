@@ -188,7 +188,7 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-    feat, node, edge = graph_exp_stability(gt_exp = bah.explanations[node_idx], generated_exp=exp)
+    feat, node, edge = graph_exp_acc(gt_exp = bah.explanations[node_idx], generated_exp=exp)
     gea_feat.append(feat)
     gea_node.append(node)
     gea_edge.append(edge)
