@@ -71,8 +71,6 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'top_k_nodes': 10}
     elif method=='pgex':
         exp_method=PGEX
-        #exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        #exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
         forward_kwargs={'node_idx': node_idx,
                         'x': data.x.to(device),
                         'edge_index': data.edge_index.to(device),
@@ -109,10 +107,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
-parser.add_argument('--ignore_cf', action = 'store_true')
-parser.add_argument('--ignore_group', action = 'store_true')
-parser.add_argument('--save_dir', default='./fairness_results/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
+parser.add_argument('--num_splits', default=1, type=int, help='Number of jobs that will run this explainer over the test set; should be fixed for multiple jobs')
+parser.add_argument('--my_split', default = 0, type=int, help='Split number for the given num_splits; goes from [0,num_splits), e.g. 0, 1, 2 for num_splits=3')
 args = parser.parse_args()
+
+def check_for_file(node_idx, exptype):
+    return os.path.exists(os.path.join(args.save_dir, 'SUBX_GES_{}_{:0>5d}.npy'.format(exptype, node_idx)))
+
+def save_exp(node_idx, score_dict, exptype):
+    np.save(os.path.join(args.save_dir, 'SUBX_GES_{}_{:0>5d}.npy'.format(exptype, node_idx)), score_dict)
 
 seed_value=912
 rand.seed(seed_value)
@@ -128,9 +132,15 @@ bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/S
 data = bah.get_graph(use_fixed_split=True)
 
 #inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-test_set = (data.test_mask).nonzero(as_tuple=True)[0]
-np.random.shuffle(test_set.numpy())
-print(test_set)
+test_set = torch.load(open(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'test_inds_SG_homophilic.pt'), 'rb'))
+
+assert args.my_split < args.num_splits, 'My split must be less than num splits'
+
+partition_size = len(test_set) // args.num_splits
+if args.my_split == (args.num_splits - 1):
+    my_test_inds = test_set[(partition_size * args.my_split):] # Make sure to cover everything
+else:
+    my_test_inds = test_set[(partition_size * args.my_split):(partition_size * (args.my_split + 1))]
 
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = get_model(name = args.model).to(device)
@@ -143,14 +153,6 @@ model.load_state_dict(torch.load(mpath))
 if args.exp_method.lower() == 'pgex':
     PGEX=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
     PGEX.train_explanation_model(data.to(device))
-
-gcf_feat = []
-gcf_node = []
-gcf_edge = []
-
-ggf_feat = []
-ggf_node = []
-ggf_edge = []
 
 # Get predictions
 pred = model(data.x.to(device), data.edge_index.to(device))
@@ -165,17 +167,25 @@ G = to_networkx_conv(data, to_undirected=True)
 
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper() + '_new')
+
+ETYPES = ['feat', 'node', 'edge']
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
+
+    ges_feat = dict()
+    ges_node = dict()
+    ges_edge = dict()
 
     node_idx = node_idx.item()
 
     # Get predictions
     pred_class = pred[node_idx, :].reshape(-1, 1).argmax(dim=0)
 
-    if pred_class != data.y[node_idx]:
+    file_checks = np.all([check_for_file(node_idx, etype) for etype in ETYPES])
+
+    if pred_class != data.y[node_idx] or file_checks: # Continue if prediction incorrect or 
         # Don't evaluate if the prediction is incorrect
         continue
 
@@ -184,70 +194,41 @@ for node_idx in tqdm.tqdm(test_set):
 
     # Get explanations
     exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    #print(exp)
 
-    if exp is None:
-        exp = explainer.get_explanation_node(**forward_kwargs)
+    exp = explainer.get_explanation_node(**forward_kwargs)
 
-        if save_exp_flag:
-            # Only saving, no loading here
-            torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
+    if save_exp_flag and (args.exp_method.lower() != 'pgex'):
+        # Only saving, no loading here
+        torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0>5d}.pt'.format(node_idx)), 'wb'))
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-    if not args.ignore_cf:
-        feat, node, edge = graph_exp_cf_fairness(
-                exp,
-                explainer, 
-                bah,
-                model = model,
-                node_id = node_idx, 
-                delta = delta,
-                sens_idx = torch.tensor([bah.sensitive_feature], dtype=torch.long),
-                device = device,
-                data = data,
-                )
+    feat, node, edge = graph_exp_stability(
+            exp, 
+            explainer,
+            bah, 
+            node_id = node_idx, 
+            model = model,
+            delta = delta,
+            sens_idx = [bah.sensitive_feature],
+            device = device,
+            G = G,
+            data = data,
+            )
 
-        gcf_feat.append(feat)
-        gcf_node.append(node)
-        gcf_edge.append(edge)
+    ges_feat[node_idx] = (feat)
+    ges_node[node_idx] = (node)
+    ges_edge[node_idx] = (edge)
 
-    if not args.ignore_group:
-        feat, node, edge = graph_exp_group_fairness(
-                exp,
-                bah,
-                node_id = node_idx, 
-                model = model,
-                delta = delta,
-                sens_idx = torch.tensor([bah.sensitive_feature], dtype = torch.long),
-                device = device,
-                G = G,
-                data = data,
-                )
+    # Save all files:
+    for name, g in zip(ETYPES, [ges_feat, ges_node, ges_edge]):
+        save_exp(node_idx, score_dict = g, exptype = name)
 
-        ggf_feat.append(feat)
-        ggf_node.append(node)
-        ggf_edge.append(edge)
-
-
-# print(ggf_feat)
-# print(ggf_node)
-# print(ggf_edge)
-
-# print('feat node edge')
-# print(gcf_feat)
-# print(gcf_node)
-# print(gcf_edge)
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-
-if not args.ignore_cf:
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_feat.npy'), gcf_feat)
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_node.npy'), gcf_node)
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GCF_edge.npy'), gcf_edge)
-
-if not args.ignore_group:
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_feat.npy'), ggf_feat)
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_node.npy'), ggf_node)
-    np.save(os.path.join(args.save_dir, f'{args.exp_method}_GGF_edge.npy'), ggf_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
