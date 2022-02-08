@@ -15,9 +15,14 @@ mutag = Mutagenicity(root = '.')
 # MUTAG notation: [C, N, O, ...]
 atom_map = {0: 'C', 4: 'N', 1: 'O', 3: 'H'}
 
+L = random.sample(list(range(len(mutag))), k = 20)
 
-for i in random.sample(list(range(len(mutag))), k = 20):
+L = [1425, 1426]
+
+for i in L:
     g, exp = mutag[i]
+
+    exp = gxai_utils.aggregate_explanations(exp, node_level = False)
 
     G, pos = exp.graph_draw(show = False)
     #G = gxai_utils.to_networkx_conv(exp.graph, to_undirected=True)
@@ -33,7 +38,7 @@ for i in random.sample(list(range(len(mutag))), k = 20):
         
         node_label[j] = to_map
 
-    nx.draw_networkx_labels(G, pos, node_label, font_color = 'white')
+    #nx.draw_networkx_labels(G, pos, node_label, font_color = 'white')
     plt.title(f'Mol. {i}')
     plt.show()
 
