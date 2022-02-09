@@ -123,7 +123,11 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation, node_th
     return [JAC_feat, JAC_node, JAC_edge]
 
 
-def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, 
+        shape_graph: ShapeGraph, 
+        model, 
+        sens_idx: List[int]= [], 
+        top_k: float = 0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
