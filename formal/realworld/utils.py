@@ -5,7 +5,7 @@ from graphxai.explainers import *
 from graphxai.datasets import Mutagenicity, Benzene, FluorideCarbonyl
 from graphxai.gnn_models.graph_classification import GIN_3layer, GCN_3layer
 
-def get_exp_method(method, model, criterion, pred_class, data, device):
+def get_exp_method(method, model, criterion, pred_class, data, device, train_pgm = False, emb_layer_name='gin3'):
     method = method.lower()
     if method=='gnnex':
         raise ValueError('GNNEX does not support graph-level explanations')
@@ -51,7 +51,15 @@ def get_exp_method(method, model, criterion, pred_class, data, device):
                         'top_k_nodes': None}
 
     elif method=='pgex':
-        raise ValueError('PGEX does not support graph-level explanations')
+        exp_method = PGExplainer(model, explain_graph = True, emb_layer_name=emb_layer_name, max_epochs=10, lr=0.1)
+        forward_kwargs = {
+            'x': data.x.to(device),
+            'edge_index': data.edge_index.to(device),
+            'label': pred_class
+        }
+        if train_pgm:
+            exp_method.train_explanation_model(data.to(device))
+        #raise ValueError('PGEX does not support graph-level explanations')
 
     elif method=='rand':
         exp_method = RandomExplainer(model)

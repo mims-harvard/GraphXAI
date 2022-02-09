@@ -63,6 +63,8 @@ add_args = {
 
 exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
 
+train_pg_flag = True
+
 for idx in tqdm(test_inds):
 
     if idx == 1425:
@@ -81,8 +83,9 @@ for idx in tqdm(test_inds):
     # Try to load from existing dir:
     exp = exp_exists_graph(idx, path = exp_loc, get_exp = True)
 
-    if exp is None:
-        explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device)
+    if exp is None or (args.exp_method == 'pgex'): # Don't allow PGEX to re-train on previous explanations
+        explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device, train_pg = train_pg_flag)
+        train_pg_flag = False # Flag to False after we've trained the first time
         exp = explainer.get_explanation_graph(**forward_kwargs)
 
         torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))

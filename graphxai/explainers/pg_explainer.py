@@ -387,6 +387,7 @@ class PGExplainer(_BaseExplainer):
         #exp['edge_imp'] = edge_mask
 
         exp = Explanation(
+            node_imp = node_mask_from_edge_mask(torch.arange(x.shape[0]), edge_index),
             edge_imp = edge_mask
         )
 
