@@ -18,6 +18,7 @@ def get_file_nums():
     saved_nums = []
 
     for f in flist:
+        print(f)
         if f[-4:] != '.npy':
             continue
         n = os.path.abspath(f)
