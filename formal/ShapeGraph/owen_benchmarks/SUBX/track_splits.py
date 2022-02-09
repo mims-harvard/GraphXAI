@@ -45,12 +45,20 @@ def count_sym_diff():
     for i in range(bins.shape[0]):
         # Count how many numbers in this split are in not_saved:
         if i < (bins.shape[0] - 1):
-            bin_range = set([split[j] for j in range(bins[i], bins[i+1])])
+            bin_range = [split[j] for j in range(bins[i], bins[i+1])]
         else:
-            bin_range = set([split[j] for j in range(bins[i], num_in_split)])
+            bin_range = [split[j] for j in range(bins[i], num_in_split)]
 
-        len_in_split = len(bin_range.intersection(not_saved))
+        # Counts off the top:
+        off_top = 0
+        for j in range(len(bin_range), 0, -1):
+            if bin_range[j] in fnums:
+                break
+            off_top += 1
 
-        print('\t Split {}: {}'.format(i, len_in_split))
+        # len_in_split = len(bin_range.intersection(not_saved))
+
+        #print('\t Split {}: {}'.format(i, len_in_split))
+        print('\t Split {}: {}'.format(i, off_top))
 
 count_sym_diff()
