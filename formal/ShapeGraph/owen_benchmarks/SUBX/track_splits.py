@@ -18,10 +18,8 @@ def get_file_nums():
     saved_nums = []
 
     for f in flist:
-        print(f)
         if f[-4:] != '.npy':
             continue
-        print('reading')
         n = os.path.abspath(f)
         num = int(n[-9:-4])
 
@@ -37,7 +35,6 @@ def count_sym_diff():
     set_spl = set(list(split))
 
     not_saved = set_spl.symmetric_difference(fnums)
-    print(len(not_saved))
 
     # Bin the split:
     bins = np.arange(0, num_in_split, num_in_split // args.num_splits)
@@ -51,7 +48,7 @@ def count_sym_diff():
 
         # Counts off the top:
         off_top = 0
-        for j in range(len(bin_range), 0, -1):
+        for j in range(len(bin_range) - 1, -1, -1):
             if bin_range[j] in fnums:
                 break
             off_top += 1
