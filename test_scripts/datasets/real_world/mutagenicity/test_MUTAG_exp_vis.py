@@ -15,7 +15,9 @@ mutag = Mutagenicity(root = '.')
 # MUTAG notation: [C, N, O, ...]
 atom_map = {0: 'C', 4: 'N', 1: 'O', 3: 'H'}
 
-L = random.sample(list(range(len(mutag))), k = 20)
+to_samp = [i for i in range(len(mutag)) if mutag.graphs[i].y == 1]
+
+L = random.sample((to_samp), k = 20)
 
 print('len', len(mutag))
 
@@ -23,6 +25,9 @@ print('len', len(mutag))
 
 for i in L:
     g, exp = mutag[i]
+
+    for e in exp:
+        e.graph_draw(show = True)
 
     exp = gxai_utils.aggregate_explanations(exp, node_level = False)
 

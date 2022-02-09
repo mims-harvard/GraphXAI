@@ -1,4 +1,6 @@
 import torch
+import itertools
+import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -11,6 +13,7 @@ from graphxai.datasets.dataset import GraphDataset
 from graphxai.utils import Explanation, match_edge_presence
 from graphxai.datasets.utils.substruct_chem_match import match_NH2, match_substruct_mutagenicity, MUTAG_NO2, MUTAG_NH2
 from graphxai.datasets.utils.substruct_chem_match import match_aliphatic_halide, match_nitroso, match_azo_type, match_polycyclic
+from graphxai.utils import aggregate_explanations
 
 # 0	C
 # 1	O
@@ -26,6 +29,26 @@ from graphxai.datasets.utils.substruct_chem_match import match_aliphatic_halide,
 # 11	K
 # 12	Li
 # 13	Ca
+
+def make_iter_combinations(length):
+    '''
+    Builds increasing level of combinations, including all comb's at r = 1, ..., length - 1
+    Used for building combinations of explanations
+    '''
+
+    if length == 1:
+        return [[0]]
+
+    inds = np.arange(length)
+
+    exps = [[i] for i in inds]
+    
+    for l in range(1, length - 1):
+        exps += list(itertools.combinations(inds, l + 1))
+
+    exps.append(list(inds)) # All explanations
+
+    return exps
 
 
 class Mutagenicity(GraphDataset):
@@ -143,6 +166,7 @@ class Mutagenicity(GraphDataset):
 
                 explanations_i.append(exp)
 
+
             if len(explanations_i) == 0:
                 # Set a null explanation:
                 exp = Explanation(
@@ -156,7 +180,24 @@ class Mutagenicity(GraphDataset):
 
                 explanations_i = [exp]
 
-            self.explanations.append(explanations_i)
+                self.explanations.append(explanations_i)
+            
+            else:
+                # Combinatorial combination of matches:
+                exp_matches_inds = make_iter_combinations(len(all_matches))
+
+                comb_explanations = []
+
+                # Run combinatorial build of all explanations
+                for eid in exp_matches_inds:
+                    # Get list of explanations:
+                    L = [explanations_i[j] for j in eid]
+                    tmp_exp = aggregate_explanations(L, node_level = False)
+                    tmp_exp.has_match = True
+                    comb_explanations.append(tmp_exp) # No reference provided
+                    
+
+                self.explanations.append(comb_explanations)
 
         if test:
             print(f'NH2: {count_nh2}')
