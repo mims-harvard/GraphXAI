@@ -13,7 +13,7 @@ split = torch.load(args.path_to_split).numpy()
 num_in_split = split.shape[0]
 
 def get_file_nums():
-    flist = glob.glob(args.path)
+    flist = glob.glob(args.path + '/*')
 
     saved_nums = []
 
@@ -21,6 +21,7 @@ def get_file_nums():
         print(f)
         if f[-4:] != '.npy':
             continue
+        print('reading')
         n = os.path.abspath(f)
         num = int(n[-9:-4])
 
@@ -33,9 +34,10 @@ def count_sym_diff():
 
     fnums = get_file_nums()
 
-    set_spl = set(split)
+    set_spl = set(list(split))
 
-    not_saved = set_spl - fnums
+    not_saved = set_spl.symmetric_difference(fnums)
+    print(len(not_saved))
 
     # Bin the split:
     bins = np.arange(0, num_in_split, num_in_split // args.num_splits)

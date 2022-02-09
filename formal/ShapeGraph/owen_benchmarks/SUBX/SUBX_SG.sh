@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 1
 #SBATCH -t 0-08:00
-#SBATCH -p gpu
+#SBATCH -p gpu_quad
 #SBATCH --gres=gpu:1
 #SBATCH --mem=10G
 #SBATCH -o mult_outs/SUBX_fNUM.out
