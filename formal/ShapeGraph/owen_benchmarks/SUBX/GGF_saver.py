@@ -107,16 +107,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
-parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
+parser.add_argument('--save_dir', default='./SUBX_results/stab', help='folder for saving results')
 parser.add_argument('--num_splits', default=1, type=int, help='Number of jobs that will run this explainer over the test set; should be fixed for multiple jobs')
 parser.add_argument('--my_split', default = 0, type=int, help='Split number for the given num_splits; goes from [0,num_splits), e.g. 0, 1, 2 for num_splits=3')
 args = parser.parse_args()
 
 def check_for_file(node_idx, exptype):
-    return os.path.exists(os.path.join(args.save_dir, 'SUBX_GES_{}_{:0>5d}.npy'.format(exptype, node_idx)))
+    return os.path.exists(os.path.join(args.save_dir, 'SUBX_GGF_{}_{:0>5d}.npy'.format(exptype, node_idx)))
 
 def save_exp(node_idx, score_dict, exptype):
-    np.save(os.path.join(args.save_dir, 'SUBX_GES_{}_{:0>5d}.npy'.format(exptype, node_idx)), score_dict)
+    np.save(os.path.join(args.save_dir, 'SUBX_GGF_{}_{:0>5d}.npy'.format(exptype, node_idx)), score_dict)
 
 seed_value=912
 rand.seed(seed_value)
@@ -174,9 +174,9 @@ ETYPES = ['feat', 'node', 'edge']
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(my_test_inds):
 
-    ges_feat = dict()
-    ges_node = dict()
-    ges_edge = dict()
+    ggf_feat = dict()
+    ggf_node = dict()
+    ggf_edge = dict()
 
     node_idx = node_idx.item()
 
@@ -205,10 +205,9 @@ for node_idx in tqdm.tqdm(my_test_inds):
 
     # Calculate metrics
     #feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-    feat, node, edge = graph_exp_stability(
+    feat, node, edge = graph_exp_group_fairness(
             exp, 
-            explainer,
-            bah, 
+            bah,
             node_id = node_idx, 
             model = model,
             delta = delta,
@@ -218,18 +217,18 @@ for node_idx in tqdm.tqdm(my_test_inds):
             data = data,
             )
 
-    ges_feat[node_idx] = (feat)
-    ges_node[node_idx] = (node)
-    ges_edge[node_idx] = (edge)
+    ggf_feat[node_idx] = (feat)
+    ggf_node[node_idx] = (node)
+    ggf_edge[node_idx] = (edge)
 
     # Save all files:
-    for name, g in zip(ETYPES, [ges_feat, ges_node, ges_edge]):
+    for name, g in zip(ETYPES, [ggf_feat, ggf_node, ggf_edge]):
         save_exp(node_idx, score_dict = g, exptype = name)
 
 
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_feat.npy'), gef_feat)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_node.npy'), gef_node)
-# np.save(os.path.join(args.save_dir, f'{args.exp_method}_GES_edge.npy'), gef_edge)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_ggf_feat.npy'), gef_feat)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_ggf_node.npy'), gef_node)
+# np.save(os.path.join(args.save_dir, f'{args.exp_method}_ggf_edge.npy'), gef_edge)
