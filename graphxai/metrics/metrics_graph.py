@@ -30,7 +30,7 @@ from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -> float:
+def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation, node_thresh_factor = 0.1) -> float:
     '''
 
     Specifically for graph-level explanation accuracy
@@ -79,7 +79,7 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -
 
     if generated_exp.node_imp is not None:
         JAC_node = []
-        thresh_node = 0.1*generated_exp.node_imp.max()
+        thresh_node = node_thresh_factor*generated_exp.node_imp.max()
         for exp in gt_exp:
             TPs = []
             FPs = []
