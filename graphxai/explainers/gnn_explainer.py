@@ -1,4 +1,5 @@
 import torch
+import ipdb
 
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
@@ -212,6 +213,7 @@ class GNNExplainer(_BaseExplainer):
         parameters = [self.feature_mask, self.edge_mask]
         #else:
             #parameters = [self.feature_mask]
+        ipdb.set_trace()
         optimizer = torch.optim.Adam(parameters, lr=lr)
 
         # if self.log:  # pragma: no cover
