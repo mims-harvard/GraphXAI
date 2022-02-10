@@ -251,7 +251,7 @@ class GNNExplainer(_BaseExplainer):
         num_epochs = 200 # TODO: make more general
         for epoch in range(1, num_epochs + 1):
             optimizer.zero_grad()
-            h = x * self.feature_mask.sigmoid()
+            h = x * self.feature_mask.to(x.device).sigmoid()
             # out = self.model(x=h, edge_index=edge_index, **forward_kwargs)
 
             # log_logits = self.__to_log_prob__(out)
