@@ -88,10 +88,11 @@ class GIN_1layer(torch.nn.Module):
     def __init__(self, input_feat, classes):
         super(GIN_1layer, self).__init__()
         self.mlp_gin1 = torch.nn.Linear(input_feat, classes)
-        self.conv1 = GINConv(self.mlp_gin1)
+        # Use gin3 naming for convention in PGEx
+        self.gin3 = GINConv(self.mlp_gin1)
 
     def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
+        x = self.gin3(x, edge_index)
         return x
 
 class GIN_2layer(torch.nn.Module):
@@ -99,15 +100,13 @@ class GIN_2layer(torch.nn.Module):
         super(GIN_2layer, self).__init__()
         self.mlp_gin1 = torch.nn.Linear(input_feat, hidden_channels)
         self.gin1 = GINConv(self.mlp_gin1)
-        #self.batchnorm1 = BatchNorm(hidden_channels)
         self.mlp_gin2 = torch.nn.Linear(hidden_channels, classes)
-        self.gin2 = GINConv(self.mlp_gin2)
+        self.gin3 = GINConv(self.mlp_gin2)
 
     def forward(self, x, edge_index):
         x = self.gin1(x, edge_index)
-        #x = self.batchnorm1(x)
         x = x.relu()
-        x = self.gin2(x, edge_index)
+        x = self.gin3(x, edge_index)
         return x
 
 class GIN_3layer(torch.nn.Module):

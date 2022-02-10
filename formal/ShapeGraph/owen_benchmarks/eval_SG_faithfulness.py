@@ -9,6 +9,7 @@ from graphxai.datasets  import load_ShapeGraph
 from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
+from graphxai.gnn_models.node_classification.testing import GIN_1layer, GIN_2layer
 
 my_base_graphxai = '/home/owq978/GraphXAI'
 #my_base_graphxai = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI'
@@ -96,6 +97,10 @@ def get_model(name):
         model = GCN_3layer_basic(16, input_feat = 11, classes = 2)
     elif name.lower() == 'gin':
         model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
+    elif name.lower() == 'gin1':
+        model = GIN_1layer(11, 2)
+    elif name.lower() == 'gin2':
+        model = GIN_2layer(16, input_feat = 11, classes = 2)
     elif name.lower() == 'sage':
         # Get SAGE model
         model = GSAGE_3layer(16, input_feat = 11, classes = 2)
@@ -133,7 +138,12 @@ print(test_set)
 model = get_model(name = args.model).to(device)
 
 # Get prediction of a node in the 2-house class:
-mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+if args.model.lower() == 'gin':
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+elif args.model.lower() == 'gin1':
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily_L=1.pth')
+elif args.model.lower() == 'gin2':
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily_L=2.pth')
 model.load_state_dict(torch.load(mpath))
 
 # Pre-train PGEX before running:
