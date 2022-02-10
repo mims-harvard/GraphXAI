@@ -1,7 +1,7 @@
 import ipdb
 import torch
 from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge, GATConv
-# from torch_geometric.nn import Sequential
+from torch_geometric.nn import Sequential
 
 import sklearn.metrics as metrics
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
