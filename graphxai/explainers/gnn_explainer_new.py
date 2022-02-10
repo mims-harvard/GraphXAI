@@ -244,11 +244,22 @@ class GNNExplainer(torch.nn.Module):
         node_feat_mask = self.node_feat_mask.detach().sigmoid().squeeze()
         edge_mask = self.edge_mask.detach().sigmoid()
 
-        self.__clear_masks__()
+        self._clear_masks()
 
+        node_imp = node_mask_from_edge_mask(
+            torch.arange().to(x.device), 
+            edge_index, 
+            (edge_mask > 0.5)) # Make edge mask into discrete and convert to node mask
 
+        exp = Explanation(
+            feat_imp = node_feat_mask,
+            node_imp = node_imp,
+            edge_mask = edge_mask 
+        )
 
-        return node_feat_mask, edge_mask
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
+
+        return exp
 
 
     def get_explanation_node(self, node_idx, x, edge_index, **kwargs):

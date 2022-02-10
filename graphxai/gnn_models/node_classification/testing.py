@@ -190,10 +190,10 @@ class GSAGE_3layer(torch.nn.Module):
         x = self.gsage1(x, edge_index)
         x = self.batchnorm1(x)
         x = x.relu()
-        x = self.gin2(x, edge_index)
+        x = self.gsage2(x, edge_index)
         x = self.batchnorm2(x)
         x = x.relu()
-        x = self.gin3(x, edge_index)
+        x = self.gsage3(x, edge_index)
         return x
 
 # ----------------------- JKNets ----------------------------
