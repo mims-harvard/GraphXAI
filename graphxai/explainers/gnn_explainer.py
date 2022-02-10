@@ -282,7 +282,7 @@ class GNNExplainer(_BaseExplainer):
 
         exp = Explanation(
             feature_imp = feature_mask,
-            node_imp = node_imp,
+            node_imp = node_imp.float(),
             edge_imp = edge_mask 
         )
 
