@@ -125,7 +125,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophilic.pickle'), 'rb'))
+bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_triangles.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -139,11 +139,11 @@ model = get_model(name = args.model).to(device)
 
 # Get prediction of a node in the 2-house class:
 if args.model.lower() == 'gin':
-    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_triangle.pth')
 elif args.model.lower() == 'gin1':
-    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily_L=1.pth')
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_triangle_L=1.pth')
 elif args.model.lower() == 'gin2':
-    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily_L=2.pth')
+    mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_triangle_L=2.pth')
 model.load_state_dict(torch.load(mpath))
 
 # Pre-train PGEX before running:
@@ -167,7 +167,6 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 # Get delta for the model:
 #delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
 delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
-np.save(os.path.join(my_base_graphxai, 'formal', f'model_homophily_L={args.model[-1]}.npy'), np.array([delta]))
 
 # Cached graphs:
 G = to_networkx_conv(data, to_undirected=True)
