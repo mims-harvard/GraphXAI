@@ -204,46 +204,50 @@ class GNNExplainer(_BaseExplainer):
             log_logits = self._predict(x.to(device), edge_index.to(device), forward_kwargs = forward_kwargs, return_type='log_prob')
             pred_label = log_logits.argmax(dim=-1)
 
-        self._set_masks(x, edge_index)
+        self._set_masks(x, edge_index, explain_feature = True)
         #self.to(x.device)
         #if self.allow_edge_mask:
         parameters = [self.feature_mask, self.edge_mask]
         #else:
             #parameters = [self.feature_mask]
-        optimizer = torch.optim.Adam(parameters, lr=self.lr)
+        optimizer = torch.optim.Adam(parameters, lr=lr)
 
         # if self.log:  # pragma: no cover
         #     pbar = tqdm(total=self.epochs)
         #     pbar.set_description('Explain graph')
 
-        def loss(node_idx, log_logits, pred_label):
+        def loss_fn(node_idx, log_logits, pred_label):
             # node_idx is -1 for explaining graphs
-            if self.return_type == 'regression':
-                if node_idx != -1:
-                    loss = torch.cdist(log_logits[node_idx], pred_label[node_idx])
-                else:
-                    loss = torch.cdist(log_logits, pred_label)
+            # if self.return_type == 'regression':
+            #     if node_idx != -1:
+            #         loss = torch.cdist(log_logits[node_idx], pred_label[node_idx])
+            #     else:
+            #         loss = torch.cdist(log_logits, pred_label)
+            # else:
+            if node_idx != -1:
+                loss = -log_logits[node_idx, pred_label[node_idx]]
             else:
-                if node_idx != -1:
-                    loss = -log_logits[node_idx, pred_label[node_idx]]
-                else:
-                    loss = -log_logits[0, pred_label[0]]
+                loss = -log_logits[0, pred_label[0]]
 
             m = self.edge_mask.sigmoid()
-            edge_reduce = getattr(torch, self.coeffs['edge_reduction'])
-            loss = loss + self.coeffs['edge_size'] * edge_reduce(m)
+            #edge_reduce = getattr(torch, self.coeffs['edge_reduction'])
+            loss = loss + self.coeff['edge']['size'] * torch.sum(m)
             ent = -m * torch.log(m + EPS) - (1 - m) * torch.log(1 - m + EPS)
-            loss = loss + self.coeffs['edge_ent'] * ent.mean()
+            #loss = loss + self.coeffs['edge_ent'] * ent.mean()
+            loss = loss + self.coeff['edge']['entropy'] * ent.mean()
 
             m = self.feature_mask.sigmoid()
-            node_feat_reduce = getattr(torch, self.coeffs['node_feat_reduction'])
-            loss = loss + self.coeffs['node_feat_size'] * node_feat_reduce(m)
+            #node_feat_reduce = getattr(torch, self.coeffs['node_feat_reduction'])
+            #loss = loss + self.coeffs['node_feat_size'] * node_feat_reduce(m)
+            loss = loss + self.coeff['feature']['size'] * torch.sum(m)
             ent = -m * torch.log(m + EPS) - (1 - m) * torch.log(1 - m + EPS)
-            loss = loss + self.coeffs['node_feat_ent'] * ent.mean()
+            #loss = loss + self.coeffs['node_feat_ent'] * ent.mean()
+            loss = loss + self.coeff['feature']['entropy'] * ent.mean()
 
             return loss
 
-        for epoch in range(1, self.epochs + 1):
+        num_epochs = 200 # TODO: make more general
+        for epoch in range(1, num_epochs + 1):
             optimizer.zero_grad()
             h = x * self.feature_mask.sigmoid()
             # out = self.model(x=h, edge_index=edge_index, **forward_kwargs)
@@ -252,7 +256,7 @@ class GNNExplainer(_BaseExplainer):
 
             log_logits = self._predict(h.to(device), edge_index.to(device), forward_kwargs = forward_kwargs, return_type='log_prob')
 
-            loss = loss(-1, log_logits, pred_label)
+            loss = loss_fn(-1, log_logits, pred_label)
             loss.backward()
             optimizer.step()
 
@@ -268,14 +272,14 @@ class GNNExplainer(_BaseExplainer):
         self._clear_masks()
 
         node_imp = node_mask_from_edge_mask(
-            torch.arange().to(x.device), 
+            torch.arange(x.shape[0]).to(x.device), 
             edge_index, 
             (edge_mask > 0.5)) # Make edge mask into discrete and convert to node mask
 
         exp = Explanation(
-            feat_imp = feature_mask,
+            feature_imp = feature_mask,
             node_imp = node_imp,
-            edge_mask = edge_mask 
+            edge_imp = edge_mask 
         )
 
         exp.set_whole_graph(Data(x=x, edge_index=edge_index))
