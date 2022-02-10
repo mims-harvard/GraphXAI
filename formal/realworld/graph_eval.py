@@ -74,9 +74,6 @@ if args.exp_method=='pgex':
 
 for idx in tqdm(test_inds):
 
-    if idx == 1425:
-        continue
-
     # Gets graph, ground truth explanation:
     data, gt_exp = dataset[idx]
 
