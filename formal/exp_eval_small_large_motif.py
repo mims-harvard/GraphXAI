@@ -22,6 +22,13 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'y': data.y.to(device),
                         'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
+    elif method == 'cam':
+        act = lambda x: torch.argmax(x, dim=1)
+        exp_method = CAM(model, activation=act)
+        forward_kwargs={'x': data.x.to(device),
+                        'node_idx': int(node_idx),
+                        'label': pred_class,
+                        'edge_index': data.edge_index.to(device)}
     elif method=='gcam':
         exp_method = GradCAM(model, criterion = criterion)
         forward_kwargs={'x':data.x.to(device),
@@ -166,7 +173,7 @@ for node_idx in tqdm.tqdm(inhouse):
 
         else:
             exp = np.load(f'{save_dir}/{args.exp_method}_{node_idx}.pickle.npy', allow_pickle=True).ravel()[0]
-            gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
+            # gt_exp = np.load(f'{save_dir}/gt_{node_idx}.pickle.npy', allow_pickle=True)
 
             # Calculate metrics
             # feat, node, edge = graph_exp_acc(gt_exp, exp)

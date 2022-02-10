@@ -22,6 +22,13 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'y': data.y.to(device),
                         'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
+    elif method == 'cam':
+        act = lambda x: torch.argmax(x, dim=1)
+        exp_method = CAM(model, activation=act)
+        forward_kwargs={'x': data.x.to(device),
+                        'node_idx': int(node_idx),
+                        'label': pred_class,
+                        'edge_index': data.edge_index.to(device)}
     elif method=='gcam':
         exp_method = GradCAM(model, criterion = criterion)
         forward_kwargs={'x':data.x.to(device),
@@ -94,7 +101,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_heterophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_heterophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -105,7 +112,7 @@ inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('./model_weights/model_small_heterophily.pth'))
+model.load_state_dict(torch.load('./model_weights/model_heterophily.pth'))
 # model.load_state_dict(torch.load('./model_SG_org_heto.pth'))
 
 gef_feat = []

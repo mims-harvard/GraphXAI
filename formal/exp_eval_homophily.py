@@ -22,6 +22,13 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'y': data.y.to(device),
                         'node_idx': int(node_idx),
                         'edge_index': data.edge_index.to(device)}
+    elif method == 'cam':
+        act = lambda x: torch.argmax(x, dim=1)
+        exp_method = CAM(model, activation=act)
+        forward_kwargs={'x': data.x.to(device),
+                        'node_idx': int(node_idx),
+                        'label': pred_class,
+                        'edge_index': data.edge_index.to(device)}
     elif method=='gcam':
         exp_method = GradCAM(model, criterion = criterion)
         forward_kwargs={'x':data.x.to(device),
@@ -78,7 +85,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--exp_method', required=True, help='name of the explanation method')
-parser.add_argument('--save_dir', default='results_small_homophily', help='folder for saving results')
+parser.add_argument('--save_dir', default='results_homophily', help='folder for saving results')
 args = parser.parse_args()
 
 # Folder to collect epoch snapshots
@@ -97,7 +104,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load ShapeGraph dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_homophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]  
@@ -107,7 +114,7 @@ inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 
 # Get prediction of a node in the 2-house class:
-model.load_state_dict(torch.load('./model_weights/model_small_homophily.pth'))
+model.load_state_dict(torch.load('./model_weights/model_homophily.pth'))
 # model.load_state_dict(torch.load('./model_SG_org_homo.pth'))
 
 gef_feat = []
@@ -162,16 +169,16 @@ for node_idx in tqdm.tqdm(inhouse):
         # Calculate metrics
         # feat, node, edge = graph_exp_acc(gt_exp, exp)
         # feat, node, edge = graph_exp_stability(exp, explainer, bah, node_idx, model, 1, [bah.sensitive_feature], device=device)
-        feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
-        # feat, node, edge = graph_exp_cf_fairness(exp, explainer, bah, model, node_idx, delta, [bah.sensitive_feature], device=device)
+        # feat, node, edge = graph_exp_faith(exp, bah, model, sens_idx=[bah.sensitive_feature])
+        feat, node, edge = graph_exp_cf_fairness(exp, explainer, bah, model, node_idx, delta, [bah.sensitive_feature], device=device)
 
-        gea_feat.append(feat)
-        gea_node.append(node)
-        gea_edge.append(edge)
+        # gea_feat.append(feat)
+        # gea_node.append(node)
+        # gea_edge.append(edge)
 
-        # gcf_feat.append(feat)
-        # gcf_node.append(node)
-        # gcf_edge.append(edge)
+        gcf_feat.append(feat)
+        gcf_node.append(node)
+        gcf_edge.append(edge)
 
 #        gef_feat.append(feat)
 #        gef_node.append(node)
@@ -179,6 +186,6 @@ for node_idx in tqdm.tqdm(inhouse):
 
 ############################
 # Saving the metric values
-np.save(f'{save_dir}/{args.exp_method}_gef_feat.npy', gea_feat)
-np.save(f'{save_dir}/{args.exp_method}_gef_node.npy', gea_node)
-np.save(f'{save_dir}/{args.exp_method}_gef_edge.npy', gea_edge)
+np.save(f'{save_dir}/{args.exp_method}_gcf_feat.npy', gcf_feat)
+np.save(f'{save_dir}/{args.exp_method}_gcf_node.npy', gcf_node)
+np.save(f'{save_dir}/{args.exp_method}_gcf_edge.npy', gcf_edge)

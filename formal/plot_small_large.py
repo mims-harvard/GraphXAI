@@ -21,12 +21,12 @@ def set_box_color(bp, color):
 
 
 # inits
-algos = ['rand', 'grad', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex', 'pgex']
+algos = ['rand', 'grad', 'cam', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex', 'pgex']
 df_small = []
 df_large = []
 ty = 'node'
 # Loop over all datasets
-for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex', 'pgex']):
+for ind, algo in enumerate(['rand', 'grad', 'cam', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex', 'pgex']):
     temp_small = np.load(f'./results_small/{algo}_gef_{ty}.npy', allow_pickle=True)
     if temp_small[-1] is not None:
         df_small.append(temp_small)
@@ -37,14 +37,20 @@ for ind, algo in enumerate(['rand', 'grad', 'gcam', 'gbp', 'ig', 'gnnex', 'pgmex
         df_large.append(temp_large)
     # print(f'{algo}: Small={df_small[-1].mean()} | Large={df_large[-1].mean()}')
 
+# print statistics
+for i,val in enumerate(df_small):
+    print(f'{algos[i]}  | Mean_small:{np.mean(val)} | Mean_large:{np.mean(df_large[i])}')
+exit(0)
+
+ 
 # plotting distributions
 fig, ax = plt.subplots(figsize=(20, len(df_small)))
 ax.spines['right'].set_visible(False)
 ax.spines['top'].set_visible(False)
 
 # ipdb.set_trace()
-sm = ax.boxplot(df_small, positions=np.array(range(len(algos)))/8-0.0125, sym='', widths=0.025, whis=(5, 95), patch_artist=True, meanline=True, showmeans=True)
-xnorm = ax.boxplot(df_large, positions=np.array(range(len(algos)))/8+0.0125, sym='', widths=0.025, whis=(5, 95), patch_artist=True, meanline=True, showmeans=True)
+sm = ax.boxplot(df_small, positions=np.array(range(len(algos)))/9-0.0125, sym='', widths=0.025, whis=(5, 95), patch_artist=True, meanline=True, showmeans=True)
+xnorm = ax.boxplot(df_large, positions=np.array(range(len(algos)))/9+0.0125, sym='', widths=0.025, whis=(5, 95), patch_artist=True, meanline=True, showmeans=True)
 set_box_color(sm, '#D58DF8') # colors are from http://colorbrewer2.org/
 set_box_color(xnorm, '#820BBB')
 for median in sm['means']:
@@ -59,9 +65,9 @@ for median in xnorm['means']:
 plt.plot([], c='#77FF77', label='Triangle Motifs')  # Triangle motifs')
 plt.plot([], c='#009900', label='House Motifs')  # oause motifs')
 # plt.xticks([-0.05, 0, 0.25, 0.5, 0.75, 1.])  # , [''] + algos)
-# plt.xticks(np.array(range(0, len(algos)))/8, algos)
-plt.xticks(np.array(range(0, len(algos)))/8, ['Random', 'Grad', 'GradCAM', 'GradBP', 'IG', 'GNNEx', 'PGMEx', 'PGEx'])
-ax.set_xlim(-0.05, (len(algos)/8)+0.01)
+# plt.xticks(np.array(range(0, len(algos)))/9, algos)
+plt.xticks(np.array(range(0, len(algos)))/9, ['Random', 'Grad', 'CAM', 'GradCAM', 'GradBP', 'IG', 'GNNEx', 'PGMEx', 'PGEx'])
+ax.set_xlim(-0.05, (len(algos)/9)+0.01)
 plt.ylabel('Graph Explanation faithfulness')
 # plt.yticks(range(0, 1, 0.1), fontsize=36)  # len(df_small)**2, 10), fontsize=36)
 # plt.legend()  # bbox_to_anchor=(0.9, 0.6))
