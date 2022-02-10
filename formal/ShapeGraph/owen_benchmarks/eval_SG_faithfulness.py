@@ -172,7 +172,12 @@ G = to_networkx_conv(data, to_undirected=True)
 
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
+if args.model.lower() == 'gin':
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
+elif args.model.lower() == 'gin1':
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L1', args.exp_method.upper())
+elif args.model.lower() == 'gin2':
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L2', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
