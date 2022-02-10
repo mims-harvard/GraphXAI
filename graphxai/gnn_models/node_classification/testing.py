@@ -1,7 +1,7 @@
 import ipdb
 import torch
 from torch_geometric.nn import GCNConv, GINConv, BatchNorm, SAGEConv, JumpingKnowledge, GATConv
-# from torch_geometric.nn import Sequential
+from torch_geometric.nn import Sequential
 
 import sklearn.metrics as metrics
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
@@ -188,12 +188,12 @@ class GSAGE_3layer(torch.nn.Module):
 
     def forward(self, x, edge_index):
         x = self.gsage1(x, edge_index)
-        x = self.batchnorm1(x)
+        # x = self.batchnorm1(x)
         x = x.relu()
-        x = self.gin2(x, edge_index)
-        x = self.batchnorm2(x)
+        x = self.gsage2(x, edge_index)
+        # x = self.batchnorm2(x)
         x = x.relu()
-        x = self.gin3(x, edge_index)
+        x = self.gsage3(x, edge_index)
         return x
 
 # ----------------------- JKNets ----------------------------
