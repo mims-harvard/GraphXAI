@@ -57,23 +57,24 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation, n
             TPs = []
             FPs = []
             FNs = []
-            true_feat = torch.where(exp.feature_imp == 1)[0]
-            for i, feat in enumerate(exp.feature_imp):
-                # Restore original feature numbering
-                positive = generated_exp.feature_imp[i].item() > thresh_feat
-                if positive:
-                    if i in true_feat:
-                        TPs.append(generated_exp.feature_imp[i])
+            if exp.feature_imp is not None:
+                true_feat = torch.where(exp.feature_imp == 1)[0]
+                for i, feat in enumerate(exp.feature_imp):
+                    # Restore original feature numbering
+                    positive = generated_exp.feature_imp[i].item() > thresh_feat
+                    if positive:
+                        if i in true_feat:
+                            TPs.append(generated_exp.feature_imp[i])
+                        else:
+                            FPs.append(generated_exp.feature_imp[i])
                     else:
-                        FPs.append(generated_exp.feature_imp[i])
-                else:
-                    if i in true_feat:
-                        FNs.append(generated_exp.feature_imp[i])
+                        if i in true_feat:
+                            FNs.append(generated_exp.feature_imp[i])
 
-            TP = len(TPs)
-            FP = len(FPs)
-            FN = len(FNs)
-            JAC_feat.append(TP / (TP + FP + FN + EPS))
+                TP = len(TPs)
+                FP = len(FPs)
+                FN = len(FNs)
+                JAC_feat.append(TP / (TP + FP + FN + EPS))
 
         JAC_feat = max(JAC_feat)
 
