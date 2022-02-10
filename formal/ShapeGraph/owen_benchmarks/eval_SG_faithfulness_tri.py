@@ -149,7 +149,7 @@ model.load_state_dict(torch.load(mpath))
 # Pre-train PGEX before running:
 if args.exp_method.lower() == 'pgex':
     if not args.ignore_training:
-        PGEX=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
+        PGEX=PGExplainer(model, emb_layer_name = 'gcn3' if isinstance(model, GCN_3layer_basic) else 'gin3', max_epochs=10, lr=0.1)
         PGEX.train_explanation_model(data.to(device))
     else:
         # Assumes we already have all the explanations
