@@ -76,7 +76,7 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation, n
                 FN = len(FNs)
                 JAC_feat.append(TP / (TP + FP + FN + EPS))
 
-        JAC_feat = max(JAC_feat)
+    JAC_feat = max(JAC_feat) if len(JAC_feat) > 0 else None
 
     if generated_exp.node_imp is not None:
         JAC_node = []
