@@ -66,7 +66,7 @@ exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.u
 
 if args.exp_method.lower()=='pgex':
     # Train the PGExplainer
-    masked_dataset = [dataset[i] for i in dataset.train_index] # Mask to list of only train data
+    masked_dataset = [dataset[i][0] for i in dataset.train_index] # Mask to list of only train data
     # fixed for 3-layer conv:
     explainer = PGExplainer(model, explain_graph = True, emb_layer_name='conv3', max_epochs=10, lr=0.1)
     explainer.train_explanation_model(masked_dataset, forward_kwargs=add_args) # Train model on training data
