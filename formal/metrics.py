@@ -97,7 +97,8 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation, node_th
 
         JAC_node = max(JAC_node)
 
-    if generated_exp.edge_imp is not None:
+    #if generated_exp.edge_imp is not None:
+    if False:
         JAC_edge = []
         for exp in gt_exp:
             TPs = []
