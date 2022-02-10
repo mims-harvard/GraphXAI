@@ -165,9 +165,14 @@ pred = model(data.x.to(device), data.edge_index.to(device))
 criterion = torch.nn.CrossEntropyLoss().to(device)
 
 # Get delta for the model:
-delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
-# delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
-# np.save(os.path.join(my_base_graphxai, 'formal', f'model_homophily_L={args.model[-1]}.npy'), np.array([delta]))
+if args.model.lower() == 'gin':
+    delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
+else:
+    if os.path.exists(os.path.join(my_base_graphxai, 'formal', f'model_homophily_L={args.model[-1]}.npy')):
+        delta = np.load(os.path.join(my_base_graphxai, 'formal', f'model_homophily_L={args.model[-1]}.npy'))[0]
+    else:
+        delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
+        np.save(os.path.join(my_base_graphxai, 'formal', f'model_homophily_L={args.model[-1]}.npy'), np.array([delta]))
 
 # Cached graphs:
 G = to_networkx_conv(data, to_undirected=True)
