@@ -65,11 +65,13 @@ class _BaseExplainer:
         # Initialize edge_mask and feature_mask for learning
         std = torch.nn.init.calculate_gain('relu') * np.sqrt(2.0 / (2 * n))
         if edge_mask is None:
-            self.edge_mask = torch.nn.Parameter(torch.randn(m) * std)
+            edge_mask = (torch.randn(m) * std).to(device)
+            self.edge_mask = torch.nn.Parameter(edge_mask)
         else:
             self.edge_mask = edge_mask
         if explain_feature:
-            self.feature_mask = torch.nn.Parameter(torch.randn(d) * 0.1)
+            feature_mask = (torch.randn(d) * 0.1).to(device)
+            self.feature_mask = torch.nn.Parameter(feature_mask)
 
         self.loop_mask = edge_index[0] != edge_index[1]
 
