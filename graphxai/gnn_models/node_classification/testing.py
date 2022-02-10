@@ -188,10 +188,10 @@ class GSAGE_3layer(torch.nn.Module):
 
     def forward(self, x, edge_index):
         x = self.gsage1(x, edge_index)
-        # x = self.batchnorm1(x)
+        x = self.batchnorm1(x)
         x = x.relu()
         x = self.gsage2(x, edge_index)
-        # x = self.batchnorm2(x)
+        x = self.batchnorm2(x)
         x = x.relu()
         x = self.gsage3(x, edge_index)
         return x

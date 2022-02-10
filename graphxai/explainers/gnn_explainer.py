@@ -1,6 +1,7 @@
 import torch
 
 from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.constants import EXP_TYPES
@@ -8,6 +9,8 @@ from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+EPS = 1e-15
 
 class GNNExplainer(_BaseExplainer):
     """
@@ -151,27 +154,137 @@ class GNNExplainer(_BaseExplainer):
 
         return exp
 
-    def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
-                              label: torch.Tensor = None,
-                              forward_kwargs: dict = None, explain_feature: bool = False):
-        """
-        Explain a whole-graph prediction.
+    # def get_explanation_graph(self, x: torch.Tensor, edge_index: torch.Tensor,
+    #                           label: torch.Tensor = None,
+    #                           forward_kwargs: dict = None, explain_feature: bool = False):
+    #     """
+    #     Explain a whole-graph prediction.
+
+    #     Args:
+    #         edge_index (torch.Tensor, [2 x m]): edge index of the graph
+    #         x (torch.Tensor, [n x d]): node features
+    #         label (torch.Tensor, [n x ...]): labels to explain
+    #         forward_kwargs (dict, optional): additional arguments to model.forward
+    #             beyond x and edge_index
+    #         explain_feature (bool): whether to explain the feature or not
+
+    #     Returns:
+    #         exp (dict):
+    #             exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
+    #             exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
+    #             exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+    #     """
+    #     raise Exception('GNNExplainer does not support graph-level explanation.')
+
+    def get_explanation_graph(self, x, edge_index, forward_kwargs = {}, lr = 0.01):
+        r"""Learns and returns a node feature mask and an edge mask that play a
+        crucial role to explain the prediction made by the GNN for a graph.
 
         Args:
-            edge_index (torch.Tensor, [2 x m]): edge index of the graph
-            x (torch.Tensor, [n x d]): node features
-            label (torch.Tensor, [n x ...]): labels to explain
-            forward_kwargs (dict, optional): additional arguments to model.forward
-                beyond x and edge_index
-            explain_feature (bool): whether to explain the feature or not
+            x (Tensor): The node feature matrix.
+            edge_index (LongTensor): The edge indices.
+            **kwargs (optional): Additional arguments passed to the GNN module.
 
-        Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+        :rtype: (:class:`Tensor`, :class:`Tensor`)
         """
-        raise Exception('GNNExplainer does not support graph-level explanation.')
+
+        self.model.eval()
+        self._clear_masks()
+
+        # all nodes belong to same graph
+        # batch = torch.zeros(x.shape[0], dtype=int, device=x.device)
+
+        # Get the initial prediction.
+        with torch.no_grad():
+            # out = self.model(x=x, edge_index=edge_index, **forward_kwargs)
+            # # if self.return_type == 'regression':
+            # #     prediction = out
+            # # else:
+            # log_logits = self.__to_log_prob__(out)
+            log_logits = self._predict(x.to(device), edge_index.to(device), forward_kwargs = forward_kwargs, return_type='log_prob')
+            pred_label = log_logits.argmax(dim=-1)
+
+        self._set_masks(x, edge_index, explain_feature = True)
+        #self.to(x.device)
+        #if self.allow_edge_mask:
+        parameters = [self.feature_mask, self.edge_mask]
+        #else:
+            #parameters = [self.feature_mask]
+        optimizer = torch.optim.Adam(parameters, lr=lr)
+
+        # if self.log:  # pragma: no cover
+        #     pbar = tqdm(total=self.epochs)
+        #     pbar.set_description('Explain graph')
+
+        def loss_fn(node_idx, log_logits, pred_label):
+            # node_idx is -1 for explaining graphs
+            # if self.return_type == 'regression':
+            #     if node_idx != -1:
+            #         loss = torch.cdist(log_logits[node_idx], pred_label[node_idx])
+            #     else:
+            #         loss = torch.cdist(log_logits, pred_label)
+            # else:
+            if node_idx != -1:
+                loss = -log_logits[node_idx, pred_label[node_idx]]
+            else:
+                loss = -log_logits[0, pred_label[0]]
+
+            m = self.edge_mask.sigmoid()
+            #edge_reduce = getattr(torch, self.coeffs['edge_reduction'])
+            loss = loss + self.coeff['edge']['size'] * torch.sum(m)
+            ent = -m * torch.log(m + EPS) - (1 - m) * torch.log(1 - m + EPS)
+            #loss = loss + self.coeffs['edge_ent'] * ent.mean()
+            loss = loss + self.coeff['edge']['entropy'] * ent.mean()
+
+            m = self.feature_mask.sigmoid()
+            #node_feat_reduce = getattr(torch, self.coeffs['node_feat_reduction'])
+            #loss = loss + self.coeffs['node_feat_size'] * node_feat_reduce(m)
+            loss = loss + self.coeff['feature']['size'] * torch.sum(m)
+            ent = -m * torch.log(m + EPS) - (1 - m) * torch.log(1 - m + EPS)
+            #loss = loss + self.coeffs['node_feat_ent'] * ent.mean()
+            loss = loss + self.coeff['feature']['entropy'] * ent.mean()
+
+            return loss
+
+        num_epochs = 200 # TODO: make more general
+        for epoch in range(1, num_epochs + 1):
+            optimizer.zero_grad()
+            h = x * self.feature_mask.sigmoid()
+            # out = self.model(x=h, edge_index=edge_index, **forward_kwargs)
+
+            # log_logits = self.__to_log_prob__(out)
+
+            log_logits = self._predict(h.to(device), edge_index.to(device), forward_kwargs = forward_kwargs, return_type='log_prob')
+
+            loss = loss_fn(-1, log_logits, pred_label)
+            loss.backward()
+            optimizer.step()
+
+        #     if self.log:  # pragma: no cover
+        #         pbar.update(1)
+
+        # if self.log:  # pragma: no cover
+        #     pbar.close()
+
+        feature_mask = self.feature_mask.detach().sigmoid().squeeze()
+        edge_mask = self.edge_mask.detach().sigmoid()
+
+        self._clear_masks()
+
+        node_imp = node_mask_from_edge_mask(
+            torch.arange(x.shape[0]).to(x.device), 
+            edge_index, 
+            (edge_mask > 0.5)) # Make edge mask into discrete and convert to node mask
+
+        exp = Explanation(
+            feature_imp = feature_mask,
+            node_imp = node_imp,
+            edge_imp = edge_mask 
+        )
+
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
+
+        return exp
 
     def get_explanation_link(self):
         """

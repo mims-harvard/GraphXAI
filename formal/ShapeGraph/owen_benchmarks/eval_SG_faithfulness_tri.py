@@ -168,6 +168,17 @@ criterion = torch.nn.CrossEntropyLoss().to(device)
 #delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_homophily_delta.npy'))[0]
 delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
 
+# Get delta for the model:
+if args.model.lower() == 'gin':
+    delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_triangle_delta.npy'))[0]
+else:
+    if os.path.exists(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy')):
+        delta = np.load(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy'))[0]
+    else:
+        delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
+        np.save(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy'), np.array([delta]))
+
+
 # Cached graphs:
 G = to_networkx_conv(data, to_undirected=True)
 
@@ -176,9 +187,9 @@ save_exp_flag = True
 if args.model.lower() == 'gin':
     save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
 elif args.model.lower() == 'gin1':
-    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L1', args.exp_method.upper())
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L1_triangle', args.exp_method.upper())
 elif args.model.lower() == 'gin2':
-    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L2', args.exp_method.upper())
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L2_triangle', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
@@ -219,6 +230,6 @@ for node_idx in tqdm.tqdm(test_set):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_feat.npy'), gef_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_node.npy'), gef_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_edge.npy'), gef_edge)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_feat.npy'), gef_feat)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_node.npy'), gef_node)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_edge.npy'), gef_edge)

@@ -8,7 +8,10 @@ from graphxai.gnn_models.graph_classification import GIN_3layer, GCN_3layer
 def get_exp_method(method, model, criterion, pred_class, data, device, train_pg = False, emb_layer_name='conv3'):
     method = method.lower()
     if method=='gnnex':
-        raise ValueError('GNNEX does not support graph-level explanations')
+        #raise ValueError('GNNEX does not support graph-level explanations')
+        exp_method = GNNExplainer(model)
+        forward_kwargs={'x': data.x.to(device),
+                        'edge_index': data.edge_index.to(device)}
 
     elif method=='grad':
         exp_method = GradExplainer(model, criterion = criterion)
