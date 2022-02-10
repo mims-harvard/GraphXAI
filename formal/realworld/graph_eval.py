@@ -7,6 +7,7 @@ from tqdm import tqdm
 from utils import get_model, get_exp_method, get_dataset
 
 from graphxai.datasets import Benzene
+from graphxai.explainers import PGExplainer
 from graphxai.utils.performance.load_exp import exp_exists_graph
 from graphxai.metrics.metrics_graph import graph_exp_acc_graph, graph_exp_faith_graph
 
@@ -63,7 +64,13 @@ add_args = {
 
 exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
 
-train_pg_flag = True
+if args.exp_method=='pgex':
+    # Train the PGExplainer
+    masked_dataset = [dataset[i] for i in dataset.train_index] # Mask to list of only train data
+    # fixed for 3-layer conv:
+    explainer = PGExplainer(model, explain_graph = True, emb_layer_name='conv3', max_epochs=10, lr=0.1)
+    explainer.train_explanation_model(masked_dataset, forward_kwargs=add_args) # Train model on training data
+
 
 for idx in tqdm(test_inds):
 
@@ -84,8 +91,18 @@ for idx in tqdm(test_inds):
     exp = exp_exists_graph(idx, path = exp_loc, get_exp = True)
 
     if exp is None or (args.exp_method == 'pgex'): # Don't allow PGEX to re-train on previous explanations
-        explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device, train_pg = train_pg_flag)
-        train_pg_flag = False # Flag to False after we've trained the first time
+        
+        if (args.exp_method == 'pgex'):
+            # Explainer is set before loop
+            forward_kwargs = {
+                'x': data.x.to(device),
+                'edge_index': data.edge_index.to(device),
+                'label': pred_class
+            }
+
+        else:
+            explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, pred_class, data, device)
+
         exp = explainer.get_explanation_graph(**forward_kwargs)
 
         torch.save(exp, open(os.path.join(exp_loc, 'exp_{:0>5d}.pt'.format(idx)), 'wb'))

@@ -204,6 +204,8 @@ class PGExplainer(_BaseExplainer):
                                                forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
+                    # OWEN inserting:
+                    emb_dict[gid] = emb.to(device) # Add embedding to embedding dictionary
                     ori_pred_dict[gid] = pred_label
 
             # Train the mask generator

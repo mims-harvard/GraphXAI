@@ -9,6 +9,7 @@ from graphxai.datasets  import load_ShapeGraph
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--expt_name', required=True, help='name of the explanation method')
+parser.add_argument('--num_layers', default=3, type=int, help = 'num layers in GNN')
 args = parser.parse_args()
 
 owen_path = '/home/owq978/GraphXAI/data/ShapeGraph/unzipped/'
