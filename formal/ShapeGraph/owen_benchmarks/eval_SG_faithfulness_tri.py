@@ -176,9 +176,9 @@ save_exp_flag = True
 if args.model.lower() == 'gin':
     save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
 elif args.model.lower() == 'gin1':
-    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L1', args.exp_method.upper())
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L1_triangle', args.exp_method.upper())
 elif args.model.lower() == 'gin2':
-    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L2', args.exp_method.upper())
+    save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'L2_triangle', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):
@@ -219,6 +219,6 @@ for node_idx in tqdm.tqdm(test_set):
 ############################
 # Saving the metric values
 # save_dir='./results_homophily/'
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_feat.npy'), gef_feat)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_node.npy'), gef_node)
-np.save(os.path.join(args.save_dir, f'{args.exp_method}_gef_edge.npy'), gef_edge)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_feat.npy'), gef_feat)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_node.npy'), gef_node)
+np.save(os.path.join(args.save_dir, f'{args.exp_method}_GEF_edge.npy'), gef_edge)
