@@ -207,7 +207,6 @@ class GNNExplainer(torch.nn.Module):
             out = self.model(x=x, edge_index=edge_index, batch=batch, **kwargs)
             if self.return_type == 'regression':
                 prediction = out
-            else:
                 log_logits = self.__to_log_prob__(out)
                 pred_label = log_logits.argmax(dim=-1)
 
