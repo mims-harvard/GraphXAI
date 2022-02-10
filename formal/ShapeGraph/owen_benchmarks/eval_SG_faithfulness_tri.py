@@ -173,8 +173,10 @@ if args.model.lower() == 'gin':
     delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model_triangle_delta.npy'))[0]
 else:
     if os.path.exists(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy')):
+        print('loading delta')
         delta = np.load(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy'))[0]
     else:
+        print('calculating delta')
         delta = calculate_delta(data.x.to(device), data.edge_index.to(device), torch.where(data.train_mask == True)[0], model = model, label=data.y, sens_idx=[bah.sensitive_feature], device = device)
         np.save(os.path.join(my_base_graphxai, 'formal', f'model_triangle_L={args.model[-1]}.npy'), np.array([delta]))
 
