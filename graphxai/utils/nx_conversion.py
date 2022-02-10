@@ -33,6 +33,7 @@ def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False
         G = nx.DiGraph()
 
     node_list = sorted(torch.unique(data.edge_index).tolist())
+    #node_list = np.arange(data.x.shape[0])
     map_norm = {node_list[i]:i for i in range(len(node_list))}
     rev_map_norm = {v:k for k, v in map_norm.items()}
     G.add_nodes_from([map_norm[n] for n in node_list])

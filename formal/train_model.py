@@ -57,5 +57,5 @@ for epoch in range(0, 18):
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val F1: {f1:.4f}, Val AUROC: {auroc:.4f}')
 
 # Testing performance
-f1, acc, precision, recall, auroc, auprc = test(model, data, get_auc=True)
+f1, acc, precision, recall, auprc, auroc = test(model, data, get_auc=True)
 print(f'Test F1: {f1:.4f}, Test AUROC: {auroc:.4f}')

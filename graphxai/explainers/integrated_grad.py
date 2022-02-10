@@ -101,6 +101,7 @@ class IntegratedGradExplainer(_BaseExplainer):
                               x: torch.Tensor, 
                               y: torch.Tensor = None,
                               label: torch.Tensor = None,
+                              node_agg = torch.sum,
                               forward_kwargs={}):
         """
         Explain a whole-graph prediction.
@@ -128,8 +129,8 @@ class IntegratedGradExplainer(_BaseExplainer):
         label = y if label is None else label 
 
         self.model.eval()
-        grads = torch.zeros(steps+1, *x.shape)
-        baseline = torch.zeros_like(x)  # TODO: baseline all 0s, all 1s, ...?
+        grads = torch.zeros(steps+1, *x.shape).to(x.device)
+        baseline = torch.zeros_like(x).to(x.device)  # TODO: baseline all 0s, all 1s, ...?
         for i in range(steps+1):
             with torch.no_grad():
                 temp_x = baseline + (float(i)/steps) * (x.clone()-baseline)
@@ -148,8 +149,10 @@ class IntegratedGradExplainer(_BaseExplainer):
         integrated_gradients = (x - baseline) * avg_grads
         #exp['feature_imp'] = integrated_gradients
 
+        #print('IG shape', integrated_gradients.shape)
+
         exp = Explanation(
-            node_imp = integrated_gradients,
+            node_imp = node_agg(integrated_gradients, dim=1),
         )
 
         exp.set_whole_graph(Data(x=x, edge_index=edge_index))

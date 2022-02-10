@@ -12,14 +12,17 @@ def make_node_ref(nodes: torch.Tensor):
     node_reference = {nodes[i].item():i for i in range(nodes.shape[0])}
     return node_reference
 
-def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor, edge_mask: torch.Tensor):
+def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor, edge_mask: torch.Tensor = None):
     '''
     Gets node mask from an edge_mask:
 
     Args:
         edge_mask (torch.Tensor): Boolean mask over all edges in edge_index. Shape: (edge_index.shape[1],).
     '''
-    mask_eidx = edge_index[:,edge_mask]
+    if edge_mask is not None:
+        mask_eidx = edge_index[:,edge_mask]
+    else:
+        mask_eidx = edge_index
 
     unique_nodes = torch.unique(mask_eidx)
 

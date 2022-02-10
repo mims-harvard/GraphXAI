@@ -30,7 +30,7 @@ from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -> float:
+def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation, node_thresh_factor = 0.1) -> float:
     '''
 
     Specifically for graph-level explanation accuracy
@@ -79,16 +79,19 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -
 
     if generated_exp.node_imp is not None:
         JAC_node = []
-        thresh_node = 0.1*generated_exp.node_imp.max()
+        thresh_node = node_thresh_factor*generated_exp.node_imp.max()
         for exp in gt_exp:
             TPs = []
             FPs = []
             FNs = []
-            relative_positives = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
-            true_nodes = [exp.enc_subgraph.nodes[i].item() for i in relative_positives]
-            for i, node in enumerate(exp_graph.nodes):
+            #relative_positives = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
+            true_nodes = (exp.node_imp == 1).nonzero(as_tuple=True)[0]
+            #true_nodes = [exp.graph.nodes[i].item() for i in relative_positives]
+            #for i, node in enumerate(exp_graph.nodes):
+            #print('x shape {} \t node_imp shape {}'.format(exp_graph.x.shape, generated_exp.node_imp.shape))
+            for node in range(exp_graph.x.shape[0]):
                 # Restore original node numbering
-                positive = generated_exp.node_imp[i].item() > thresh_node
+                positive = generated_exp.node_imp[node].item() > thresh_node
                 if positive:
                     if node in true_nodes:
                         TPs.append(node)
@@ -130,7 +133,7 @@ def graph_exp_acc_graph(gt_exp: List[Explanation], generated_exp: Explanation) -
     return [JAC_feat, JAC_node, JAC_edge]
 
 
-def graph_exp_faith_graph(generated_exp: Explanation, dataset: GraphDataset, 
+def graph_exp_faith_graph(generated_exp: Explanation, data: Data, 
         model, sens_idx: List[int]= [], top_k: float = 0.25,
         forward_kwargs = {}) -> float:
     '''
@@ -146,9 +149,9 @@ def graph_exp_faith_graph(generated_exp: Explanation, dataset: GraphDataset,
     GEF_edge = None
 
     # Accessing the enclosing subgraph. Will be the same for both explanation.:
-    exp_subgraph = generated_exp.enc_subgraph
+    #exp_graph = generated_exp.graph
 
-    data = dataset.get_graph(use_fixed_split=True)
+    #data = dataset.get_graph(use_fixed_split=True)
     X = data.x.to(device)
     Y = data.y.to(device)
     EIDX = data.edge_index.to(device)

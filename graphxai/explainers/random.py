@@ -71,7 +71,8 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor, 
             edge_index: torch.Tensor,
             num_nodes : int = None,
-            aggregate_node_imp = torch.sum):
+            aggregate_node_imp = torch.sum,
+            forward_kwargs = {}):
         """
         Get the explanation for the whole graph.
 
@@ -92,16 +93,18 @@ class RandomExplainer(_BaseExplainer):
         #exp = {k: None for k in EXP_TYPES}
 
         n = maybe_num_nodes(edge_index, None) if num_nodes is None else num_nodes
-        rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1))
+        rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1)).to(x.device)
         # exp['feature_imp'] = rand_mask * torch.randn_like(x)
 
         # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
-        node_imp = aggregate_node_imp(rand_mask * torch.randn_like(x), dim=1)
+        randn = torch.randn_like(x).to(x.device)
+
+        node_imp = aggregate_node_imp(rand_mask * randn, dim=1)
 
         exp = Explanation(
             node_imp = node_imp,
-            edge_imp = torch.randn(edge_index[0, :].shape)
+            edge_imp = torch.randn(edge_index[0, :].shape).to(edge_index.device)
         )
 
         exp.set_whole_graph(Data(x=x, edge_index = edge_index))

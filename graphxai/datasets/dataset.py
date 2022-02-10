@@ -228,11 +228,12 @@ class NodeDataset:
 
 
 class GraphDataset:
-    def __init__(self, name, split_sizes = (0.7, 0.2, 0.1), seed = None):
+    def __init__(self, name, split_sizes = (0.7, 0.2, 0.1), seed = None, device = None):
 
         self.name = name
 
         self.seed = seed
+        self.device = device
         # explanation_list - list of explanations for each graph
 
         if split_sizes[1] > 0:
@@ -250,13 +251,13 @@ class GraphDataset:
         else:
             self.val_index = None
 
-        self.Y = torch.tensor([self.graphs[i].y for i in range(len(self.graphs))])
+        self.Y = torch.tensor([self.graphs[i].y for i in range(len(self.graphs))]).to(self.device)
 
     def get_data_list(
             self,
             index,
         ):
-        data_list = [self.graphs[i] for i in index]
+        data_list = [self.graphs[i].to(self.device) for i in index]
         exp_list = [self.explanations[i] for i in index]
 
         return data_list, exp_list

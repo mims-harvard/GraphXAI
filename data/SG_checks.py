@@ -8,13 +8,15 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 
+from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, test
+
 # Replace with your root
 # my_root = os.path.join('/home/owq978/GraphXAI/',
 #     'data', 'ShapeGraph', #'unzipped',
 # )
 
 my_root = os.path.join('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data',
-    'ShapeGraph', 'unzipped')
+    'ShapeGraph')
 
 attr_list = [
     'variant',
@@ -52,7 +54,7 @@ def iter_attr_list(obj, attrs):
 
     return all_attrs
 
-def get_stats(fname):
+def get_stats(fname, gnn = None):
     
     SG = load_ShapeGraph(fname, root = my_root)
 
@@ -119,12 +121,20 @@ def get_stats(fname):
     plt.ylabel('Frequency')
     plt.show()
 
+    # Get GNN model, if provided:
+    if gnn is not None:
+        model = GIN_3layer_basic(16, input_feat = 11, classes = 2)
+        model.load_state_dict(torch.load(gnn))
+        f1, acc, pre, rec, auprc, auroc = test(model, data, num_classes = 2, get_auc=True)
+
+        print('GNN (GIN, 3 layer) AUROC = {:.4f}, F1 = {:.4f}'.format(auroc, f1))
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--fname', type = str, required = True, help = 'Base name of ShapeGraph to show')
+    parser.add_argument('--model_path', type=str, default = None, help = 'path to model trained for this task')
     
     args = parser.parse_args()
 
-    get_stats(args.fname)
+    get_stats(args.fname, gnn = args.model_path)

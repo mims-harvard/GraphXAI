@@ -43,6 +43,7 @@ class CAM(_BaseDecomposition):
                 node_idx: int, 
                 edge_index: torch.Tensor, 
                 label: int = None,  
+                y = None,
                 forward_kwargs: dict = {},
                 directed: bool = False
             ) -> Explanation:
@@ -59,7 +60,7 @@ class CAM(_BaseDecomposition):
             forward_kwargs (dict, optional): Additional arguments to model.forward 
                 beyond x and edge_index. Must be keyed on argument name. 
                 (default: :obj:`{}`)
-            directed (bool, optional): 
+            directed (bool, optional): If True, graph is directed.
 
         :rtype: :class:`graphxai.Explanation`
 
@@ -76,7 +77,10 @@ class CAM(_BaseDecomposition):
             edge_index = to_undirected(edge_index)
 
         if label is None:
-            label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item())
+            if y is None:
+                label = int(self.__forward_pass(x, edge_index, forward_kwargs).argmax(dim=1).item())
+            else:
+                label = y[node_idx]
 
         # Perform walk:
         walk_steps, _ = self.extract_step(x, edge_index, detach=False, split_fc=False, forward_kwargs = forward_kwargs)
@@ -345,7 +349,7 @@ class GradCAM(_BaseDecomposition):
             label = pred.argmax(dim=1).item()
 
         # Execute forward pass:
-        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long), edge_index, forward_kwargs)
+        pred, loss = self.__forward_pass(x, torch.tensor([label], dtype=torch.long).to(x.device), edge_index, forward_kwargs)
 
         # Calculate predicted class and steps through model:
         walk_steps, _ = self.extract_step(x, edge_index, detach=True, split_fc=True, forward_kwargs = forward_kwargs)

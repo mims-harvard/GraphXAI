@@ -204,6 +204,8 @@ class PGExplainer(_BaseExplainer):
                                                forward_kwargs=forward_kwargs)
                     emb = self._get_embedding(data.x, data.edge_index,
                                               forward_kwargs=forward_kwargs)
+                    # OWEN inserting:
+                    emb_dict[gid] = emb.to(device) # Add embedding to embedding dictionary
                     ori_pred_dict[gid] = pred_label
 
             # Train the mask generator
@@ -387,8 +389,11 @@ class PGExplainer(_BaseExplainer):
         #exp['edge_imp'] = edge_mask
 
         exp = Explanation(
+            node_imp = node_mask_from_edge_mask(torch.arange(x.shape[0], device=x.device), edge_index),
             edge_imp = edge_mask
         )
+
+        exp.set_whole_graph(Data(x=x, edge_index=edge_index))
 
         return exp
 

@@ -29,7 +29,7 @@ from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> float:
+def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation, node_thresh_factor = 0.1) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -72,7 +72,7 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
 
     if generated_exp.node_imp is not None:
         JAC_node = []
-        thresh_node = 0.1*generated_exp.node_imp.max()
+        thresh_node = node_thresh_factor*generated_exp.node_imp.max()
         for exp in gt_exp:
             TPs = []
             FPs = []
@@ -97,7 +97,8 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
 
         JAC_node = max(JAC_node)
 
-    if generated_exp.edge_imp is not None:
+    #if generated_exp.edge_imp is not None:
+    if False:
         JAC_edge = []
         for exp in gt_exp:
             TPs = []
@@ -123,7 +124,11 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
     return [JAC_feat, JAC_node, JAC_edge]
 
 
-def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, 
+        shape_graph: ShapeGraph, 
+        model, 
+        sens_idx: List[int]= [], 
+        top_k: float = 0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
