@@ -1,4 +1,5 @@
 import torch
+import ipdb
 
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
@@ -204,14 +205,15 @@ class GNNExplainer(_BaseExplainer):
             log_logits = self._predict(x.to(device), edge_index.to(device), forward_kwargs = forward_kwargs, return_type='log_prob')
             pred_label = log_logits.argmax(dim=-1)
 
-        self._set_masks(x, edge_index, explain_feature = True)
+        self._set_masks(x, edge_index, edge_mask = None, explain_feature = True, device = x.device)
         #self.to(x.device)
         #if self.allow_edge_mask:
-        self.feature_mask = self.feature_mask.to(x.device)
-        self.edge_mask = self.edge_mask.to(x.device)
+        # self.feature_mask = self.feature_mask.to(x.device)
+        # self.edge_mask = self.edge_mask.to(x.device)
         parameters = [self.feature_mask, self.edge_mask]
         #else:
             #parameters = [self.feature_mask]
+        ipdb.set_trace()
         optimizer = torch.optim.Adam(parameters, lr=lr)
 
         # if self.log:  # pragma: no cover
