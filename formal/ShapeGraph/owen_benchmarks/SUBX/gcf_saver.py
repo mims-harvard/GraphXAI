@@ -170,7 +170,7 @@ save_exp_flag = True
 save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper() + '_new')
 
 # Read in currently stored indices:
-d = np.load(open(os.path.join('SUBX_results', 'SUBX_GCF_feat_0.npy'), 'rb'), allow_pickle=True)
+d = np.load(open(os.path.join('SUBX_results', 'SUBX_GCF_feat_0.npy'), 'rb'), allow_pickle=True).item()
 ALREADYGOT = set([k for k,_ in d.items()])
 
 ETYPES = ['feat', 'node', 'edge']

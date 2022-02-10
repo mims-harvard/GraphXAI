@@ -106,7 +106,7 @@ for idx in tqdm(test_inds):
 
     if args.accuracy:
         # Accuracy:
-        _, node_acc, edge_acc = graph_exp_acc_graph(gt_exp, exp)
+        _, node_acc, edge_acc = graph_exp_acc_graph(gt_exp, exp, node_thresh_factor = 0.5)
 
         gea_node.append(node_acc)
         gea_edge.append(edge_acc)

@@ -1,4 +1,4 @@
-for i in {31..34}
+for i in {0..9}
     do
     cp SUBX_SG_gcf.sh SUBX_SG_gcf_tmp_${i}.sh
 
