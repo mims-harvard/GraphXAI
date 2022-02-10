@@ -207,6 +207,8 @@ class GNNExplainer(_BaseExplainer):
         self._set_masks(x, edge_index, explain_feature = True)
         #self.to(x.device)
         #if self.allow_edge_mask:
+        self.feature_mask = self.feature_mask.to(x.device)
+        self.edge_mask = self.edge_mask.to(x.device)
         parameters = [self.feature_mask, self.edge_mask]
         #else:
             #parameters = [self.feature_mask]
