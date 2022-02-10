@@ -64,7 +64,7 @@ add_args = {
 
 exp_loc = os.path.join(my_base_graphxai, args.dataset, 'EXPS', args.exp_method.upper())
 
-if args.exp_method=='pgex':
+if args.exp_method.lower()=='pgex':
     # Train the PGExplainer
     masked_dataset = [dataset[i] for i in dataset.train_index] # Mask to list of only train data
     # fixed for 3-layer conv:
@@ -87,9 +87,9 @@ for idx in tqdm(test_inds):
     # Try to load from existing dir:
     exp = exp_exists_graph(idx, path = exp_loc, get_exp = True)
 
-    if exp is None or (args.exp_method == 'pgex'): # Don't allow PGEX to re-train on previous explanations
+    if exp is None or (args.exp_method.lower() == 'pgex'): # Don't allow PGEX to re-train on previous explanations
         
-        if (args.exp_method == 'pgex'):
+        if (args.exp_method.lower() == 'pgex'):
             # Explainer is set before loop
             forward_kwargs = {
                 'x': data.x.to(device),
