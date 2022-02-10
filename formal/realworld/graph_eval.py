@@ -94,7 +94,8 @@ for idx in tqdm(test_inds):
             forward_kwargs = {
                 'x': data.x.to(device),
                 'edge_index': data.edge_index.to(device),
-                'label': pred_class
+                'label': pred_class,
+                'forward_kwargs': add_args
             }
 
         else:
