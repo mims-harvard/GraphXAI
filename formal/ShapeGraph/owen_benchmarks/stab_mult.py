@@ -107,6 +107,7 @@ parser.add_argument('--model', required=True, help = 'Name of model to train (GI
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
 parser.add_argument('--num_splits', default=1, type=int, help='Number of jobs that will run this explainer over the test set; should be fixed for multiple jobs')
 parser.add_argument('--my_split', default = 0, type=int, help='Split number for the given num_splits; goes from [0,num_splits), e.g. 0, 1, 2 for num_splits=3')
+parser.add_argument('--ignore_cache', action='store_true', help='Ignores previously saved explanations, forces method to generate new ones')
 args = parser.parse_args()
 
 seed_value=912
