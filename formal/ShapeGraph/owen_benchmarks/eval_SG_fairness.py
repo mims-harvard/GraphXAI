@@ -112,6 +112,7 @@ parser.add_argument('--model', required=True, help = 'Name of model to train (GI
 parser.add_argument('--ignore_cf', action = 'store_true')
 parser.add_argument('--ignore_group', action = 'store_true')
 parser.add_argument('--save_dir', default='./fairness_results/', help='folder for saving results')
+parser.add_argument('--ignore_cache', action='store_true', help='Ignores previously saved explanations, forces method to generate new ones')
 args = parser.parse_args()
 
 seed_value=912
@@ -185,7 +186,7 @@ for node_idx in tqdm.tqdm(test_set):
     # Get explanations
     exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
 
-    if exp is None:
+    if exp is None or args.ignore_cache:
         exp = explainer.get_explanation_node(**forward_kwargs)
 
         if save_exp_flag:
