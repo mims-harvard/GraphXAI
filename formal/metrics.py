@@ -593,15 +593,26 @@ def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph
                 subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0]
 
                 # Get the list of all edges that we need to keep
-                keep_edges = [] 
-                for i in range(EIDX.shape[1]):
-                    if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
-                        continue
-                    else:
-                        keep_edges.append(i)
+                # keep_edges = [] 
+                # for i in range(EIDX.shape[1]):
+                #     if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
+                #         continue
+                #     else:
+                #         keep_edges.append(i)
+                top_k_edges = generated_exp.edge_imp.topk(int(generated_exp.edge_imp.shape[0] * top_k))[1]
+
+                subgraph_mask = torch.zeros(subgraph_edges.shape[0]).bool()
+                subgraph_mask[top_k_edges] = True
+
+                # Bigger indices:
+                to_remove = subgraph_edges[subgraph_mask]
+                wholeEIDX_mask = torch.ones(EIDX.shape[1]).bool()
+                wholeEIDX_mask[to_remove] = False
+
+                #edge_index = EIDX[:,wholeEIDX_mask]
 
                 # Get new edge_index
-                pert_edge_index = pert_edge_index[:, keep_edges]
+                pert_edge_index = pert_edge_index[:, wholeEIDX_mask]
 
                 # Getting the softmax vector for the perturbed graph
                 out_exp_x = torch.argmax(F.softmax(model(pert_x, pert_edge_index), dim=-1)[node_id]).item()
