@@ -114,6 +114,7 @@ parser.add_argument('--model', default='GIN', help = 'Name of model to train (GI
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./SGfaith/', help='folder for saving results')
 parser.add_argument('--ignore_training', action='store_true', help='folder for saving results')
+parser.add_argument('--ignore_cache', action='store_true', help='Ignores previously generated results and forces the method to generate new ones')
 args = parser.parse_args()
 
 seed_value=912
@@ -206,7 +207,7 @@ for node_idx in tqdm.tqdm(test_set):
     #exp = None
     #print(exp)
 
-    if (exp is None) or args.exp_method.lower() == 'pgex':
+    if (exp is None) or args.exp_method.lower() == 'pgex' or args.ignore_cache:
         exp = explainer.get_explanation_node(**forward_kwargs)
 
         if save_exp_flag and (args.exp_method.lower() != 'pgex'):
