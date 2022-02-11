@@ -97,6 +97,7 @@ class GuidedBP(_BaseDecomposition):
 
         # Get only those explanations for nodes in the subgraph:
         exp = Explanation(
+            feature_imp = x.grad[node_idx,:],
             node_imp = node_imp,
             node_idx = node_idx
         )
