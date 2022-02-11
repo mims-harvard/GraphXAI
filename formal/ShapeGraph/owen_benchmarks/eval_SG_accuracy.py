@@ -126,9 +126,10 @@ bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/S
 data = bah.get_graph(use_fixed_split=True)
 
 #inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
-test_set = (data.test_mask).nonzero(as_tuple=True)[0]
-np.random.shuffle(test_set.numpy())
-print(test_set)
+# test_set = (data.test_mask).nonzero(as_tuple=True)[0]
+# np.random.shuffle(test_set.numpy())
+# print(test_set)
+test_set = torch.load(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'test_inds_SG_homophilic.pt'))
 
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = get_model(name = args.model).to(device)
