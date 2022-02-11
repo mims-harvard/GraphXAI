@@ -3,7 +3,7 @@ import torch
 from graphxai.explainers import *
 
 from graphxai.datasets import Mutagenicity, Benzene, FluorideCarbonyl
-from graphxai.gnn_models.graph_classification import GIN_3layer, GCN_3layer
+from graphxai.gnn_models.graph_classification import GIN_3layer, GCN_3layer, GAT_3layer, SAGE_3layer, JKNet_3layer
 
 def get_exp_method(method, model, criterion, pred_class, data, device, train_pg = False, emb_layer_name='conv3'):
     method = method.lower()
@@ -98,6 +98,12 @@ def get_model(name):
         model = GCN_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
     elif name.lower() == 'gin':
         model = GIN_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
+    elif name.lower() == 'sage':
+        model = SAGE_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
+    elif name.lower() == 'gat':
+        model = GAT_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
+    elif name.lower() == 'jknet':
+        model = JKNet_3layer(hidden_channels=32, in_channels = 14, out_channels=2)
     else:
         OSError('Invalid model!')
     return model
