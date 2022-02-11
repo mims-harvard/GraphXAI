@@ -59,4 +59,4 @@ for i in range(n_trials):
     overall_auroc.append(auroc)
 
 print('')
-print('Average AUROC: {}'.format(np.mean(overall_auroc)))
+print('Average AUROC: {} +- {}'.format(np.mean(overall_auroc), np.std(overall_auroc) / np.sqrt(len(overall_auroc))))
