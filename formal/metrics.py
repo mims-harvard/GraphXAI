@@ -97,8 +97,8 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation, node_th
 
         JAC_node = max(JAC_node)
 
-    #if generated_exp.edge_imp is not None:
-    if False:
+    if generated_exp.edge_imp is not None:
+    #if False:
         JAC_edge = []
         for exp in gt_exp:
             TPs = []
@@ -151,7 +151,7 @@ def graph_exp_faith(generated_exp: Explanation,
     org_vec = model(X, EIDX)[generated_exp.node_idx]
     org_softmax = F.softmax(org_vec, dim=-1)
 
-    if False:  # generated_exp.feature_imp is not None:
+    if generated_exp.feature_imp is not None:
         # Identifying the top_k features in the node attribute feature vector
         top_k_features = generated_exp.feature_imp.topk(int(generated_exp.feature_imp.shape[0] * top_k))[1]
 
@@ -187,7 +187,7 @@ def graph_exp_faith(generated_exp: Explanation,
         pert_softmax = F.softmax(pert_vec, dim=-1)
         GEF_node = 1 - torch.exp(-F.kl_div(org_softmax.log(), pert_softmax, None, None, 'sum')).item()
 
-    if False:  # generated_exp.edge_imp is not None:
+    if generated_exp.edge_imp is not None:
         subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].to(device)
         # Get the list of all edges that we need to keep
         keep_edges = [] 
@@ -326,6 +326,10 @@ def graph_exp_stability(generated_exp: Explanation, explainer,
                     node_idx=node_id, 
                     y = Y.clone(), # MUST COPY
                     edge_index=pert_edge_index)
+            # TESTING:
+            #print('node', pert_exp.node_imp)
+            #print('edge', pert_exp.edge_imp)
+            #print('feat', pert_exp.feat_imp)
 
             if generated_exp.feature_imp is not None:
                 top_feat = int(generated_exp.feature_imp.shape[0] * top_k) 
