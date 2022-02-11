@@ -60,7 +60,8 @@ class RandomExplainer(_BaseExplainer):
         exp = Explanation(
             feature_imp = torch.randn(x[0, :].shape),
             node_imp = torch.randn(khop_info[0].shape),
-            node_idx = node_idx
+            node_idx = node_idx,
+            edge_imp = torch.randn(khop_info[1][0, :].shape) # Random mask over edges
         )
 
         exp.set_enclosing_subgraph(khop_info)
