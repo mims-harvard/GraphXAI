@@ -1,12 +1,12 @@
 import glob
 import torch
-
+import tqdm
 
 # Scans through explanations for RAND, adds random edge explanations
 
 L = glob.glob('bigSG_explanations/RAND/*')
 
-for f in L:
+for f in tqdm.tqdm(L):
     exp = torch.load(f)
 
     # Add random edges:
