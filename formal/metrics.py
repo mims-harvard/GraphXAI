@@ -189,16 +189,44 @@ def graph_exp_faith(generated_exp: Explanation,
 
     if generated_exp.edge_imp is not None:
         subgraph_edges = torch.where(generated_exp.enc_subgraph.edge_mask == True)[0].to(device)
+        #lookup_subgraph_edges = set(subgraph_edges.tolist())
         # Get the list of all edges that we need to keep
-        keep_edges = [] 
-        for i in range(EIDX.shape[1]):
-            if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
-                continue
-            else:
-                keep_edges.append(i)
+
+        # Identifying the top_k edges in the explanation subgraph
+        top_k_edges = generated_exp.edge_imp.topk(int(generated_exp.edge_imp.shape[0] * top_k))[1]
+        topk_lookup = set(top_k_edges.tolist())
+
+        subgraph_mask = torch.zeros(subgraph_edges.shape[0]).bool()
+        subgraph_mask[top_k_edges] = True
+
+        # Bigger indices:
+        to_remove = subgraph_edges[subgraph_mask]
+        wholeEIDX_mask = torch.ones(EIDX.shape[1]).bool()
+        wholeEIDX_mask[to_remove] = False
+
+        edge_index = EIDX[:,wholeEIDX_mask] # Use boolean mask
+
+        # on_subgraph_mask = [True if e in topk_lookup  for e in subgraph_edges.tolist()]
+
+        
+        # wholeEIDX_mask = 
+
+        # Only defined on the subgraph
+        #lookup_top_k_edges = 
+
+        
+
+        # keep_edges = [] 
+        # for i in range(EIDX.shape[1]):
+        #     if i in lookup_subgraph_edges and top_k_edges:
+        #         continue
+        #     # if i in subgraph_edges and generated_exp.edge_imp[(subgraph_edges == i).nonzero(as_tuple=True)[0]]==0:
+        #     #     continue
+        #     else:
+        #         keep_edges.append(i)
 
         # Get new edge_index
-        edge_index = EIDX[:, keep_edges]
+        #edge_index = EIDX[:, keep_edges]
                     
         # Getting the softmax vector for the perturbed graph
         pert_vec = model(X, edge_index.to(device))[generated_exp.node_idx]
