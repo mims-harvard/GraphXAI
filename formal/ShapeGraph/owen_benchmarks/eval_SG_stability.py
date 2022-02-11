@@ -108,6 +108,7 @@ parser.add_argument('--exp_method', required=True, help='name of the explanation
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
 #parser.add_argument('--model_path', required=True, help = 'Location of pre-trained weights for the model')
 parser.add_argument('--save_dir', default='./results/', help='folder for saving results')
+parser.add_argument('--ignore_cache', action='store_true', help='Ignores previously saved explanations, forces method to generate new ones')
 args = parser.parse_args()
 
     
@@ -177,11 +178,11 @@ for node_idx in tqdm.tqdm(test_set):
     explainer, forward_kwargs = get_exp_method(args.exp_method, model, criterion, bah, node_idx, pred_class)
 
     # Get explanations
-    #exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
-    exp = None
+    exp = exp_exists(node_idx, path = save_exp_dir, get_exp = True) # Retrieve the explanation, if it's there
+    #exp = None
     #print(exp)
 
-    if (exp is None) or args.exp_method.lower() == 'pgex':
+    if (exp is None) or args.exp_method.lower() == 'pgex' or args.ignore_cache:
         exp = explainer.get_explanation_node(**forward_kwargs)
 
         if save_exp_flag and (args.exp_method.lower() != 'pgex'):
