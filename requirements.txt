@@ -1,6 +1,4 @@
-# Structured feature
 scikit-learn>=1.0
-# PGMExplainer
 scipy==1.6.3
 pgmpy==0.1.11
 graphlime==1.2.0
@@ -14,7 +12,6 @@ rdkit-pypi==2021.3.3
 scipy==1.6.3
 sklearn==0.0
 tensorboardX==2.3
-# torch==1.8.1
 torch==1.10.2
 torch-cluster==1.5.9
 torch-geometric==2.0.1

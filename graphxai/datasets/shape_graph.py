@@ -46,20 +46,40 @@ class ShapeGraph(NodeDataset):
         TODO: Ensure seed keeps graph generation constant.
 
         kwargs: Additional arguments
-            variant (int): 0 indicates using the old ShapeGraph method, and 1 indicates
-                using the new ShapeGraph method (i.e. one with pref. attachment).   
-            num_subgraphs (int): Number of individual subgraphs to use in order to build
-                the graph. Doesn't guarantee size of graph. (:default: :obj:`10`)
-            prob_connection (float): Probability of making a connection between any two
-                of the original subgraphs. Roughly controls sparsity and number of 
-                class 0 vs. class 1 nodes. (:default: :obj:`1`)
-            subgraph_size (int): Expected size of each individual subgraph.
-            base_graph (str): Base graph structure to use for generating subgraphs.
-                Only in effect for variant 0. (:default: :obj:`'ba'`)
-            verify (bool): Verifies that graph does not have any "bad" motifs in it.
-                (:default: :obj:`True`)
-            max_tries_verification (int): Maximum number of tries to re-generate a 
-                graph that contains bad motifs. (:default: :obj:`5`)
+
+            Graph Construction:
+                variant (int): 0 indicates using the old ShapeGraph method, and 1 indicates
+                    using the new ShapeGraph method (i.e. one with pref. attachment).   
+                num_subgraphs (int): Number of individual subgraphs to use in order to build
+                    the graph. Doesn't guarantee size of graph. (:default: :obj:`10`)
+                prob_connection (float): Probability of making a connection between any two
+                    of the original subgraphs. Roughly controls sparsity and number of 
+                    class 0 vs. class 1 nodes. (:default: :obj:`1`)
+                subgraph_size (int): Expected size of each individual subgraph.
+                base_graph (str): Base graph structure to use for generating subgraphs.
+                    Only in effect for variant 0. (:default: :obj:`'ba'`)
+                verify (bool): Verifies that graph does not have any "bad" motifs in it.
+                    (:default: :obj:`True`)
+                max_tries_verification (int): Maximum number of tries to re-generate a 
+                    graph that contains bad motifs. (:default: :obj:`5`)
+
+            Feature attribution:
+                n_informative (int): Number of informative features, i.e. those that
+                    are correlated with label. (:default: :obj:`4`)
+                class_sep (float):
+                n_features (int):
+                n_clusters_per_class (int):
+                homophily_coef (float):
+
+            Sensitive feature:
+                add_sensitive_feature (bool):  Whether to include a sensitive, discrete 
+                    attribute in the node features. If this is true, the total number of
+                    features will be `n_features + 1`. (:default: :obj:`True`) 
+                attribute_sensitive_feature (bool): Whether to attribute the sensitive
+                    feature to the label of the dataset. `False` means to generate
+                    sensitive features randomly (i.e. uncorrelated). 
+                    (:default: :obj:`False`)
+                sens_attribution_noise (float):
             
     Members:
         G (nx.Graph): Networkx version of the graph for the dataset
@@ -94,18 +114,17 @@ class ShapeGraph(NodeDataset):
         self.verify = True if 'verify' not in kwargs else kwargs['verify']
         self.max_tries_verification = 5 if 'max_tries_verification' not in kwargs else kwargs['max_tries_verification']
 
-        #self.flip_y = 0.01 if 'flip_y' not in kwargs else kwargs['flip_y']
+        # Feature args:
         self.n_informative = 4 if 'n_informative' not in kwargs else kwargs['n_informative']
         self.class_sep = 1.0 if 'class_sep' not in kwargs else kwargs['class_sep']
         self.n_features = 10 if 'n_features' not in kwargs else kwargs['n_features']
         self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
+        self.homophily_coef = None if 'homophily_coef' not in kwargs else kwargs['homophily_coef']
 
+        # Sensitive feature:
         self.add_sensitive_feature = True if 'add_sensitive_feature' not in kwargs else kwargs['add_sensitive_feature']
-        print('self.add_sensitive_feature', self.add_sensitive_feature)
         self.attribute_sensitive_feature = False if 'attribute_sensitive_feature' not in kwargs else kwargs['attribute_sensitive_feature']
         self.sens_attribution_noise = 0.25 if 'sens_attribution_noise' not in kwargs else kwargs['sens_attribution_noise']
-
-        self.homophily_coef = None if 'homophily_coef' not in kwargs else kwargs['homophily_coef']
 
         self.seed = seed
 
