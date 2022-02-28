@@ -8,7 +8,7 @@ from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
 from IPython.display import SVG
 from sknetwork.visualization import svg_graph
 
-from graphxai.datasets import kronecker_graph
+from old import kronecker_graph
 
 
 def rewire_edges(x, edge_index, degree):

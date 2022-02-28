@@ -7,7 +7,7 @@ from graphxai.explainers import GNN_LRP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic
-from graphxai.datasets.new_BAshapes import ShapeGraph
+from old.new_BAshapes import ShapeGraph
 
 
 # n = 300

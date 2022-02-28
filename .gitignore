@@ -1,5 +1,5 @@
 *.pyc
-.DS_Store
+*.DS_Store*
 **/*.egg-info/*
 data/ShapeGraph/unzipped
 data/ShapeGraph/new_unzipped
@@ -12,4 +12,5 @@ formal/realworld/mutag/EXPS
 formal/realworld/mutag/EXPS_old
 formal/realworld/fc/EXPS
 formal/realworld/benzene/EXPS
-
+old
+*__pycache__*

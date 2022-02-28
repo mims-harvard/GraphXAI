@@ -13,7 +13,7 @@ from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic
 #from graphxai.datasets import BAShapes
-from graphxai.datasets.new_BAshapes import ShapeGraph
+from old.new_BAshapes import ShapeGraph
 
 from graphxai.utils import to_networkx_conv, Explanation
 

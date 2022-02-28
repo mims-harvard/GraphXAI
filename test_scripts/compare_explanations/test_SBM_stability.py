@@ -10,7 +10,7 @@ from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from IPython.display import SVG
 from sknetwork.visualization import svg_graph
 
-from graphxai.datasets import sbm_with_singletons
+from old import sbm_with_singletons
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.utils.representation import extract_step
 from graphxai.explainers import GNNExplainer
