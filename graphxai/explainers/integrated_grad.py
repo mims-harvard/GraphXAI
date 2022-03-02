@@ -11,13 +11,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 class IntegratedGradExplainer(_BaseExplainer):
     """
     Integrated Gradient Explanation for GNNs
+
+    Args:
+        model (torch.nn.Module): Model on which to make predictions.
+        criterion (torch.nn.Module): Loss function.
     """
     def __init__(self, model, criterion):
-        """
-        Args:
-            model (torch.nn.Module): model on which to make predictions
-            criterion (torch.nn.Module): loss function
-        """
         super().__init__(model)
         self.criterion = criterion
 
@@ -25,7 +24,9 @@ class IntegratedGradExplainer(_BaseExplainer):
                              edge_index: torch.Tensor, 
                              label: torch.Tensor = None,
                              y = None,
-                             num_hops: int = None, **_):
+                             num_hops: int = None, 
+                             steps: int = 40,
+                             **_):
         """
         Explain a node prediction.
 
@@ -34,20 +35,18 @@ class IntegratedGradExplainer(_BaseExplainer):
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
             x (torch.Tensor, [n x d]): node features
             label (torch.Tensor, [n x ...]): labels to explain
+            y (torch.Tensor): Same as `label`, provided for general 
+                compatibility in the arguments. (:default: :obj:`None`)
             num_hops (int): number of hops to consider
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`torch.Tensor, [x.shape[1],]`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
+                `edge_imp`: :obj:`None`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         """
-        exp = dict()
 
         if (label is None) and (y is None):
             raise ValueError('Either label or y should be provided for Integrated Gradients')
@@ -61,8 +60,6 @@ class IntegratedGradExplainer(_BaseExplainer):
             k_hop_subgraph(node_idx, num_hops, edge_index,
                            relabel_nodes=True, num_nodes=x.shape[0])
         sub_x = x[subset]
-
-        steps = 40
 
         self.model.eval()
         grads = torch.zeros(steps+1, x.shape[1]).to(device)
@@ -99,9 +96,10 @@ class IntegratedGradExplainer(_BaseExplainer):
 
     def get_explanation_graph(self, edge_index: torch.Tensor,
                               x: torch.Tensor, 
-                              y: torch.Tensor = None,
                               label: torch.Tensor = None,
+                              y: torch.Tensor = None,
                               node_agg = torch.sum,
+                              steps: int = 40,
                               forward_kwargs={}):
         """
         Explain a whole-graph prediction.
@@ -110,18 +108,20 @@ class IntegratedGradExplainer(_BaseExplainer):
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
             x (torch.Tensor, [n x d]): node features
             label (torch.Tensor, [n x ...]): labels to explain
+            y (torch.Tensor): Same as `label`, provided for general 
+                compatibility in the arguments. (:default: :obj:`None`)
+            node_agg : 
             forward_args (tuple, optional): additional arguments to model.forward
                 beyond x and edge_index
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`None`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
+                `edge_imp`: :obj:`torch.Tensor, [edge_index.shape[1],]`
+                `graph`: :obj:`torch_geometric.data.Data`
         """
-        exp = dict()
-
-        steps = 40
 
         if (label is None) and (y is None):
             raise ValueError('Either label or y should be provided for Integrated Gradients')
@@ -147,9 +147,6 @@ class IntegratedGradExplainer(_BaseExplainer):
         grads = (grads[:-1] + grads[1:]) / 2.0
         avg_grads = torch.mean(grads, axis=0)
         integrated_gradients = (x - baseline) * avg_grads
-        #exp['feature_imp'] = integrated_gradients
-
-        #print('IG shape', integrated_gradients.shape)
 
         exp = Explanation(
             node_imp = node_agg(integrated_gradients, dim=1),

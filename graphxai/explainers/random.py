@@ -22,8 +22,7 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor,
             edge_index: torch.Tensor, 
             num_hops: Optional[int] = None,
-            y = None,
-            aggregate_node_imp = torch.sum
+            node_agg = torch.sum
         ):
         """
         Get the explanation for a node.
@@ -32,36 +31,36 @@ class RandomExplainer(_BaseExplainer):
             node_idx (int): index of the node to be explained
             x (torch.Tensor, [n x d]): tensor of node features
             edge_index (torch.Tensor, [2 x m]): edge index of the graph
-            aggregate_node_imp (function, optional): torch function that aggregates
+            num_hops (int, optional): Number of hops for the enclosing subgraph.
+                None means that this value is computed automatically from the model.
+                (:default: :obj:`None`) 
+            node_agg (function, optional): torch function that aggregates
                 all node importance feature-wise scores across the enclosing 
                 subgraph. Must support `dim` argument. 
                 (:default: :obj:`torch.sum`)
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
-            khop_info (4-tuple of torch.Tensor):
-                0. the nodes involved in the subgraph
-                1. the filtered `edge_index`
-                2. the mapping from node indices in `node_idx` to their new location
-                3. the `edge_index` mask indicating which edges were preserved
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`torch.Tensor, [x.shape[1],]`
+                `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
+                `edge_imp`: :obj:`torch.Tensor, [edges_in_khop,]`
+                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
         """
         num_hops = self.L if num_hops is None else num_hops
         khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
-
-        # exp = {k: None for k in EXP_TYPES}
-        # exp['feature_imp'] = torch.randn(x[0, :].shape)
-        # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
-
-        #node_imp = aggregate_node_imp(torch.randn(khop_info[0].shape), dim = 1)
+        
+        # Generate node mask and random values on each node
+        n = khop_info[0].shape
+        rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1)).to(x.device)
+        randn = torch.randn(n).to(x.device)
+        node_imp = node_agg(rand_mask * randn, dim=1)
         
         exp = Explanation(
             feature_imp = torch.randn(x[0, :].shape),
-            node_imp = torch.randn(khop_info[0].shape),
-            node_idx = node_idx,
-            edge_imp = torch.randn(khop_info[1][0, :].shape) # Random mask over edges
+            node_imp = node_imp,
+            edge_imp = torch.randn(khop_info[1][0, :].shape), # Random mask over edges
+            node_idx = node_idx
         )
 
         exp.set_enclosing_subgraph(khop_info)
@@ -72,7 +71,7 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor, 
             edge_index: torch.Tensor,
             num_nodes : int = None,
-            aggregate_node_imp = torch.sum,
+            node_agg = torch.sum,
             forward_kwargs = {}):
         """
         Get the explanation for the whole graph.
@@ -81,29 +80,27 @@ class RandomExplainer(_BaseExplainer):
             x (torch.Tensor, [n x d]): tensor of node features from the entire graph
             edge_index (torch.Tensor, [2 x m]): edge index of entire graph
             num_nodes (int, optional): number of nodes in graph
-            aggregate_node_imp (function, optional): torch function that aggregates
+            node_agg (function, optional): torch function that aggregates
                 all node importance feature-wise scores across the graph. 
                 Must support `dim` argument. (:default: :obj:`torch.sum`)
 
         Returns:
-            exp (dict):
-                exp['feature_imp'] (torch.Tensor, [d]): feature mask explanation
-                exp['edge_imp'] (torch.Tensor, [m]): k-hop edge importance
-                exp['node_imp'] (torch.Tensor, [m]): k-hop node importance
+            exp (:class:`Explanation`): Explanation output from the method.
+                Fields are:
+                `feature_imp`: :obj:`torch.Tensor, [x.shape[1],]`
+                `node_imp`: :obj:`torch.Tensor, [nodes,]`
+                `edge_imp`: :obj:`torch.Tensor, [edge_index.shape[1],]`
+                `graph`: :obj:`torch_geometric.data.Data`
         """
-        #exp = {k: None for k in EXP_TYPES}
-
         n = maybe_num_nodes(edge_index, None) if num_nodes is None else num_nodes
         rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1)).to(x.device)
-        # exp['feature_imp'] = rand_mask * torch.randn_like(x)
-
-        # exp['edge_imp'] = torch.randn(edge_index[0, :].shape)
 
         randn = torch.randn_like(x).to(x.device)
 
-        node_imp = aggregate_node_imp(rand_mask * randn, dim=1)
+        node_imp = node_agg(rand_mask * randn, dim=1)
 
         exp = Explanation(
+            feature_imp = torch.randn(x.shape[0]),
             node_imp = node_imp,
             edge_imp = torch.randn(edge_index[0, :].shape).to(edge_index.device)
         )

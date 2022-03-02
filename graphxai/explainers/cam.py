@@ -312,7 +312,7 @@ class GradCAM(_BaseDecomposition):
                 forward_kwargs: dict = {}, 
                 average_variant: bool = True, 
                 layer: int = 0
-        ) -> dict:
+        ) -> Explanation:
         '''
         Explain a whole-graph prediction.
 
