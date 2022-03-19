@@ -44,63 +44,6 @@ class EnclosingSubgraph:
         if show:
             plt.show()
 
-# class WholeGraph:
-
-#     def __init__(self, x = None, edge_index = None, y = None, directed = False):
-#         self.setup(x, edge_index, y, directed)
-
-#     def setup(self, x, edge_index, y = None, directed = False):
-#         '''
-#         Post-instantiation function to set member variables.
-#         '''
-#         # post-init function to set up class variables
-#         self.x = x
-#         self.edge_index = edge_index
-#         self.y = y
-#         self.directed = directed
-
-#     def get_Data(self):
-#         return Data(x=self.x, edge_index=self.edge_index, y=self.y)
-
-#     def to_networkx_conv(self, 
-#         to_undirected=False, 
-#         remove_self_loops: Optional[bool]=False,
-#         get_map: Optional[bool] = False):
-
-#         if to_undirected:
-#             G = nx.Graph()
-#         else:
-#             G = nx.DiGraph()
-
-#         node_list = sorted(torch.unique(self.edge_index).tolist())
-#         map_norm =  {node_list[i]:i for i in range(len(node_list))}
-
-#         G.add_nodes_from([map_norm[n] for n in node_list])
-
-#         # Assign values to each node:
-#         # Skipping for now
-
-#         for i, (u, v) in enumerate(self.edge_index.t().tolist()):
-#             u = map_norm[u]
-#             v = map_norm[v]
-
-#             if to_undirected and v > u:
-#                 continue
-
-#             if remove_self_loops and u == v:
-#                 continue
-
-#             G.add_edge(u, v)
-
-#             # No edge_attr additions added now
-#             # for key in edge_attrs if edge_attrs is not None else []:
-#             #     G[u][v][key] = values[key][i]
-
-#         if get_map:
-#             return G, map_norm
-
-#         return G
-
 class Explanation:
     '''
     Members:
@@ -145,10 +88,10 @@ class Explanation:
         self.node_idx = node_idx # Set this for node-level prediction explanations
         self.graph = graph
 
-    def set_enclosing_subgraph(self, subgraph, set_references = False):
+    def set_enclosing_subgraph(self, subgraph):
         '''
         Args:
-            k_hop_tuple (tuple, EnclosingSubgraph, or nx.Graph): Return value from torch_geometric.utils.k_hop_subgraph
+            subgraph (tuple, EnclosingSubgraph, or nx.Graph): Return value from torch_geometric.utils.k_hop_subgraph
         '''
         if isinstance(subgraph, EnclosingSubgraph):
             self.enc_subgraph = subgraph
@@ -166,10 +109,8 @@ class Explanation:
         else: # Assumed to be a tuple:
             self.enc_subgraph = EnclosingSubgraph(*subgraph)
 
-        #if set_references or 
         if self.node_reference is None:
             self.node_reference = gxai_utils.make_node_ref(self.enc_subgraph.nodes)
-            #self.edge_reference = self.enc_subgraph.edge_index
 
     def apply_subgraph_mask(self, 
         mask_node: Optional[bool] = False, 
@@ -195,11 +136,14 @@ class Explanation:
         if mask_node:
             self.node_imp = self.node_imp[self.enc_subgraph.nodes]
 
-    def set_whole_graph(self, data):
+    def set_whole_graph(self, data: Data):
+        '''
+        Args:
+            data (torch_geometric.data.Data): Data object representing the graph to store.
+        
+        :rtype: :obj:`None`
+        '''
         self.graph = data
-
-        # if self.node_reference is None:
-        #     self.node_reference = gxai_utils.make_node_ref(self.graph.nodes)
 
     def graph_to_networkx(self, 
         to_undirected=False, 
@@ -419,8 +363,8 @@ class Explanation:
             return threshold_mask(self.feature_imp, threshold)
 
     def context_draw(self, 
-            num_hops,
-            graph_data,
+            num_hops: int = None,
+            graph_data: Data = None,
             additional_hops = 1, 
             heat_by_prescence = False, 
             heat_by_exp = True, 
@@ -429,8 +373,15 @@ class Explanation:
             show=False
         ):
         '''
-        Shows the explanation in context of a few more hops out than its k-hop neighborhood
+        Shows the explanation in context of a few more hops out than its k-hop neighborhood. Used for
+            visualizing the explanation for a node-level prediction task.
+
         Args:
+            num_hops
+            graph_data: 
+            additional_hops (int, optional): Additional number of hops to include for the visualization.
+                If the size of the enclosing subgraph for a node `v` with respect to some model `f` 
+                is `n`, then we would show the `n + additional_hops`-hop neighborhood around `v`.
             node_agg_method (str, optional): Aggregation method to use for showing multi-dimensional
                 node importance scores (i.e. across features, such as GuidedBP or Vanilla Gradient).
                 Options: :obj:`'sum'` and :obj:`'max'`. (:default: :obj:`'sum'`)
