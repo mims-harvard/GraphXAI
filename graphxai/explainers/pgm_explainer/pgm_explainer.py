@@ -7,7 +7,7 @@ from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
 from pgmpy.estimators.CITests import chi_square
 from pgmpy.estimators import HillClimbSearch, BicScore
-from pgmpy.models import BayesianModel
+from pgmpy.models import BayesianNetwork
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils.perturb import PGM_perturb_node_features
@@ -227,7 +227,7 @@ class PGMExplainer(_BaseExplainer):
         p_values = []
         dependent_neighbors = []
         for node in neighbors:
-            _, p = chi_square(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [], df, boolean=False)
+            _, p, _ = chi_square(ind_ori_to_sub[node], ind_ori_to_sub[node_idx], [], df, boolean=False)
             p_values.append(p)
             if p < self.p_threshold:
                 dependent_neighbors.append(node)
@@ -251,14 +251,17 @@ class PGMExplainer(_BaseExplainer):
 
         # Perform structural learning
         if no_child:
-            est = HillClimbSearch(df[sub_nodes_no_target], scoring_method=BicScore(df))
-            pgm_no_target = est.estimate()
+            # est = HillClimbSearch(df[sub_nodes_no_target], scoring_method=BicScore(df))
+            # pgm_no_target = est.estimate()
+            est = HillClimbSearch(df[sub_nodes_no_target])
+            pgm_no_target = est.estimate(scoring_method=BicScore(df))
             for node in MB:
                 if node != target_node:
                     pgm_no_target.add_edge(node, target_node)
 
             # Create the PGM
-            pgm = BayesianModel()
+            #pgm = BayesianModel()
+            pgm = BayesianNetwork()
             for node in pgm_no_target.nodes():
                 pgm.add_node(node)
             for edge in pgm_no_target.edges():
@@ -280,7 +283,8 @@ class PGMExplainer(_BaseExplainer):
             pgm_w_target_explanation = est.estimate()
 
             # Create the PGM    
-            pgm = BayesianModel()
+            #pgm = BayesianModel()
+            pgm = BayesianNetwork()
             for node in pgm_w_target_explanation.nodes():
                 pgm.add_node(node)
             for edge in pgm_w_target_explanation.edges():
@@ -350,7 +354,7 @@ class PGMExplainer(_BaseExplainer):
         # Compute p-values and pick the candidate nodes to perturb
         p_values = []
         for node in range(n):
-            _, p = chi_square(node, target, [], df)
+            _, p, _ = chi_square(node, target, [], df, boolean=False)
             p_values.append(p)
         num_candidates = min(top_k_nodes*4, n-1)
         candidate_nodes = np.argpartition(p_values, num_candidates)[0:num_candidates]
@@ -367,7 +371,7 @@ class PGMExplainer(_BaseExplainer):
         p_values = []
         dependent_nodes = []
         for node in range(n):
-            _, p = chi_square(node, target, [], df)
+            _, p,_ = chi_square(node, target, [], df, boolean=False)
             p_values.append(p)
             if p < self.p_threshold:
                 dependent_nodes.append(node)

@@ -370,7 +370,8 @@ class Explanation:
             heat_by_exp = True, 
             node_agg_method = 'sum',
             ax = None,
-            show=False
+            show=False,
+            show_node_labels=False,
         ):
         '''
         Shows the explanation in context of a few more hops out than its k-hop neighborhood. Used for
@@ -437,8 +438,32 @@ class Explanation:
                 tuple_edge_index = [(whole_edge_index[0,i].item(), whole_edge_index[1,i].item()) \
                     for i in range(whole_edge_index.shape[1])]
 
-                trimmed_enc_subg_edge_index, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
-                positive_edge_indices = self.edge_imp[emask].nonzero(as_tuple=True)[0]
+                _, emask = remove_duplicate_edges(self.enc_subgraph.edge_index)
+                # Remove self loops:
+                emask_2 = torch.logical_not(self.enc_subgraph.edge_index[0,:] == self.enc_subgraph.edge_index[1,:])
+                emask = emask & emask_2
+
+                trimmed_enc_subg_edge_index = self.enc_subgraph.edge_index[:,emask]
+
+                mask_edge_imp = self.edge_imp[emask].clone()
+
+                # Find where edge_imp is applied on one duplicate edge but not another:
+                masked_out_by_rmdup = self.enc_subgraph.edge_index[:,torch.logical_not(emask)]
+                ones_in_rmdup = self.edge_imp[torch.logical_not(emask)].nonzero(as_tuple=True)[0]
+                for j in ones_in_rmdup:
+                    edge = masked_out_by_rmdup[:,j].tolist()
+                    # Reverse the edge:
+                    edge = edge[::-1] 
+                    
+                    trim_loc_mask = (trimmed_enc_subg_edge_index[0,:] == edge[0]) & (trimmed_enc_subg_edge_index[1,:] == edge[1])
+                    trim_loc = (trim_loc_mask).nonzero(as_tuple=True)[0] 
+                    if trim_loc.shape[0] > 0:
+                        # Should be over 0 if we found it
+                        trim_loc = trim_loc[0].item()
+                        mask_edge_imp[trim_loc] = 1 # Ensure this edge is also one
+                    # Don't do anything if we didn't find it
+
+                positive_edge_indices = mask_edge_imp.nonzero(as_tuple=True)[0]
 
                 # TODO: fix edge imp vis. to handle continuous edge importance scores
                 mask_edge_imp = self.edge_imp[positive_edge_indices]
@@ -450,14 +475,21 @@ class Explanation:
                 edge_list = list(subG.edges)
 
                 # Get dictionary with mapping from edge index to networkx graph
-                edge_matcher = match_torch_to_nx_edges(subG, remove_duplicate_edges(whole_edge_index)[0])
+                #edge_matcher = match_torch_to_nx_edges(subG, remove_duplicate_edges(whole_edge_index)[0])
+                edge_matcher = {edge_list[i]:i for i in range(len(edge_list))}
+                for i in range(len(edge_list)):
+                    forward_tup = edge_list[i]
+                    backward_tup = tuple(list(edge_list[i])[::-1])
+                    edge_matcher[forward_tup] = i
+                    edge_matcher[backward_tup] = i
 
                 edge_heat = torch.zeros(len(edge_list))
+                #edge_heat = torch.zeros(whole_edge_index.shape[1])
 
                 for e in positive_edges:
                     #e = positive_edges[i]
                     # Must find index, which is not very efficient
-                    edge_heat[edge_matcher[e]] = 1#mask_edge_imp[i].item()
+                    edge_heat[edge_matcher[e]] = 1
 
                 draw_args['edge_color'] = edge_heat.tolist()
                 #coolwarm cmap:
@@ -467,7 +499,7 @@ class Explanation:
 
         # Seed the position to stay consistent:
         pos = nx.spring_layout(subG, seed = 1234)
-        nx.draw(subG, pos, ax = ax, **draw_args)
+        nx.draw(subG, pos, ax = ax, **draw_args, with_labels = show_node_labels)
 
         # Highlight the center node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 

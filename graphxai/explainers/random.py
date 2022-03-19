@@ -6,7 +6,6 @@ from torch_geometric.data import Data
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.constants import EXP_TYPES
 from graphxai.utils import Explanation
 
 

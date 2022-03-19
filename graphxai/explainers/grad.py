@@ -6,7 +6,6 @@ from torch_geometric.data import Data
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
-#from graphxai.utils.constants import EXP_TYPES
 
 
 class GradExplainer(_BaseExplainer):
@@ -120,7 +119,6 @@ class GradExplainer(_BaseExplainer):
                 `graph`: :obj:`torch_geometric.data.Data`
 
         """
-        #exp = {k: None for k in EXP_TYPES}
 
         self.model.eval()
         x.requires_grad = True

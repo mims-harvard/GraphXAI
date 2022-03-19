@@ -102,8 +102,6 @@ class GraphLIME(_BaseExplainer):
         sub_x = x[subset].detach().cpu().numpy()  # [n x d]
         sub_y = y[subset].detach().cpu().numpy()  # [n x 1]
 
-        #exp = {k: None for k in EXP_TYPES}
-
         n, d = sub_x.shape
 
         K = self._compute_kernel(sub_x, reduce=False)
