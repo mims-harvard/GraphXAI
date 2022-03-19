@@ -5,9 +5,12 @@ from torch.nn import PairwiseDistance as pdist
 
 def make_node_ref(nodes: torch.Tensor):
     '''
-    Makes a node reference to unite node indicies across explanations
+    Makes a node reference to unite node indicies across explanations. 
+        Returns a dictionary keyed on node indices in tensor provided.
     Args:
         nodes (torch.tensor): Tensor of nodes to reference.
+    
+    :rtype: :obj:`Dict`
     '''
     node_reference = {nodes[i].item():i for i in range(nodes.shape[0])}
     return node_reference
@@ -17,6 +20,7 @@ def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor
     Gets node mask from an edge_mask:
 
     Args:
+        node_subset
         edge_mask (torch.Tensor): Boolean mask over all edges in edge_index. Shape: (edge_index.shape[1],).
     '''
     if edge_mask is not None:

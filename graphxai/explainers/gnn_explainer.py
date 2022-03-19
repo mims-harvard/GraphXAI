@@ -5,7 +5,6 @@ from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.constants import EXP_TYPES
 from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 
@@ -74,12 +73,6 @@ class GNNExplainer(_BaseExplainer):
         label = self._predict(x.to(device), edge_index.to(device),
                               forward_kwargs=forward_kwargs)# if label is None else label
         num_hops = self.L if num_hops is None else num_hops
-
-        #exp = {k: None for k in EXP_TYPES}
-
-        # print('IN GNNEXPLAINER')
-        # print('node_idx', node_idx)
-        # print('edge_index', edge_index)
 
         org_eidx = edge_index.clone().to(device)
 

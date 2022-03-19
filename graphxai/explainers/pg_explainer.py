@@ -10,7 +10,6 @@ from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv, GINConv
 
 from graphxai.explainers._base import _BaseExplainer
-from graphxai.utils.constants import EXP_TYPES
 from graphxai.utils import Explanation, node_mask_from_edge_mask
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -327,7 +326,6 @@ class PGExplainer(_BaseExplainer):
             raise Exception('For graph-level explanations use `get_explanation_graph`.')
         label = self._predict(x, edge_index) if label is None else label
 
-        exp = {k: None for k in EXP_TYPES}
         khop_info = _, _, _, sub_edge_mask = \
             k_hop_subgraph(node_idx, self.num_hops, edge_index,
                            relabel_nodes=False, num_nodes=x.shape[0])
@@ -376,8 +374,6 @@ class PGExplainer(_BaseExplainer):
 
         label = self._predict(x, edge_index,
                               forward_kwargs=forward_kwargs) if label is None else label
-
-        #exp = {k: None for k in EXP_TYPES}
 
         with torch.no_grad():
             emb = self._get_embedding(x, edge_index,
