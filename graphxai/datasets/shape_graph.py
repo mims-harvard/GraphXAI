@@ -27,8 +27,7 @@ from sklearn.model_selection import GridSearchCV, cross_val_predict
 
 class ShapeGraph(NodeDataset):
     '''
-    BA Shapes dataset with keyword arguments for different planting, 
-        insertion, labeling, and feature generation methods
+    Full ShapeGraph dataset implementation
 
     ..note:: Flag and circle shapes not yet implemented
 

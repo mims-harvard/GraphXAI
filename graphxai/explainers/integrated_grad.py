@@ -1,6 +1,8 @@
 import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
+from typing import Optional
+from collections.abc import Callable
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
@@ -14,30 +16,36 @@ class IntegratedGradExplainer(_BaseExplainer):
 
     Args:
         model (torch.nn.Module): Model on which to make predictions.
-        criterion (torch.nn.Module): Loss function.
+        criterion (Callable[[torch.Tensor, torch.Tensor], torch.Tensor]): Loss function.
     """
-    def __init__(self, model, criterion):
+    def __init__(self, model: torch.nn.Module, 
+        criterion: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
         super().__init__(model)
         self.criterion = criterion
 
-    def get_explanation_node(self, node_idx: int, x: torch.Tensor,
-                             edge_index: torch.Tensor, 
-                             label: torch.Tensor = None,
-                             y = None,
-                             num_hops: int = None, 
-                             steps: int = 40,
-                             **_):
+    def get_explanation_node(self, node_idx: int, 
+            x: torch.Tensor,
+            edge_index: torch.Tensor, 
+            label: Optional[torch.Tensor] = None,
+            y: Optional[torch.Tensor] = None,
+            num_hops: Optional[int] = None, 
+            steps: Optional[int] = 40,
+            **_):
         """
         Explain a node prediction.
 
         Args:
-            node_idx (int): index of the node to be explained
-            edge_index (torch.Tensor, [2 x m]): edge index of the graph
-            x (torch.Tensor, [n x d]): node features
-            label (torch.Tensor, [n x ...]): labels to explain
+            node_idx (int): Index of the node to be explained.
+            edge_index (torch.Tensor, [2 x m]): Edge index of the graph.
+            x (torch.Tensor, [n x d]): Node features.
+            label (torch.Tensor, [n x ...]): Labels to explain.
             y (torch.Tensor): Same as `label`, provided for general 
                 compatibility in the arguments. (:default: :obj:`None`)
-            num_hops (int): number of hops to consider
+            num_hops (int, optional): Number of hops in the enclosing 
+                subgraph. If `None`, set to the number of layers in 
+                the GNN. (:default: :obj:`None`)
+            steps (int, optional): Number of steps for the Riemannian 
+                integration. (:default: :obj:`40`)
 
         Returns:
             exp (:class:`Explanation`): Explanation output from the method.
@@ -45,7 +53,7 @@ class IntegratedGradExplainer(_BaseExplainer):
                 `feature_imp`: :obj:`torch.Tensor, [x.shape[1],]`
                 `node_imp`: :obj:`torch.Tensor, [nodes_in_khop,]`
                 `edge_imp`: :obj:`None`
-                `enc_subgraph`: :obj:`graphxai.utils.EnclosingSubgraph`
+                `enc_subgraph`: :class:`graphxai.utils.EnclosingSubgraph`
         """
 
         if (label is None) and (y is None):
@@ -63,6 +71,8 @@ class IntegratedGradExplainer(_BaseExplainer):
 
         self.model.eval()
         grads = torch.zeros(steps+1, x.shape[1]).to(device)
+
+        # Perform Riemannian integration
         for i in range(steps+1):
             with torch.no_grad():
                 baseline = torch.zeros_like(sub_x).to(device)  # TODO: baseline all 0s, all 1s, ...?

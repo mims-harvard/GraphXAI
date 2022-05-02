@@ -1,20 +1,33 @@
 import os
-from sympy import E
 import torch
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from torch_geometric.data import Data
 
 from graphxai.utils import Explanation, edge_mask_from_node_mask, aggregate_explanations
 
-def load_graphs(dir_path, smiles_df_path):
+def load_graphs(dir_path: str, smiles_df_path: str):
     '''
+    Extracts datasets from a format consistent with that used by Sanchez-Lengeling et al., Neurips 2020
+
     TODO: replace path with Harvard Dataverse loading
 
-    Loads all graphs for benzene in a way that they can be directly fed to 
-        dataset class.
+    Args:
+        dir_path (str): Path to directory containing all graphs
+        smiles_df_path (str): Path to CSV file containing all information about SMILES 
+            representations of the molecules.
+
+    :rtype: :obj:`(List[torch_geometric.data.Data], List[List[Explanation]], List[int])`
+    Returns:
+        all_graphs (list of `torch_geometric.data.Data`): List of all graphs in the
+            dataset
+        explanations (list of `Explanation`): List of all ground-truth explanations for
+            each corresponding graph. Ground-truth explanations consist of multiple
+            possible explanations as some of the molecular prediction tasks consist
+            of multiple possible pathways to predicting a given label.
+        zinc_ids (list of ints): Integers that map each molecule back to its original
+            ID in the ZINC dataset. 
     '''
     
     att = np.load(os.path.join(dir_path, 'true_raw_attribution_datadicts.npz'),
@@ -34,8 +47,6 @@ def load_graphs(dir_path, smiles_df_path):
     all_graphs = []
     explanations = []
 
-    # n_imp_sizes0 = []
-    # n_imp_sizes1 = []
 
     for i in range(len(X)):
         x = torch.from_numpy(X[i]['nodes'])
@@ -71,9 +82,6 @@ def load_graphs(dir_path, smiles_df_path):
 
         for j in range(node_imp.shape[1]):
 
-        # n_imp_sizes0.append(node_imp.shape[0])
-        # n_imp_sizes1.append(node_imp.shape[1])
-
             exp = Explanation(
                 feature_imp = None, # No feature importance - everything is one-hot encoded
                 node_imp = node_imp[:,j],
@@ -85,14 +93,6 @@ def load_graphs(dir_path, smiles_df_path):
             i_exps.append(exp)
             
         explanations.append(i_exps)
-
-    # plt.hist(n_imp_sizes0, bins = 20)
-    # plt.title('0')
-    # plt.show()
-
-    # plt.hist(n_imp_sizes1, bins = 20)
-    # plt.title('1')
-    # plt.show()
 
     return all_graphs, explanations, zinc_ids
 

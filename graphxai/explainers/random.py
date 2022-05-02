@@ -1,4 +1,5 @@
 from typing import Optional
+from collections.abc import Callable
 
 import torch
 from torch_geometric.utils import k_hop_subgraph
@@ -8,12 +9,14 @@ from torch_geometric.utils.num_nodes import maybe_num_nodes
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation
 
-
 class RandomExplainer(_BaseExplainer):
     """
     Random Explanation for GNNs
+
+    Args:
+        model (torch.nn.Module): Model for which to explain.
     """
-    def __init__(self, model):
+    def __init__(self, model: torch.nn.Module):
         super().__init__(model)
 
     def get_explanation_node(self, 
@@ -21,7 +24,8 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor,
             edge_index: torch.Tensor, 
             num_hops: Optional[int] = None,
-            node_agg = torch.sum
+            node_agg: Optional[Callable[[torch.Tensor], torch.Tensor]] = torch.sum,
+            forward_kwargs: dict = {}
         ):
         """
         Get the explanation for a node.
@@ -37,6 +41,8 @@ class RandomExplainer(_BaseExplainer):
                 all node importance feature-wise scores across the enclosing 
                 subgraph. Must support `dim` argument. 
                 (:default: :obj:`torch.sum`)
+            forward_kwargs (dict, optional): Has no effect; provided for consistency
+                with other methods. (:default: :obj:`None`)
 
         Returns:
             exp (:class:`Explanation`): Explanation output from the method.
@@ -70,8 +76,8 @@ class RandomExplainer(_BaseExplainer):
             x: torch.Tensor, 
             edge_index: torch.Tensor,
             num_nodes : int = None,
-            node_agg = torch.sum,
-            forward_kwargs = {}):
+            node_agg: Optional[Callable[[torch.Tensor], torch.Tensor]] = torch.sum,
+            forward_kwargs: dict = {}):
         """
         Get the explanation for the whole graph.
 
@@ -82,6 +88,8 @@ class RandomExplainer(_BaseExplainer):
             node_agg (function, optional): torch function that aggregates
                 all node importance feature-wise scores across the graph. 
                 Must support `dim` argument. (:default: :obj:`torch.sum`)
+            forward_kwargs (dict, optional): Has no effect; provided for consistency
+                with other methods. (:default: :obj:`None`)
 
         Returns:
             exp (:class:`Explanation`): Explanation output from the method.

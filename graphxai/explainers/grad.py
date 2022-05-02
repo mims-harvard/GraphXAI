@@ -1,6 +1,7 @@
 import torch
 
 from typing import Optional
+from collections.abc import Callable
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
 
@@ -11,15 +12,15 @@ from graphxai.utils import Explanation
 class GradExplainer(_BaseExplainer):
     """
     Vanilla Gradient Explanation for GNNs
+
+    Args:
+        model (torch.nn.Module): model on which to make predictions
+            The output of the model should be unnormalized class score.
+            For example, last layer = CNConv or Linear.
+        criterion (torch.nn.Module): loss function
     """
-    def __init__(self, model, criterion):
-        """
-        Args:
-            model (torch.nn.Module): model on which to make predictions
-                The output of the model should be unnormalized class score.
-                For example, last layer = CNConv or Linear.
-            criterion (torch.nn.Module): loss function
-        """
+    def __init__(self, model: torch.nn.Module, 
+            criterion: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
         super().__init__(model)
         self.criterion = criterion
 
@@ -117,7 +118,6 @@ class GradExplainer(_BaseExplainer):
                 `node_imp`: :obj:`torch.Tensor, [num_nodes, features]`
                 `edge_imp`: :obj:`None`
                 `graph`: :obj:`torch_geometric.data.Data`
-
         """
 
         self.model.eval()

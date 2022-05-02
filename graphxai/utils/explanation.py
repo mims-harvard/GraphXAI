@@ -2,6 +2,7 @@ from networkx.classes import graph
 import torch
 import torch_geometric
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
 
 from torch_geometric.utils import from_networkx, k_hop_subgraph, subgraph
@@ -363,29 +364,44 @@ class Explanation:
             return threshold_mask(self.feature_imp, threshold)
 
     def context_draw(self, 
-            num_hops: int = None,
+            num_hops: int,
             graph_data: Data = None,
-            additional_hops = 1, 
-            heat_by_prescence = False, 
-            heat_by_exp = True, 
-            node_agg_method = 'sum',
-            ax = None,
-            show=False,
-            show_node_labels=False,
+            additional_hops: int = 1, 
+            heat_by_prescence: bool = False, 
+            heat_by_exp: bool = True, 
+            node_agg_method: str = 'sum',
+            ax: matplotlib.axes.Axes = None,
+            show: bool = False,
+            show_node_labels: bool = False,
         ):
         '''
         Shows the explanation in context of a few more hops out than its k-hop neighborhood. Used for
             visualizing the explanation for a node-level prediction task.
+        
+        ..note:: If neither `heat_by_prescence` or `heat_by_exp` are true, the method plots a simple
+            visualization of the subgraph around the focal node.
 
         Args:
-            num_hops
-            graph_data: 
+            num_hops (int): Number of hops in the enclosing subgraph.
+            graph_data (torch_geometric.data.Data, optional): Data object containing graph. Don't provide
+                if already stored in the dataset. Used so large graphs can be stored externally and used
+                for visualization. (:default: :obj:`None`)
             additional_hops (int, optional): Additional number of hops to include for the visualization.
                 If the size of the enclosing subgraph for a node `v` with respect to some model `f` 
                 is `n`, then we would show the `n + additional_hops`-hop neighborhood around `v`.
+                (:default: :obj:`1`)
+            heat_by_prescence (bool, optional): If True, only highlights nodes in the enclosing subgraph.
+                Useful for debugging or non-explanation visualization. (:default: :obj:`False`)
+            heat_by_exp (bool, optional): If True, highlights nodes and edges by explanation values. 
+                (:default: :obj:`True`)
             node_agg_method (str, optional): Aggregation method to use for showing multi-dimensional
                 node importance scores (i.e. across features, such as GuidedBP or Vanilla Gradient).
                 Options: :obj:`'sum'` and :obj:`'max'`. (:default: :obj:`'sum'`)
+            ax (matplotlib.axes.Axes, optional): Axis on which to draw. If not provided, draws directly
+                to plt. (:default: :obj:`None`)
+            show (bool, optional): If True, shows the plot immediately after drawing. (:default: :obj:`False`)
+            show_node_labels (bool, optional): If True, shows the node labels as integers overlaid on the 
+                plot. (:default: :obj:`False`)
         '''
 
         assert self.node_idx is not None, "context_draw only for node-level explanations, but node_idx is None" 
@@ -509,6 +525,10 @@ class Explanation:
             plt.show()
 
     def graph_draw(self, ax = None, show = False, agg_nodes = torch.mean):
+        '''
+        Draws the graph of the Explanation
+
+        '''
 
         if ax is None:
             ax = plt.gca()

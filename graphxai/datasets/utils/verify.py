@@ -1,12 +1,13 @@
 import networkx as nx
 
-def verify_motifs(G: nx.Graph, 
-    motif_subgraph: nx.Graph):
+def verify_motifs(G: nx.Graph, motif_subgraph: nx.Graph):
     '''
     Verifies that all motifs within a graph are "good" motifs
         i.e. they were planted by the building algorithm
 
     Args:
+        G (nx.Graph): Networkx graph on which to search.
+        motif_subgraph (nx.Graph): Motif to search for (query graph).
 
     Returns:
         :rtype: :obj:`bool`

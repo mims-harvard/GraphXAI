@@ -20,7 +20,8 @@ def node_mask_from_edge_mask(node_subset: torch.Tensor, edge_index: torch.Tensor
     Gets node mask from an edge_mask:
 
     Args:
-        node_subset
+        node_subset (torch.Tensor): Subset of nodes to include in the mask (i.e. that become True).
+        edge_index (torch.Tensor): Full edge index of graph.
         edge_mask (torch.Tensor): Boolean mask over all edges in edge_index. Shape: (edge_index.shape[1],).
     '''
     if edge_mask is not None:

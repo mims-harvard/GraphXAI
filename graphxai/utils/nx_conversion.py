@@ -71,7 +71,9 @@ def to_networkx_conv(data, node_attrs=None, edge_attrs=None, to_undirected=False
         G = nx.relabel_nodes(G, mapping=rev_map_norm)
         return G
 
-def mask_graph(edge_index, node_mask = None, edge_mask = None):
+def mask_graph(edge_index: torch.Tensor, 
+        node_mask: torch.Tensor = None, 
+        edge_mask: torch.Tensor = None):
     '''
     Masks the edge_index of a graph given either node_mask or edge_mask
     Args:
@@ -113,7 +115,8 @@ def khop_subgraph_nx(
         G: nx.Graph
     ):
     '''
-    Finds k-hop neighborhood in a networkx graph
+    Finds k-hop neighborhood in a networkx graph. Uses a BFS of depth num_hops
+        on the networkx Graph provided to find edges.
 
     ..note:: Includes node_idx within subgraph
 
@@ -136,7 +139,6 @@ def match_torch_to_nx_edges(G: nx.Graph, edge_index: torch.Tensor):
     '''
 
     edges_list = list(G.edges)
-
 
     edges_map = dict()
 

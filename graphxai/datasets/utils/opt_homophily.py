@@ -2,28 +2,49 @@ import random
 import torch
 import torch.nn.functional as F
 
-def if_edge_exists(edge_index, node1, node2):
+def if_edge_exists(edge_index: torch.Tensor, node1: int, node2: int):
+    '''
+    Quick lookup for if an edge exists b/w `node1` and `node2`
+    '''
     
     p1 = torch.any((edge_index[0,:] == node1) & (edge_index[1,:] == node2))
     p2 = torch.any((edge_index[1,:] == node1) & (edge_index[0,:] == node2))
 
     return (p1 or p2).item()
 
-def if_in_node_lists(node1, node2, nlist1, nlist2):
-
-    return torch.any((nlist1 == node1) & (nlist2 == node2))
-
-
 def optimize_homophily(
-        x, 
-        edge_index,
-        label,
-        feature_mask, 
-        homophily_coef = 1.0, 
-        epochs = 50, 
-        connected_batch_size = 10,
-        disconnected_batch_size = 10,
+        x: torch.Tensor, 
+        edge_index: torch.Tensor,
+        label: torch.Tensor,
+        feature_mask: torch.Tensor, 
+        homophily_coef: float = 1.0, 
+        epochs: int = 50, 
+        connected_batch_size: int = 10,
+        disconnected_batch_size: int = 10,
     ):
+    '''
+    Optimizes the graph features to have a set level of homophily or heterophily
+
+    Args:
+        x (torch.Tensor): Initial node features. `|V| x d` tensor, where `|V|` is number of nodes,
+            `d` is dimensionality of each node feature.
+        edge_index (torch.Tensor): Edge index. Standard `2 x |E|` shape.
+        label (torch.Tensor): All node labels. Shape `|V|,` tensor.
+        feature_mask (torch.Tensor): Boolean tensor over the dimensions of each feature. Tensor
+            should be size `d,`.
+        homophily_coef (float, optional): Homophily coefficient on which to optimize the level 
+            of homophily or heterophily in the graph. Positive values indicate homophily while
+            negative values indicate heterophily. (:default: :obj:`1.0`)
+        epochs (int, optional): Number of epochs on which to optimize features. (:default: :obj:`50`)
+        connected_batch_size (int, optional): Batch size at each epoch for connected nodes on which 
+            to observe for the loss function. (:default: :obj:`10`) 
+        disconnected_batch_size (int, optional): Batch size at each epoch for disconnected nodes on which 
+            to observe for the loss function. (:default: :obj:`10`) 
+
+    :rtype: `torch.Tensor`
+    Returns:
+        x (torch.Tensor): Optimized node features.
+    '''
 
     to_opt = x.detach().clone()[:,feature_mask]
 

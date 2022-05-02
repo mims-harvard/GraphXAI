@@ -3,9 +3,9 @@ import torch
 from copy import deepcopy
 from typing import Tuple
 
-import pandas as pd
+import numpy as np
 from torch_geometric.utils.convert import to_networkx
-from graphxai.utils import Explanation#, WholeGraph
+from graphxai.utils import Explanation
 
 from torch_geometric.data import Dataset, data
 from torch_geometric.loader import DataLoader
@@ -47,17 +47,33 @@ class NodeDataset:
         #self.explanations = []
 
     def get_graph(self, 
-        use_fixed_split = True, 
-        split_sizes = (0.7, 0.2, 0.1),
-        stratify = True, 
-        seed = None):
+        use_fixed_split: bool = True, 
+        split_sizes: Tuple = (0.7, 0.2, 0.1),
+        stratify: bool = True, 
+        seed: int = None):
         '''
         Gets graph object for training/validation/testing purposes
             - Sets masks within torch_geometric.data.Data object
         Args:
-            use_static_split (bool, optional): (:default: True)
+            use_static_split (bool, optional): If true, uses the fixed train/val/test
+                mask defined by the child dataset class. (:default: :obj:`True`)
+            split_sizes (tuple, length 2 or 3, optional): If length 2, index 0 is train 
+                size, index 1 is test size. If length 3, index 2 becomes val size. Does 
+                not need to sum to 1, just needs to capture relative proportions of each 
+                split. (:default: :obj:`(0.7, 0.2, 0.1)`)
+            stratify (bool, optional): If True, stratifies the splits by class label. 
+                Only relevant if `use_fixed_split = False`. (:default: :obj:`True`)
+            seed (int, optional): Seed for splitting. (:default: :obj:`None`)            
+    
+        :rtype: torch_geometric.data.Data
+        Returns:
+            graph: Data object containing masks over the splits (graph.train_mask, 
+                graph.valid_mask, graph.test_mask) and the full data for the graph.
         '''
         #import ipdb
+
+        if sum(split_sizes) != 1: # Normalize split sizes
+            split_sizes = np.array(split_sizes) / sum(split_sizes)
 
         # ipdb.set_trace()
         if use_fixed_split:
@@ -89,6 +105,7 @@ class NodeDataset:
         return self.graph
 
     def download(self):
+        '''TODO: Implement'''
         pass
 
     def get_enclosing_subgraph(self, node_idx: int):
