@@ -14,4 +14,4 @@ nodes_in_mask = exp.enc_subgraph.nodes[exp.node_imp.long()]
 print('masked nodes', nodes_in_mask)
 print('part of edge index')
 
-exp.context_draw(num_hops = 3, graph_data = data, show = True)
+exp.visualize_node(num_hops = 3, graph_data = data, show = True)

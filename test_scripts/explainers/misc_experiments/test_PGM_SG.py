@@ -42,7 +42,7 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # Ground truth plot:
 gt_exp = bah.explanations[node_idx]
-gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
+gt_exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------

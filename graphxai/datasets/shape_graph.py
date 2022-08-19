@@ -249,7 +249,6 @@ class ShapeGraph(NodeDataset):
         x = torch.stack([gen_features(i) for i in self.G.nodes]).float()
 
         if self.add_sensitive_feature:
-            print('Adding sensitive')
             # if self.attribute_sensitive_feature:
             #     # Choose random node idx in the attributed space, threshold it
             #     self.sensitive_feature = random.choice(self.feature_imp_true.nonzero(as_tuple=True)[0]).item()
@@ -289,8 +288,6 @@ class ShapeGraph(NodeDataset):
             self.sensitive_feature = None
 
         edge_index = to_undirected(torch.tensor(list(self.G.edges), dtype=torch.long).t().contiguous())
-
-        print('self.homophily coef', self.homophily_coef)
 
         if self.homophily_coef is not None:
             feat_mask = torch.logical_not(self.feature_imp_true)

@@ -27,7 +27,7 @@ from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges
 
 
-def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
+def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation, threshold = 0.8) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -38,7 +38,7 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation) -> float:
     #       2) Have to implement the cases where we have multiple ground-truth explanations
 
     EPS = 1e-09
-    thresh = 0.8
+    thresh = threshold
     relative_positives = (gt_exp.node_imp == 1).nonzero(as_tuple=True)[0]
     true_nodes = [gt_exp.enc_subgraph.nodes[i].item() for i in relative_positives]
 

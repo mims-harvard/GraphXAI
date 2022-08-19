@@ -139,16 +139,16 @@ if __name__ == '__main__':
     # Plotting:
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
-    gt_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
+    gt_exp.visualize_node(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax1)
     ax1.set_title('Ground Truth')
 
-    cam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
+    cam_exp.visualize_node(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax2)
 
     ax2.set_title('CAM')
     ymin, ymax = ax2.get_ylim()
     xmin, xmax = ax2.get_xlim()
     ax2.text(xmin, ymin, 'Faithfulness: {:.3f}'.format(cam_exp_score))
-    gcam_exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
+    gcam_exp.visualize_node(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax = ax3)
     ax3.set_title('Grad-CAM')
     ymin, ymax = ax3.get_ylim()
     xmin, xmax = ax3.get_xlim()

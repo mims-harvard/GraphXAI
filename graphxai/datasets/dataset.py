@@ -70,12 +70,10 @@ class NodeDataset:
             graph: Data object containing masks over the splits (graph.train_mask, 
                 graph.valid_mask, graph.test_mask) and the full data for the graph.
         '''
-        #import ipdb
 
         if sum(split_sizes) != 1: # Normalize split sizes
             split_sizes = np.array(split_sizes) / sum(split_sizes)
 
-        # ipdb.set_trace()
         if use_fixed_split:
             # Set train, test, val static masks:
             self.graph.train_mask = self.fixed_train_mask
@@ -118,7 +116,7 @@ class NodeDataset:
             edge_index = self.graph.edge_index)
         return EnclosingSubgraph(*k_hop_tuple)
 
-    def nodes_with_label(self, label = 0) -> torch.Tensor:
+    def nodes_with_label(self, label = 0, mask = None) -> torch.Tensor:
         '''
         Get all nodes that are a certain label
         Args:
@@ -128,9 +126,11 @@ class NodeDataset:
         Returns:
             torch.Tensor: Indices of nodes that are of the label
         '''
+        if mask is not None:
+            return ((self.graph.y == label) & (mask)).nonzero(as_tuple=True)[0]
         return (self.graph.y == label).nonzero(as_tuple=True)[0]
 
-    def choose_node_with_label(self, label = 0) -> Tuple[int, Explanation]:
+    def choose_node_with_label(self, label = 0, mask = None) -> Tuple[int, Explanation]:
         '''
         Choose a random node with a given label
         Args:
@@ -142,12 +142,12 @@ class NodeDataset:
                 int: Node index found
                 Explanation: explanation corresponding to that node index
         '''
-        nodes = self.nodes_with_label(label = label)
+        nodes = self.nodes_with_label(label = label, mask = mask)
         node_idx = random.choice(nodes).item()
 
         return node_idx, self.explanations[node_idx]
 
-    def nodes_in_shape(self, inshape = True):
+    def nodes_in_shape(self, inshape = True, mask = None):
         '''
         Get a group of nodes by shape membership.
 
@@ -160,12 +160,15 @@ class NodeDataset:
             torch.Tensor: All node indices for nodes in or not in a shape.
         '''
         # Get all nodes in a shape
-        if inshape:
-            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] > 0]).long()
-        else:
-            return torch.tensor([n for n in self.G.nodes if self.G.nodes[n]['shape'] == 0]).long()
+        condition = (lambda n: self.G.nodes[n]['shape'] > 0) if inshape \
+                else (lambda n: self.G.nodes[n]['shape'] == 0)
 
-    def choose_node_in_shape(self, inshape = True) -> Tuple[int, Explanation]:
+        if mask is not None:
+            condition = (lambda n: (condition(n) and mask[n].item()))
+
+        return torch.tensor([n for n in self.G.nodes if condition(n)]).long()
+
+    def choose_node_in_shape(self, inshape = True, mask = None) -> Tuple[int, Explanation]:
         '''
         Gets a random node by shape membership.
 
@@ -179,13 +182,13 @@ class NodeDataset:
                 int: Node index found
                 Explanation: Explanation corresponding to that node index
         '''
-        nodes = self.nodes_in_shape(inshape = inshape)
+        nodes = self.nodes_in_shape(inshape = inshape, mask = mask)
         node_idx = random.choice(nodes).item()
 
         return node_idx, self.explanations[node_idx]
 
 
-    def choose_node(self, inshape = None, label = None):
+    def choose_node(self, inshape = None, label = None, split = None):
         '''
         Chooses random nodes in the graph. Has support for multiple logical
             indexing.
@@ -199,18 +202,32 @@ class NodeDataset:
         
         Returns:
         '''
+        split = split.lower() if split is not None else None
+
+        if split == 'validation' or split == 'valid' or split == 'val':
+            split = 'val'
+
+        map_to_mask = {
+            'train': self.graph.train_mask,
+            'val': self.graph.valid_mask,
+            'test': self.graph.test_mask,
+        }
+        
+        # Get mask based on provided string:
+        mask = None if split is None else map_to_mask[split]
+
         if inshape is None:
             if label is None:
                 to_choose = torch.arange(end = self.num_nodes)
             else:
-                to_choose = self.nodes_with_label(label = label)
+                to_choose = self.nodes_with_label(label = label, mask = mask)
         
         elif label is None:
-            to_choose = self.nodes_in_shape(inshape = inshape)
+            to_choose = self.nodes_in_shape(inshape = inshape, mask = mask)
 
         else:
-            t_inshape = self.nodes_in_shape(inshape = inshape)
-            t_label = self.nodes_with_label(label = label)
+            t_inshape = self.nodes_in_shape(inshape = inshape, mask = mask)
+            t_label = self.nodes_with_label(label = label, make = mask)
 
             # Joint masking over shapes and labels:
             to_choose = torch.as_tensor([n.item() for n in t_label if n in t_inshape]).long()

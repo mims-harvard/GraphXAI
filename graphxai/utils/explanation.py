@@ -363,7 +363,7 @@ class Explanation:
         else:
             return threshold_mask(self.feature_imp, threshold)
 
-    def context_draw(self, 
+    def visualize_node(self, 
             num_hops: int,
             graph_data: Data = None,
             additional_hops: int = 1, 
@@ -404,7 +404,7 @@ class Explanation:
                 plot. (:default: :obj:`False`)
         '''
 
-        assert self.node_idx is not None, "context_draw only for node-level explanations, but node_idx is None" 
+        assert self.node_idx is not None, "visualize_node only for node-level explanations, but node_idx is None" 
 
         #data_G = self.graph.get_Data()
         wholeG = gxai_utils.to_networkx_conv(graph_data, to_undirected=True)

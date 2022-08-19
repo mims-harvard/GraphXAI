@@ -25,7 +25,7 @@ class PGExplainer(_BaseExplainer):
                  coeff_size: float = 0.01, coeff_ent: float = 5e-4,
                  t0: float = 5.0, t1: float = 2.0,
                  lr: float = 0.003, max_epochs: int = 20, eps: float = 1e-3,
-                 num_hops: int = None):
+                 num_hops: int = None, in_channels = None):
         """
         Args:
             model (torch.nn.Module): model on which to make predictions
@@ -59,12 +59,16 @@ class PGExplainer(_BaseExplainer):
 
         mult = 2 # if self.explain_graph else 3
 
-        if isinstance(self.emb_layer, GCNConv):
-            in_channels = mult * self.emb_layer.out_channels
-        elif isinstance(self.emb_layer, GINConv):
-            in_channels = mult * self.emb_layer.nn.out_features
-        elif isinstance(self.emb_layer, torch.nn.Linear):
-            in_channels = mult * self.emb_layer.out_features
+        if in_channels is None:
+            if isinstance(self.emb_layer, GCNConv):
+                in_channels = mult * self.emb_layer.out_channels
+            elif isinstance(self.emb_layer, GINConv):
+                in_channels = mult * self.emb_layer.nn.out_features
+            elif isinstance(self.emb_layer, torch.nn.Linear):
+                in_channels = mult * self.emb_layer.out_features
+            else:
+                fmt_string = 'PGExplainer not implemented for embedding layer of type {}, please provide in_channels directly.'
+                raise NotImplementedError(fmt_string.format(type(self.emb_layer)))
 
         self.elayers = nn.ModuleList(
             [nn.Sequential(

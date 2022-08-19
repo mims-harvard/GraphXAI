@@ -41,7 +41,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 # Ground truth plot:
 gt_exp = bah.explanations[node_idx]
-gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
+gt_exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
@@ -55,7 +55,7 @@ exp = gcam.get_explanation_node(
 # ------------------------------------------------------------------------
 
 # Grad-CAM plot:
-exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
+exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
 ax2.set_title('Grad-CAM')
 
 # Run Explainer ----------------------------------------------------------
@@ -69,7 +69,7 @@ exp = cam.get_explanation_node(
 # ------------------------------------------------------------------------
 
 # CAM plot:
-exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax3)
+exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax3)
 ax3.set_title('CAM')
 
 # More plotting details:

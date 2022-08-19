@@ -42,7 +42,7 @@ fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # Ground truth plot:
 gt_exp = aggregate_explanations(bah.explanations[node_idx], node_level = True)
-gt_exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
+gt_exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Run Explainer ----------------------------------------------------------
@@ -61,7 +61,7 @@ print('feat imp', exp.feature_imp)
 # Grad-CAM plot:
 exp.top_k_node_imp(top_k = 11, inplace=True)
 exp.top_k_edge_imp(top_k = 12, inplace = True)
-exp.context_draw(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
+exp.visualize_node(num_hops = bah.model_layers, graph_data = data, additional_hops = 0, heat_by_exp = True, ax = ax2)
 ax2.set_title('GNNExplainer')
 
 # More plotting details:

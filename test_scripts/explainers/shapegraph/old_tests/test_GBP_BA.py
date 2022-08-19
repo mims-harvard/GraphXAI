@@ -39,12 +39,12 @@ exp = gbp.get_explanation_node(data.x, data.y, edge_index = data.edge_index, nod
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
 ground_truth = bah.explanations[node_idx] # Get Explanation object
-ground_truth.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax=ax1)
+ground_truth.visualize_node(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax=ax1)
 ax1.set_title('Ground Truth')
 
 # Aggregate node_imp for visualization:
 exp.node_imp = [torch.sum(exp.node_imp[i]).item() for i in range(len(exp.node_imp))]
-exp.context_draw(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax=ax2)
+exp.visualize_node(num_hops = bah.num_hops, graph_data = data, additional_hops = 1, heat_by_exp = True, ax=ax2)
 ax2.set_title('Guided Backprop (Explanation wrt Degree)')
 
 model.eval()
