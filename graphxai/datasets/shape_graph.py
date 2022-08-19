@@ -117,6 +117,7 @@ class ShapeGraph(NodeDataset):
         self.n_informative = 4 if 'n_informative' not in kwargs else kwargs['n_informative']
         self.class_sep = 1.0 if 'class_sep' not in kwargs else kwargs['class_sep']
         self.n_features = 10 if 'n_features' not in kwargs else kwargs['n_features']
+        # Note: n_clusters_per_class assumed to be 2 for the publication
         self.n_clusters_per_class = 2 if 'n_clusters_per_class' not in kwargs else kwargs['n_clusters_per_class']
         self.homophily_coef = None if 'homophily_coef' not in kwargs else kwargs['homophily_coef']
 

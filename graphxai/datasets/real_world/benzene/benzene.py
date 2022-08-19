@@ -9,8 +9,10 @@ ATOM_TYPES = [
     'C', 'N', 'O', 'S', 'F', 'P', 'Cl', 'Br', 'Na', 'Ca', 'I', 'B', 'H', '*'
 ]
 
-benzene_data_dir = os.path.join(os.path.dirname(__file__), 'benzene_data')
-benzene_smiles_df = 'benzene_smiles.csv'
+# benzene_data_dir = os.path.join(os.path.dirname(__file__), 'benzene_data')
+# benzene_smiles_df = 'benzene_smiles.csv'
+
+benzene_datapath = os.path.join(os.path.dirname(__file__), 'benzene.npz')
 
 class Benzene(GraphDataset):
 
@@ -18,7 +20,7 @@ class Benzene(GraphDataset):
             self,
             split_sizes = (0.7, 0.2, 0.1),
             seed = None,
-            data_path: str = benzene_data_dir,
+            data_path: str = benzene_datapath,
             device = None,
         ):
         '''
@@ -27,8 +29,7 @@ class Benzene(GraphDataset):
             seed (int, optional):
             data_path (str, optional):
         '''
-        
-        self.graphs, self.explanations, self.zinc_ids = \
-            load_graphs(data_path, os.path.join(data_path, benzene_smiles_df))
+
+        self.graphs, self.explanations, self.zinc_ids = load_graphs(data_path)
 
         super().__init__(name = 'Benzene', seed = seed, split_sizes = split_sizes, device = device)

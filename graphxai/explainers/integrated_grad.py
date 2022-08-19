@@ -1,8 +1,7 @@
 import torch
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
-from typing import Optional
-from collections.abc import Callable
+from typing import Optional, Callable
 
 from graphxai.explainers._base import _BaseExplainer
 from graphxai.utils import Explanation

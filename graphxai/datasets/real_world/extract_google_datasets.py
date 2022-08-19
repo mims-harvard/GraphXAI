@@ -7,7 +7,8 @@ from torch_geometric.data import Data
 
 from graphxai.utils import Explanation, edge_mask_from_node_mask, aggregate_explanations
 
-def load_graphs(dir_path: str, smiles_df_path: str):
+#def load_graphs(dir_path: str, smiles_df_path: str):
+def load_graphs(datapath: str):
     '''
     Extracts datasets from a format consistent with that used by Sanchez-Lengeling et al., Neurips 2020
 
@@ -30,19 +31,26 @@ def load_graphs(dir_path: str, smiles_df_path: str):
             ID in the ZINC dataset. 
     '''
     
-    att = np.load(os.path.join(dir_path, 'true_raw_attribution_datadicts.npz'),
-            allow_pickle = True)
-    X = np.load(os.path.join(dir_path, 'x_true.npz'), allow_pickle = True)
-    y = np.load(os.path.join(dir_path, 'y_true.npz'), allow_pickle = True)
-    ylist = [y['y'][i][0] for i in range(y['y'].shape[0])]
+    # att = np.load(os.path.join(dir_path, 'true_raw_attribution_datadicts.npz'),
+    #         allow_pickle = True)
+    # X = np.load(os.path.join(dir_path, 'x_true.npz'), allow_pickle = True)
+    # y = np.load(os.path.join(dir_path, 'y_true.npz'), allow_pickle = True)
+    data = np.load(datapath, allow_pickle = True)
+    att, X, y, df = data['attr'], data['X'], data['y'], data['smiles']
+    print(att)
+    print(X)
+    print(df)
+    #ylist = [y['y'][i][0] for i in range(y['y'].shape[0])]
+    ylist = [y[i][0] for i in range(y.shape[0])]
 
-    att = att['datadict_list']
-    X = X['datadict_list'][0]
+    #att = att['datadict_list']
+    X = X[0]
 
-    df = pd.read_csv(os.path.join(dir_path, smiles_df_path))
+    #df = pd.read_csv(os.path.join(dir_path, smiles_df_path))
 
     # Unique zinc identifiers:
-    zinc_ids = df['mol_id'].tolist()
+    #zinc_ids = df['mol_id'].tolist()
+    zinc_ids = df[:,1]
 
     all_graphs = []
     explanations = []

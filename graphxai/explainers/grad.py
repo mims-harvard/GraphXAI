@@ -1,7 +1,6 @@
 import torch
 
-from typing import Optional
-from collections.abc import Callable
+from typing import Optional, Callable
 from torch_geometric.utils import k_hop_subgraph
 from torch_geometric.data import Data
 

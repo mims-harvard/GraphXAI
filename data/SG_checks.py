@@ -82,6 +82,11 @@ def get_stats(fname, gnn = None):
     num_edges = data.edge_index.shape[1]
     print('{} {}'.format('num_edges'.ljust(25), num_edges))
 
+    deglist = [SG.G.degree[i] for i in SG.G.nodes]
+    print('{} {:.3f} +- {:.4f}'.format('avg node deg'.ljust(25), \
+            sum(deglist) / SG.G.number_of_nodes(), \
+            np.std(deglist) / np.sqrt(len(deglist))))
+
     # Get num features (actual)
     num_feat = data.x.shape[1]
     print('{} {}'.format('actual num_feat'.ljust(25), num_feat))
