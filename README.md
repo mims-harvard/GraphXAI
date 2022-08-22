@@ -15,3 +15,14 @@ This will allow you to access features within the package, including datasets, e
 ## Data Availability
 
 Downloads are provided for the datasets in our package through our page on the [Harvard Dataverse](https://doi.org/10.7910/DVN/KULOS8). 
+
+## Citation
+Please use the following BibTeX to cite this project in your work:
+```
+@inproceedings{agarwal2022evaluating,
+title = {Evaluating Explainability for Graph Neural Networks},
+author = {Agarwal, Chirag and Queen, Owen and Lakkaraju, Himabindu and Zitnik, Marinka},
+booktitle = {arXiv:2208.09339},
+year      = {2022}
+}
+```
