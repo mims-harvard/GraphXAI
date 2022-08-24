@@ -27,11 +27,11 @@ for i in L:
     g, exp = mutag[i]
 
     for e in exp:
-        e.graph_draw(show = True)
+        e.visualize_graph(show = True)
 
     exp = gxai_utils.aggregate_explanations(exp, node_level = False)
 
-    G, pos = exp.graph_draw(show = False)
+    G, pos = exp.visualize_graph(show = False)
     #G = gxai_utils.to_networkx_conv(exp.graph, to_undirected=True)
 
     node_label = {}

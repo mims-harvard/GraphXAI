@@ -37,9 +37,9 @@ def load_graphs(datapath: str):
     # y = np.load(os.path.join(dir_path, 'y_true.npz'), allow_pickle = True)
     data = np.load(datapath, allow_pickle = True)
     att, X, y, df = data['attr'], data['X'], data['y'], data['smiles']
-    print(att)
-    print(X)
-    print(df)
+    # print(att)
+    # print(X)
+    # print(df)
     #ylist = [y['y'][i][0] for i in range(y['y'].shape[0])]
     ylist = [y[i][0] for i in range(y.shape[0])]
 
@@ -93,7 +93,7 @@ def load_graphs(datapath: str):
             exp = Explanation(
                 feature_imp = None, # No feature importance - everything is one-hot encoded
                 node_imp = node_imp[:,j],
-                edge_imp = edge_mask_from_node_mask(node_imp.bool(), edge_index = edge_index),
+                edge_imp = edge_mask_from_node_mask(node_imp[:,j].bool(), edge_index = edge_index),
             )
             
             exp.set_whole_graph(data_i)
@@ -117,4 +117,4 @@ if __name__ == '__main__':
     while len(exp[i]) <= 1:
         i += 1 
 
-    aggregate_explanations(exp[i], node_level = False).graph_draw(show = True)
+    aggregate_explanations(exp[i], node_level = False).visualize_graph(show = True)

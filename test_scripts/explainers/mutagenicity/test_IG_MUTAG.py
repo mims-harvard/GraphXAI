@@ -54,7 +54,7 @@ gt_agg = aggregate_explanations(gt_exp, node_level = False)
 
 print('node imp', gt_agg.node_imp)
 
-gt_agg.graph_draw(ax = ax1)
+gt_agg.visualize_graph(ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Call Explainer: --------------------------------------
@@ -68,7 +68,7 @@ exp = ig.get_explanation_graph(
 # ------------------------------------------------------
 
 # Draw rest of explanations:
-exp.graph_draw(ax = ax2)
+exp.visualize_graph(ax = ax2)
 ax2.set_title('Integrated Gradients')
 
 # Draw label on the plot

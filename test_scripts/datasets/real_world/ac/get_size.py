@@ -14,4 +14,4 @@ y_mask = torch.as_tensor([dataset.graphs[i].y.item() == 1 for i in range(len(dat
 exp_list = dataset.explanations[y_mask[0].item()]
 
 for exp in exp_list:
-    exp.graph_draw(show=True)
+    exp.visualize_graph(show=True)

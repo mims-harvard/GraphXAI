@@ -19,7 +19,7 @@ atom_map = {0: 'C', 1: 'N', 2: 'O'}
 for i in range(len(mutag)): #random.sample(list(range(len(mutag))), k = 5):
     g, exp = mutag[i]
 
-    G, pos = exp.graph_draw(show = False)
+    G, pos = exp.visualize_graph(show = False)
     #G = gxai_utils.to_networkx_conv(exp.graph, to_undirected=True)
 
     node_label = {}

@@ -48,7 +48,7 @@ predicted = prediction.argmax(dim=1).item()
 # Plot ground-truth explanation ------------------------
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
-gt_exp.graph_draw(ax = ax1)
+gt_exp.visualize_graph(ax = ax1)
 ax1.set_title('Ground Truth')
 
 # Call Explainer: --------------------------------------
@@ -62,7 +62,7 @@ exp = ig.get_explanation_graph(
 # ------------------------------------------------------
 
 # Draw rest of explanations:
-exp.graph_draw(ax = ax2)
+exp.visualize_graph(ax = ax2)
 ax2.set_title('Integrated Gradients')
 
 # Draw label on the plot

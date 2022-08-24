@@ -524,7 +524,7 @@ class Explanation:
         if show:
             plt.show()
 
-    def graph_draw(self, ax = None, show = False, agg_nodes = torch.mean):
+    def visualize_graph(self, ax = None, show = False, agg_nodes = torch.mean):
         '''
         Draws the graph of the Explanation
 
@@ -540,8 +540,8 @@ class Explanation:
         # Node weights defined by node_imp:
         if self.node_imp is not None:
             # Get node weights
-            print('node imp shape', self.node_imp.shape)
-            print('num nodes', len(list(G.nodes())))
+            #print('node imp shape', self.node_imp.shape)
+            #print('num nodes', len(list(G.nodes())))
             if isinstance(self.node_imp, torch.Tensor):
                 node_imp_heat = [agg_nodes(self.node_imp[n]).item() for n in G.nodes()]
                 #node_imp_map = {i:self.node_imp[i].item() for i in range(G.number_of_nodes())}
@@ -552,11 +552,8 @@ class Explanation:
             draw_args['node_color'] = node_imp_heat
 
         if self.edge_imp is not None:
-            print('self.edge_imp.shape', self.edge_imp.shape)
             edge_matcher = match_torch_to_nx_edges(G, self.graph.edge_index)
-
             edge_heat = torch.zeros(G.number_of_edges())
-            #edge_heat = torch.zeros((self.graph.edge_index.shape[1],))
 
             # for i in range(self.graph.edge_index.shape[1]):
             #     try:
@@ -575,7 +572,6 @@ class Explanation:
             draw_args['edge_cmap'] = plt.cm.coolwarm
 
         # Don't do anything for feature imp
-
         pos = nx.kamada_kawai_layout(G)
         nx.draw(G, pos, ax = ax, **draw_args)
 

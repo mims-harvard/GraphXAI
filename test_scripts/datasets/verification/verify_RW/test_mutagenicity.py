@@ -35,10 +35,10 @@ for i in trange(len(dataset.graphs)):
 
     if np.random.rand() < -1:
         for exp in dataset.explanations[i]:
-            exp.graph_draw(show=True)
+            exp.visualize_graph(show=True)
         print('Value:', yval)
         big_exp = aggregate_explanations(dataset.explanations[i], node_level = False)
-        G, pos = big_exp.graph_draw(show = False)
+        G, pos = big_exp.visualize_graph(show = False)
 
         node_label = {}
         for j in G.nodes:
