@@ -316,7 +316,7 @@ class GraphDataset:
         return self.get_loader(index=self.train_index, batch_size = batch_size)
 
     def get_train_list(self):
-        return self.get_list(index = self.train_index)
+        return self.get_data_list(index = self.train_index)
 
     def get_test_loader(self):
         assert self.test_index is not None, 'test_index is None'
@@ -324,7 +324,7 @@ class GraphDataset:
 
     def get_test_list(self):
         assert self.test_index is not None, 'test_index is None'
-        return self.get_list(index = self.test_index)
+        return self.get_data_list(index = self.test_index)
 
     def get_val_loader(self):
         assert self.test_index is not None, 'val_index is None'
@@ -332,7 +332,7 @@ class GraphDataset:
 
     def get_val_list(self):
         assert self.val_index is not None, 'val_index is None'
-        return self.get_list(index = self.val_index)
+        return self.get_data_list(index = self.val_index)
 
     def get_train_w_label(self, label):
         inds_to_choose = (self.Y[self.train_index] == label).nonzero(as_tuple=True)[0]
