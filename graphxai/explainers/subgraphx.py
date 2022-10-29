@@ -190,6 +190,7 @@ class SubgraphX(_BaseExplainer):
         # Need to parse results:
         node_mask, edge_mask = self.__parse_results(best_result, edge_index)
 
+        print('args', node_idx, self.L, edge_index)
         khop_info = k_hop_subgraph(node_idx, self.L, edge_index)
         subgraph_edge_mask = khop_info[3] # Mask over edges
 

@@ -56,7 +56,7 @@ class RandomExplainer(_BaseExplainer):
         khop_info = k_hop_subgraph(node_idx, num_hops, edge_index)
         
         # Generate node mask and random values on each node
-        n = khop_info[0].shape
+        n = khop_info[0].shape[0]
         rand_mask = torch.bernoulli(0.5 * torch.ones(n, 1)).to(x.device)
         randn = torch.randn(n).to(x.device)
         node_imp = node_agg(rand_mask * randn, dim=1)

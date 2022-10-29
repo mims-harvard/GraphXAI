@@ -373,6 +373,7 @@ class Explanation:
             ax: matplotlib.axes.Axes = None,
             show: bool = False,
             show_node_labels: bool = False,
+            norm_imps = False,
         ):
         '''
         Shows the explanation in context of a few more hops out than its k-hop neighborhood. Used for
@@ -422,6 +423,14 @@ class Explanation:
         exp_nodes = self.enc_subgraph.nodes
 
         draw_args = dict()
+
+        if norm_imps:
+            # Normalize all importance scores:
+            save_imps = [self.node_imp, self.edge_imp, self.feature_imp]
+            save_imps = [s.clone() if s is not None else s for s in save_imps ]
+            for s in (self.node_imp, self.edge_imp, self.feature_imp):
+                if s is not None:
+                    s = s / s.sum()
 
         if heat_by_prescence:
             if self.node_imp is not None:
@@ -520,6 +529,9 @@ class Explanation:
         # Highlight the center node index:
         nx.draw(subG.subgraph(self.node_idx), pos, node_color = 'red', 
                 node_size = 400, ax = ax)
+
+        if norm_imps:
+            self.node_imp, self.edge_imp, self.feature_imp = save_imps[0], save_imps[1], save_imps[2]
 
         if show:
             plt.show()

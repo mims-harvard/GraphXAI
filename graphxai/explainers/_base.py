@@ -68,7 +68,7 @@ class _BaseExplainer:
             edge_mask = (torch.randn(m) * std).to(device)
             self.edge_mask = torch.nn.Parameter(edge_mask)
         else:
-            self.edge_mask = edge_mask
+            self.edge_mask = torch.nn.Parameter(edge_mask)
         if explain_feature:
             feature_mask = (torch.randn(d) * 0.1).to(device)
             self.feature_mask = torch.nn.Parameter(feature_mask)
