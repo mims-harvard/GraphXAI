@@ -12,7 +12,7 @@ from tqdm import trange
 from test_homophily import homophily_test
 
 
-bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
 
 # Get the graph information from ShapeGraph
 feature = bah.get_graph().x.clone().detach()

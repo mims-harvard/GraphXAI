@@ -8,7 +8,7 @@ from test_homophily import homophily_test
 
 def build_SG(HF):
 
-    SG = ShapeGraph(
+    SG = ShapeGGen
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

@@ -18,3 +18,5 @@ graphxai/gnn_ex_eval
 .git-rewrite
 docs
 *.icloud
+test_scripts/visualizations*
+*.pdf

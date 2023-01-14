@@ -3,7 +3,7 @@ import torch
 
 root_path = '~/GraphXAI/data/ShapeGraph/'
 
-# def load_ShapeGraph(number: int = 1, root: str = Owen_root):
+# def load_ShapeGGennumber: int = 1, root: str = Owen_root):
 #     '''
 #     Args:
 #         number (int): Number of ShapeGraph to load.
@@ -11,5 +11,5 @@ root_path = '~/GraphXAI/data/ShapeGraph/'
 #     '''
 #     return torch.load(open(os.path.join(root, 'ShapeGraph_{}.pickle'.format(number)), 'rb'))
 
-def load_ShapeGraph(name, root = root_path):
+def load_ShapeGGenname, root = root_path):
     return torch.load(open(os.path.join(root, name), 'rb'))

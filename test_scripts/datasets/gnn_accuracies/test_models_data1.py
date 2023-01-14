@@ -69,7 +69,7 @@ def test_on_split(
     
     return acc
 
-def test_model_on_ShapeGraph(model, SG, epochs_per_run = 500, num_cvs = 30):
+def test_model_on_ShapeGGenmodel, SG, epochs_per_run = 500, num_cvs = 30):
 
     # Cross-validate the model 10 times:
     f1_cv = []
@@ -79,12 +79,12 @@ def test_model_on_ShapeGraph(model, SG, epochs_per_run = 500, num_cvs = 30):
     auprc_cv = []
     auroc_cv = []
 
-    #bah = ShapeGraph(model_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
+    #bah = ShapeGGenmodel_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
     data = SG.get_graph()
 
     for i in trange(num_cvs):
         # Gen dataset:
-        #bah = ShapeGraph(model_layers = 3)
+        #bah = ShapeGGenmodel_layers = 3)
 
         # Cross-validation split on dataset nodes:
         kf = StratifiedKFold(n_splits = 10, shuffle = True)
@@ -148,8 +148,8 @@ if __name__ == '__main__':
         classes = 2)
     print('GAT 3 layer, hc = 16')
 
-    SG = load_ShapeGraph(number = 1)
-    test_model_on_ShapeGraph(model, SG = SG, epochs_per_run=100, num_cvs = 5)
+    SG = load_ShapeGGennumber = 1)
+    test_model_on_ShapeGGenmodel, SG = SG, epochs_per_run=100, num_cvs = 5)
 
 
 

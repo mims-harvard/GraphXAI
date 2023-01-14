@@ -25,7 +25,7 @@ def parse_args():
 args = parse_args()
 
 start_time = time.time()
-bah = ShapeGraph(**args, model_layers=3, verify = False)
+bah = ShapeGGen**args, model_layers=3, verify = False)
 #bah.dump('large_graph.pickle')
 #pickle.dump(bah, open('ShapeGraph_large_graph.pickle', 'wb'), pickle.HIGHEST_PROTOCOL)
 print('Time to make:', time.time() - start_time)

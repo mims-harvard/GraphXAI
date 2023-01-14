@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 
-    #SG = load_ShapeGraph(number=2, root = root_data)
+    #SG = load_ShapeGGennumber=2, root = root_data)
 
     seps = np.arange(0.25, 2.25, step = 0.25)
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     diffs = []
 
     for sep in seps:
-        SG = ShapeGraph(
+        SG = ShapeGGen
             model_layers = 3,
             num_subgraphs = 100,
             prob_connection = 0.08,

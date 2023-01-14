@@ -81,7 +81,7 @@ def homophily_test(SG: ShapeGraph):
 
 if __name__ == '__main__':
 
-    bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=300, prob_connection=0.0075, subgraph_size=12, class_sep=0.5, n_informative=6, verify=True)
+    bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=300, prob_connection=0.0075, subgraph_size=12, class_sep=0.5, n_informative=6, verify=True)
    
     same, diff = homophily_test(bah)
     print('Samples in Class 0', torch.sum(bah.get_graph().y == 0).item())

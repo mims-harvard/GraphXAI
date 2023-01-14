@@ -9,8 +9,8 @@ from graphxai.datasets import load_ShapeGraph, ShapeGraph
 
 root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
 
-#SG = load_ShapeGraph(number=1, root = root_data)
-SG = ShapeGraph(
+#SG = load_ShapeGGennumber=1, root = root_data)
+SG = ShapeGGen
     model_layers = 3,
     num_subgraphs = 100,
     prob_connection = 0.08,

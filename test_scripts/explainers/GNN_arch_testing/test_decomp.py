@@ -32,7 +32,7 @@ hyp = {
     'feature_method': 'gaussian_lv'
 }
 
-bah = ShapeGraph(**hyp)
+bah = ShapeGGen**hyp)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 0).nonzero(as_tuple=True)[0]
 

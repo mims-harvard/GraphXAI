@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     HF = 1.0
 
-    # SG = ShapeGraph(
+    # SG = ShapeGGen
     #     model_layers = 3,
     #     make_explanations=False,
     #     num_subgraphs = 1200,
@@ -29,13 +29,13 @@ if __name__ == '__main__':
     #     #sens_attribution_noise = 0.75,
     # )
 
-    SG = load_ShapeGraph('SG_HF_HF=-1.pickle', root = my_data_root)
+    SG = load_ShapeGGen'SG_HF_HF=-1.pickle', root = my_data_root)
 
     # triangle = nx.Graph()
     # triangle.add_nodes_from([0, 1, 2])
     # triangle.add_edges_from([(0, 1), (1, 2), (2, 0)])
 
-    # SG = ShapeGraph(
+    # SG = ShapeGGen
     #     model_layers = 3,
     #     shape = triangle, # NEW SHAPE
     #     num_subgraphs = 1300,

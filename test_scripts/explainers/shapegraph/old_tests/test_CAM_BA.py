@@ -35,7 +35,7 @@ num_houses = 20
 # }
 
 #bah = BAShapes(**hyp)
-bah = ShapeGraph(model_layers = 3)
+bah = ShapeGGenmodel_layers = 3)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 

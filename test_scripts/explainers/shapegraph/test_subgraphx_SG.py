@@ -9,7 +9,7 @@ from graphxai.utils import aggregate_explanations
 
 # Load dataset:
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = ShapeGraph(model_layers = 3, 
+bah = ShapeGGenmodel_layers = 3, 
     num_subgraphs = 100, 
     prob_connection = 0.09, 
     subgraph_size = 13,

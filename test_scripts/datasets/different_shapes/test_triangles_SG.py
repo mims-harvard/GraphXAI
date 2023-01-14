@@ -14,7 +14,7 @@ triangle = nx.Graph()
 triangle.add_nodes_from([0, 1, 2])
 triangle.add_edges_from([(0, 1), (1, 2), (2, 0)])
 
-SG = ShapeGraph(
+SG = ShapeGGen
     model_layers = 3,
     shape = triangle, # NEW SHAPE
     num_subgraphs = 1300,

@@ -18,7 +18,7 @@ start_time = time.time()
     # n_informative = 4,
     # verify = True
 
-SG = ShapeGraph(
+SG = ShapeGGen
     model_layers = 3,
     make_explanations=True,
     num_subgraphs = 1200,
@@ -36,7 +36,7 @@ SG.dump('saved_SGs/SG_HF_HF=-1.pickle')
 print('Time to make (and dump):', time.time() - start_time)
 
 # tmp_loc = root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
-# SG = load_ShapeGraph(number=2, root = tmp_loc)
+# SG = load_ShapeGGennumber=2, root = tmp_loc)
 
 data = SG.get_graph()
 G = SG.G

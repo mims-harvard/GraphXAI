@@ -7,10 +7,10 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.gnn_models.node_classification.testing import GCN_2layer, GIN_2layer
 from graphxai.gnn_models.node_classification.testing import GSAGE_3layer, JKNet_3layer, JKNet_3layer_lstm
 
-#bah = load_ShapeGraph()
+#bah = load_ShapeGGen)
 #data = bah.get_graph(use_fixed_split=False)
 
-SG = ShapeGraph(
+SG = ShapeGGen
     model_layers = 3,
     num_subgraphs = 1000,
     prob_connection = 0.0075,

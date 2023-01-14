@@ -12,9 +12,9 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.datasets import load_ShapeGraph, ShapeGraph
 
 root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
-#SG = load_ShapeGraph(number=1, root = root_data)
+#SG = load_ShapeGGennumber=1, root = root_data)
 
-SG = ShapeGraph(
+SG = ShapeGGen
     model_layers = 3,
     make_explanations=False,
     num_subgraphs = 1200,
@@ -36,7 +36,7 @@ SG = ShapeGraph(
 
 #SG.dump(fname = 'SG_house_HF=1_nc=2_asf=0.pickle')
 
-# SG = ShapeGraph(
+# SG = ShapeGGen
 #     model_layers = 3,
 #     make_explanations=False,
 #     num_subgraphs = 200,

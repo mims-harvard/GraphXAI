@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     HF = 1.0
 
-    SG = ShapeGraph(
+    SG = ShapeGGen
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

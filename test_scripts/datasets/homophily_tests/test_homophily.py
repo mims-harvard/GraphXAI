@@ -88,7 +88,7 @@ def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
 
 
 if __name__ == '__main__':
-    SG = ShapeGraph(
+    SG = ShapeGGen
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

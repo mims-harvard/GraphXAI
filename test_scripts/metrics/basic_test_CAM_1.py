@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     train_flag = False
     #bah = BAShapes(**hyp)
-    bah = ShapeGraph(model_layers=3)
+    bah = ShapeGGenmodel_layers=3)
 
     # Fix the seed for reproducibility
     np.random.seed(912)

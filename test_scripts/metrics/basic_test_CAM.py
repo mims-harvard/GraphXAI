@@ -75,7 +75,7 @@ if __name__ == '__main__':
     }
 
     #bah = BAShapes(**hyp)
-    bah = ShapeGraph(**hyp)
+    bah = ShapeGGen**hyp)
     data = bah.get_graph(use_fixed_split=True)
 
     model = GCN_3layer_basic(64, input_feat = 10, classes = 2)

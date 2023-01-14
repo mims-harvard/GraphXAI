@@ -12,7 +12,7 @@ from graphxai.datasets.shape_graph import ShapeGraph
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 
 # Set up dataset:
-bah = ShapeGraph(model_layers = 3)
+bah = ShapeGGenmodel_layers = 3)
 data = bah.get_graph(use_fixed_split=True)
 
 # Get nodes in the house:

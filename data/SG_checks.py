@@ -56,7 +56,7 @@ def iter_attr_list(obj, attrs):
 
 def get_stats(fname, gnn = None):
     
-    SG = load_ShapeGraph(fname, root = my_root)
+    SG = load_ShapeGGenfname, root = my_root)
 
     data = SG.get_graph(use_fixed_split = True)
 

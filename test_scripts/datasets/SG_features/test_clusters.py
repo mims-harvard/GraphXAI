@@ -11,7 +11,7 @@ except:
     print('usage: python3 test_clusters.py <n_clusters_per_class>')
     exit()
 
-SG = ShapeGraph(
+SG = ShapeGGen
     model_layers = 3,
     make_explanations=False,
     num_subgraphs = 100,

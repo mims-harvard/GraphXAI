@@ -25,7 +25,7 @@ from graphxai.datasets.utils.label_generators import bound_graph_label
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, cross_val_predict
 
-class ShapeGraph(NodeDataset):
+class ShapeGGenNodeDataset):
     '''
     Full ShapeGraph dataset implementation
 

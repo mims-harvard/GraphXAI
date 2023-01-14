@@ -530,7 +530,7 @@ if __name__ == '__main__':
     m = 1
     num_houses = 20
     train_flag = False
-    bah = ShapeGraph(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+    bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
 
     # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
