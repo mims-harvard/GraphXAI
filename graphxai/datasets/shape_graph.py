@@ -305,7 +305,7 @@ class ShapeGraph(NodeDataset):
                 disconnected_batch_size = math.comb(self.num_nodes, 2) // self.num_nodes
             )
 
-        for i in self.G.nodes:
+        for i in sorted(self.G.nodes):
             self.G.nodes[i]['x'] = x[i,:].detach().clone() #gen_features(i)
 
         self.graph = Data(
@@ -317,7 +317,7 @@ class ShapeGraph(NodeDataset):
 
         # Generate explanations:
         if self.make_explanations:
-            self.explanations = [self.explanation_generator(n) for n in self.G.nodes]
+            self.explanations = [self.explanation_generator(n) for n in sorted(self.G.nodes)]
         else:
             self.explanations = None
 
