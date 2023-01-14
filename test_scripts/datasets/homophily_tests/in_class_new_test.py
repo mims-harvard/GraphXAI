@@ -3,16 +3,16 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from graphxai.datasets import ShapeGraph, load_ShapeGraph
+from graphxai.datasets import ShapeGGen, load_ShapeGGen(
 from test_homophily import homophily_test
 
-my_data_root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGraph/new_unzipped'
+my_data_root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGGen/new_unzipped'
 
 if __name__ == '__main__':
 
     HF = 1.0
 
-    # SG = ShapeGGen
+    # SG = ShapeGGen(
     #     model_layers = 3,
     #     make_explanations=False,
     #     num_subgraphs = 1200,
@@ -29,13 +29,13 @@ if __name__ == '__main__':
     #     #sens_attribution_noise = 0.75,
     # )
 
-    SG = load_ShapeGGen'SG_HF_HF=-1.pickle', root = my_data_root)
+    SG = load_ShapeGGen('SG_HF_HF=-1.pickle', root = my_data_root)
 
     # triangle = nx.Graph()
     # triangle.add_nodes_from([0, 1, 2])
     # triangle.add_edges_from([(0, 1), (1, 2), (2, 0)])
 
-    # SG = ShapeGGen
+    # SG = ShapeGGen(
     #     model_layers = 3,
     #     shape = triangle, # NEW SHAPE
     #     num_subgraphs = 1300,

@@ -15,7 +15,7 @@ from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic
 #from graphxai.datasets import BAShapes
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 
 from graphxai.utils import to_networkx_conv, Explanation
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     train_flag = False
     #bah = BAShapes(**hyp)
-    bah = ShapeGGenmodel_layers=3)
+    bah = ShapeGGen(model_layers=3)
 
     # Fix the seed for reproducibility
     np.random.seed(912)

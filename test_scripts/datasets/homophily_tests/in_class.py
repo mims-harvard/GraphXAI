@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from test_homophily import homophily_test
 
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets import ShapeGGen
 
 def new_homophily_test(sg, batch_size):
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     HF = 1.0
 
-    SG = ShapeGGen
+    SG = ShapeGGen(
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

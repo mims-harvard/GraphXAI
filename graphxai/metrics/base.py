@@ -22,7 +22,7 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges
 
@@ -70,7 +70,7 @@ def graph_exp_acc(gt_exp: Explanation, generated_exp: Explanation, threshold = 0
     return JAC
 
 
-def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model: torch.nn.Module, top_k=0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGGen, model: torch.nn.Module, top_k=0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -194,7 +194,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, model: 
 #         print('Invalid choice! Exiting...')
 #         exit(0)
 
-def calculate_delta(shape_graph: ShapeGraph, train_set, model: torch.nn.Module, label, rep='softmax', dist_norm=2):
+def calculate_delta(shape_graph: ShapeGGen, train_set, model: torch.nn.Module, label, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
@@ -269,7 +269,7 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, model: torch.nn.Module, 
 #         print('Invalid choice! Exiting..')
 #         exit(0)
 
-def check_delta(shape_graph: ShapeGraph, model: torch.nn.Module, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
+def check_delta(shape_graph: ShapeGGen, model: torch.nn.Module, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
     if rep == 'softmax':
         # Softmax differences
         org_softmax = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
@@ -291,7 +291,7 @@ def check_delta(shape_graph: ShapeGraph, model: torch.nn.Module, rep, pert_x, pe
 def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
-def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, top_k=0.25, rep='softmax') -> float:
+def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGGen, node_id, model, delta, top_k=0.25, rep='softmax') -> float:
     GES = []
     num_run = 25
     for run in range(num_run):

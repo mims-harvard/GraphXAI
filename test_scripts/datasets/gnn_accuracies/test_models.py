@@ -7,7 +7,7 @@ from tqdm import trange
 from sklearn.model_selection import KFold
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, GCN_4layer_basic, GAT_3layer_basic
 from graphxai.gnn_models.node_classification.testing import GCN_2layer, GIN_2layer
 from graphxai.gnn_models.node_classification.testing import GSAGE_3layer, JKNet_3layer, JKNet_3layer_lstm
@@ -68,7 +68,7 @@ def test_on_split(
     return acc
 
 
-def test_model_on_ShapeGGenmodel, epochs_per_run=200, num_cvs=10):
+def test_model_on_ShapeGGen(model, epochs_per_run=200, num_cvs=10):
 
     # Cross-validate the model 10 times:
     f1_cv = []
@@ -80,7 +80,7 @@ def test_model_on_ShapeGGenmodel, epochs_per_run=200, num_cvs=10):
 
     for i in trange(num_cvs):
         # Gen dataset:
-        bah = ShapeGGenmodel_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
+        bah = ShapeGGen(model_layers = 3, num_subgraphs = 100, prob_connection = 0.09, subgraph_size=13, max_tries_verification = 15)
         data = bah.get_graph()
         # ipdb.set_trace()
 
@@ -152,10 +152,10 @@ if __name__ == '__main__':
     #     input_feat = 10,
     #     classes = 2)
 
-    test_model_on_ShapeGGenmodel, epochs_per_run=200)
+    test_model_on_ShapeGGen(model, epochs_per_run=200)
     print('Graph: n=100, p=0.09, sn=13')
 
-    test_model_on_ShapeGGenmodel, epochs_per_run=100, num_cvs = 5)
+    test_model_on_ShapeGGen(model, epochs_per_run=100, num_cvs = 5)
 
 
 

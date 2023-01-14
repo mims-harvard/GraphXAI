@@ -6,8 +6,8 @@ import torch
 import numpy as np
 from metrics import * # Should import from formal
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic
 
 
@@ -96,9 +96,9 @@ torch.manual_seed(seed_value)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGraph/unzipped/SG_HF_HF=1.pickle', 'rb'))
+bah = torch.load(open('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGGen/unzipped/SG_HF_HF=1.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 

@@ -5,8 +5,8 @@ import random as rand
 import torch
 from metrics import *
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic
 
 
@@ -102,9 +102,9 @@ torch.manual_seed(seed_value)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_homophily.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.test_mask == True).nonzero(as_tuple=True)[0]  

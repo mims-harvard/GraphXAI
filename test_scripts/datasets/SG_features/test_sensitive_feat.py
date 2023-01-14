@@ -1,9 +1,9 @@
 import torch
 
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets import ShapeGGen
 from sklearn.metrics import confusion_matrix
 
-SG = ShapeGGen
+SG = ShapeGGen(
     model_layers = 3,
     num_subgraphs = 100,
     prob_connection = 0.08,

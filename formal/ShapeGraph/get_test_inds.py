@@ -6,7 +6,7 @@ import numpy as np
 
 my_base_graphxai = '/home/owq978/GraphXAI'
 
-bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophilic.pickle'), 'rb'))
+bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGGen/unzipped/SG_homophilic.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 

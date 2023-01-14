@@ -4,8 +4,8 @@ import torch
 import argparse
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train, val
 from graphxai.gnn_models.node_classification.testing import GIN_1layer, GIN_2layer
-from graphxai.datasets.shape_graph import ShapeGraph
-from graphxai.datasets  import load_ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
+from graphxai.datasets  import load_ShapeGGen
 
 
 parser = argparse.ArgumentParser()
@@ -13,9 +13,9 @@ parser.add_argument('--expt_name', required=True, help='name of the explanation 
 parser.add_argument('--num_layers', default=3, type=int, help = 'num layers in GNN')
 args = parser.parse_args()
 
-owen_path = '/home/owq978/GraphXAI/data/ShapeGraph/unzipped/'
+owen_path = '/home/owq978/GraphXAI/data/ShapeGGen/unzipped/'
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 if args.expt_name == 'homophily':
     bah = torch.load(open(owen_path + 'SG_homophilic.pickle', 'rb'))
 elif args.expt_name == 'heterophily':

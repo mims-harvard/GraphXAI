@@ -1,14 +1,14 @@
 import torch
 import os
-from graphxai.datasets.load_synthetic import load_ShapeGraph
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets.load_synthetic import load_ShapeGGen
+from graphxai.datasets import ShapeGGen
 from graphxai.utils.explanation import Explanation
 from graphxai.utils.nx_conversion import khop_subgraph_nx
 from torch_geometric.utils import k_hop_subgraph
 
-#SG = load_ShapeGGen'data/ShapeGraph/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
-base = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGraph/new_unzipped'
-sg = load_ShapeGGen'SG_homophilic.pickle', root = base)
+#SG = load_ShapeGGen('data/ShapeGGen/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
+base = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGGen/new_unzipped'
+sg = load_ShapeGGen('SG_homophilic.pickle', root = base)
 
 #print(SG.seed)
 
@@ -41,7 +41,7 @@ kwargs = {
     'attribute_sensitive_feature':False,
 }
 
-#sg = ShapeGGen**kwargs)
+#sg = ShapeGGen(**kwargs)
 
 print('loaded')
 print('x size', sg.graph.x.shape[0])

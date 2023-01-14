@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets import ShapeGGen
 from test_homophily import homophily_test
 
 def build_SG(HF):
 
-    SG = ShapeGGen
+    SG = ShapeGGen(
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

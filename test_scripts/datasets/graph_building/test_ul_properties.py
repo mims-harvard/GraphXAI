@@ -8,7 +8,7 @@ from torch_geometric.utils import from_networkx
 from sklearn.model_selection import train_test_split
 
 from graphxai.datasets.utils.bound_graph import build_bound_graph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.gnn_models.node_classification.testing import *
 
 from graphxai.utils import khop_subgraph_nx
@@ -27,7 +27,7 @@ for p in prob_connection_search:
         print('prob connect:', p, 'Num_subg:', sub)
         start_time = time.time()
         #G = build_bound_graph(num_subgraphs = sub, num_hops = 1, prob_connection = p)
-        bah = ShapeGGenmodel_layers=3, num_subgraphs=sub, prob_connection=p)
+        bah = ShapeGGen(model_layers=3, num_subgraphs=sub, prob_connection=p)
         data = bah.get_graph()
         # nx.draw(G)
         # plt.show()

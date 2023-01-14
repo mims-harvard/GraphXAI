@@ -25,9 +25,9 @@ from graphxai.datasets.utils.label_generators import bound_graph_label
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, cross_val_predict
 
-class ShapeGGenNodeDataset):
+class ShapeGGen(NodeDataset):
     '''
-    Full ShapeGraph dataset implementation
+    Full ShapeGGen dataset implementation
 
     ..note:: Flag and circle shapes not yet implemented
 
@@ -47,8 +47,8 @@ class ShapeGGenNodeDataset):
         kwargs: Additional arguments
 
             Graph Construction:
-                variant (int): 0 indicates using the old ShapeGraph method, and 1 indicates
-                    using the new ShapeGraph method (i.e. one with pref. attachment).   
+                variant (int): 0 indicates using the old ShapeGGen method, and 1 indicates
+                    using the new ShapeGGen method (i.e. one with pref. attachment).   
                 num_subgraphs (int): Number of individual subgraphs to use in order to build
                     the graph. Doesn't guarantee size of graph. (:default: :obj:`10`)
                 prob_connection (float): Probability of making a connection between any two
@@ -96,7 +96,7 @@ class ShapeGGenNodeDataset):
         make_explanations: Optional[bool] = True,
         **kwargs): # TODO: turn the last three arguments into kwargs
 
-        super().__init__(name = 'ShapeGraph', num_hops = model_layers)
+        super().__init__(name = 'ShapeGGen', num_hops = model_layers)
 
         self.in_shape = []
         self.graph = None
@@ -368,7 +368,7 @@ class ShapeGGenNodeDataset):
 
         exp.set_enclosing_subgraph(khop_info)
 
-        # Return list of single element since ShapeGraph produces unique explanations
+        # Return list of single element since ShapeGGen produces unique explanations
         return [exp]
 
 
@@ -397,7 +397,7 @@ class ShapeGGenNodeDataset):
         pos = nx.spring_layout(self.G, seed = 1234) # Seed to always be consistent in output
         #_, ax = plt.subplots()
         nx.draw(self.G, pos, node_color = y, labels = node_weights, ax=ax)
-        #ax.set_title('ShapeGraph')
+        #ax.set_title('ShapeGGen')
         #plt.tight_layout()
 
         if show:

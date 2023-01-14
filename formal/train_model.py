@@ -4,8 +4,8 @@ import torch
 import argparse
 import numpy as np
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train, val
-from graphxai.datasets.shape_graph import ShapeGraph
-from graphxai.datasets  import load_ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
+from graphxai.datasets  import load_ShapeGGen
 
 
 parser = argparse.ArgumentParser()
@@ -13,16 +13,16 @@ parser.add_argument('--expt_name', required=True, help='name of the explanation 
 args = parser.parse_args()
 
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 if args.expt_name == 'homophily':
     ipdb.set_trace()
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_homophily.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_small_homophily.pickle', 'rb'))
 elif args.expt_name == 'heterophily':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_small_heterophily.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_small_heterophily.pickle', 'rb'))
 elif args.expt_name == 'triangle':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_triangles.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_triangles.pickle', 'rb'))
 elif args.expt_name == 'fair':
-    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_fair.pickle', 'rb'))
+    bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_fair.pickle', 'rb'))
 else:
     print('Invalid Input!!')
     exit(0)

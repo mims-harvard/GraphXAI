@@ -24,12 +24,12 @@ for i in range(df_sizes.shape[0]):
     ax2.plot(df_runtimes.columns, np.log(df_runtimes.iloc[i,:]), label = f'p = {df_runtimes.index[i]}')
 
 #plt.title('Runtime Analysis of 1-2 Bounded Subgraph Generation')
-ax1.set_title('Sizes of 1-2 ShapeGraph Generation')
+ax1.set_title('Sizes of 1-2 ShapeGGen Generation')
 ax1.set_xlabel('Number of Initial Subgraphs')
 ax1.set_ylabel('Num. Nodes')
 ax1.legend()
 
-ax2.set_title('Runtime of ShapeGraph Generation')
+ax2.set_title('Runtime of ShapeGGen Generation')
 ax2.set_xlabel('Number of Initial Subgraphs')
 ax2.set_ylabel('log(Time (sec))')
 ax2.legend()

@@ -4,7 +4,7 @@ import pandas as pd
 import networkx as nx
 
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 
 # Script counts the number of houses in the graph by using a subgraph isomorphism counter
 
@@ -20,7 +20,7 @@ for p in prob_connection_search:
         print('prob connect:', p, 'Num_subg:', sub)
         start_time = time.time()
         #G = build_bound_graph(num_subgraphs = sub, num_hops = 1, prob_connection = p)
-        bah = ShapeGGenmodel_layers=3, num_subgraphs=sub, prob_connection=p, verify = False)
+        bah = ShapeGGen(model_layers=3, num_subgraphs=sub, prob_connection=p, verify = False)
         G = bah.G
         # nx.draw(G)
         # plt.show()

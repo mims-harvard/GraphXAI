@@ -6,8 +6,8 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
 from torch_geometric.utils import sort_edge_index, to_undirected
-from graphxai.datasets import ShapeGraph
-from graphxai.datasets.load_synthetic import load_ShapeGraph
+from graphxai.datasets import ShapeGGen
+from graphxai.datasets.load_synthetic import load_ShapeGGen
 
 def if_edge_exists(edge_index, node1, node2):
     
@@ -16,7 +16,7 @@ def if_edge_exists(edge_index, node1, node2):
 
     return (p1 or p2).item()
 
-def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
+def homophily_test(SG: ShapeGGen, k_sample: int = 1000, label = 0):
     
     data = SG.get_graph()
     k = min(data.edge_index.shape[1], k_sample)
@@ -88,7 +88,7 @@ def homophily_test(SG: ShapeGraph, k_sample: int = 1000, label = 0):
 
 
 if __name__ == '__main__':
-    SG = ShapeGGen
+    SG = ShapeGGen(
         model_layers = 3,
         num_subgraphs = 100,
         prob_connection = 0.08,

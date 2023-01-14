@@ -1,7 +1,7 @@
 from torch_geometric.utils.subgraph import subgraph
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets import ShapeGGen
 
-SG = ShapeGGenmodel_layers = 3, prob_connection = 0.1, num_subgraphs = 30, subgraph_size = 13)
+SG = ShapeGGen(model_layers = 3, prob_connection = 0.1, num_subgraphs = 30, subgraph_size = 13)
 data = SG.get_graph()
 
 nidx, exp = SG.choose_node(inshape = True, label=1)

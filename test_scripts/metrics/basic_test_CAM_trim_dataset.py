@@ -21,7 +21,7 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges, perturb_node_features
 
@@ -121,7 +121,7 @@ def graph_exp_acc(gt_exp: List[Explanation], generated_exp: Explanation) -> floa
     return [JAC_feat, JAC_node, JAC_edge]
 
 
-def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
+def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGGen, sens_idx: List[int]= [], top_k: float = 0.25) -> float:
     '''
     Args:
         gt_exp (Explanation): Ground truth explanation from the dataset.
@@ -196,7 +196,7 @@ def graph_exp_faith(generated_exp: Explanation, shape_graph: ShapeGraph, sens_id
     return [GEF_feat, GEF_node, GEF_edge]
 
 
-def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='softmax', dist_norm=2):
+def calculate_delta(shape_graph: ShapeGGen, train_set, label, sens_idx, rep='softmax', dist_norm=2):
     delta_softmax, delta_L1, delta_L2, delta_Lfinal = [], [], [], []
 
     for n_id in train_set[torch.randperm(train_set.size()[0])][:100]:
@@ -244,7 +244,7 @@ def calculate_delta(shape_graph: ShapeGraph, train_set, label, sens_idx, rep='so
         exit(0)
 
 
-def check_delta(shape_graph: ShapeGraph, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
+def check_delta(shape_graph: ShapeGGen, rep, pert_x, pert_edge_index, n_id, delta, dist_norm=2):
     if rep == 'softmax':
         # Softmax differences
         org_softmax = F.softmax(model(shape_graph.get_graph().x, shape_graph.get_graph().edge_index)[n_id], dim=-1)
@@ -267,7 +267,7 @@ def intersection(lst1, lst2):
     return set(lst1).union(lst2)
 
 
-def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGGen, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
     GES_feat = []
     GES_node = []
     GES_edge = []
@@ -345,7 +345,7 @@ def graph_exp_stability(generated_exp: Explanation, shape_graph: ShapeGraph, nod
     return [max(GES_feat) if len(GES_feat)>0 else None, max(GES_node) if len(GES_node)>0 else None, max(GES_edge) if len(GES_edge)>0 else None]
 
 
-def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+def graph_exp_cf_fairness(generated_exp: Explanation, shape_graph: ShapeGGen, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
     GECF_feat = None
     GECF_node = None
     GECF_edge = None
@@ -425,7 +425,7 @@ def stat_parity(org, pred, sens):
     return abs(parity_1-parity_2)
 
 
-def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGraph, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
+def graph_exp_group_fairness(generated_exp: Explanation, shape_graph: ShapeGGen, node_id, model, delta, sens_idx, top_k=0.25, rep='softmax') -> float:
 
     # Generate the predictions
     org_pred = []
@@ -530,11 +530,11 @@ if __name__ == '__main__':
     m = 1
     num_houses = 20
     train_flag = False
-    bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+    bah = ShapeGGen(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
 
     # for more nodes in class 1 increase prob_connection and decrease subgraph_size
 
-    # bah = torch.load(open('./ShapeGraph_2.pickle', 'rb'))
+    # bah = torch.load(open('./ShapeGGen_2.pickle', 'rb'))
     # Fix the seed for reproducibility
 #    np.random.seed(912)
 #    torch.manual_seed(912)

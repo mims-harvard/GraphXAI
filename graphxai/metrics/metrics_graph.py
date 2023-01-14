@@ -22,7 +22,7 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.datasets.dataset import GraphDataset
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges, perturb_node_features

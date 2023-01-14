@@ -20,7 +20,7 @@ def get_model(name):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', required=True, help = 'Name of model to train (GIN, GCN, or SAGE)')
-parser.add_argument('--dataset', required=True, help = 'Location of ShapeGraph dataset on which to train the model')
+parser.add_argument('--dataset', required=True, help = 'Location of ShapeGGen dataset on which to train the model')
 parser.add_argument('--save_dir', default='./trained/', help='Directory to which to send trained models.')
 args = parser.parse_args()
 

@@ -1,11 +1,11 @@
 import torch
 import os
-from graphxai.datasets.load_synthetic import load_ShapeGraph
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets.load_synthetic import load_ShapeGGen
+from graphxai.datasets import ShapeGGen
 from graphxai.utils.explanation import Explanation
 
-#SG = load_ShapeGGen'data/ShapeGraph/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
-base = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGraph/new_unzipped'
+#SG = load_ShapeGGen('data/ShapeGGen/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
+base = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data/ShapeGGen/new_unzipped'
 
 #print(SG.seed)
 
@@ -38,7 +38,7 @@ kwargs = {
     'attribute_sensitive_feature':False,
 }
 
-sg = ShapeGGen**kwargs)
+sg = ShapeGGen(**kwargs)
 
 
 sg.dump(os.path.join(base, 'SG_more_total.pickle'))

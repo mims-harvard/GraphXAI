@@ -5,12 +5,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 
-from graphxai.datasets import load_ShapeGraph, ShapeGraph
+from graphxai.datasets import load_ShapeGGen, ShapeGGen
 
-root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
+root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGGen')
 
-#SG = load_ShapeGGennumber=1, root = root_data)
-SG = ShapeGGen
+#SG = load_ShapeGGen(number=1, root = root_data)
+SG = ShapeGGen(
     model_layers = 3,
     num_subgraphs = 100,
     prob_connection = 0.08,

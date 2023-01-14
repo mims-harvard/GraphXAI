@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from numpy import ndarray
 from torch_geometric.utils import to_networkx
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from tqdm import trange
 
 from test_homophily import homophily_test
 
 
-bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
+bah = ShapeGGen(model_layers=3, seed=912, make_explanations=True, num_subgraphs=500, prob_connection=0.0075, subgraph_size=9, class_sep=0.5, n_informative=6, verify=True)
 
-# Get the graph information from ShapeGraph
+# Get the graph information from ShapeGGen
 feature = bah.get_graph().x.clone().detach()
 label = bah.get_graph().y
 edge_index = bah.get_graph().edge_index

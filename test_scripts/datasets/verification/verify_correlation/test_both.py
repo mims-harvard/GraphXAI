@@ -9,12 +9,12 @@ from sklearn.model_selection import GridSearchCV
 
 from graphxai.gnn_models.node_classification.testing import train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, GCN_4layer_basic, GAT_3layer_basic
-from graphxai.datasets import load_ShapeGraph, ShapeGraph
+from graphxai.datasets import load_ShapeGGen, ShapeGGen
 
-root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
-#SG = load_ShapeGGennumber=1, root = root_data)
+root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGGen')
+#SG = load_ShapeGGen(number=1, root = root_data)
 
-SG = ShapeGGen
+SG = ShapeGGen(
     model_layers = 3,
     make_explanations=False,
     num_subgraphs = 1200,
@@ -36,7 +36,7 @@ SG = ShapeGGen
 
 #SG.dump(fname = 'SG_house_HF=1_nc=2_asf=0.pickle')
 
-# SG = ShapeGGen
+# SG = ShapeGGen(
 #     model_layers = 3,
 #     make_explanations=False,
 #     num_subgraphs = 200,

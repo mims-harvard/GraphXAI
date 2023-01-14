@@ -8,7 +8,7 @@ from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GC
 
 # ----------------------------
 my_base_graphxai = '/home/owq978/GraphXAI'
-data_path = 'data/ShapeGraph/unzipped/SG_homophilic.pickle'
+data_path = 'data/ShapeGGen/unzipped/SG_homophilic.pickle'
 
 model_name = 'gin'
 model_path = 'formal/model_weights/model_homophily.pth'

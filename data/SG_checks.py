@@ -2,7 +2,7 @@
 import os, argparse
 import torch
 import numpy as np
-from graphxai.datasets import load_ShapeGraph
+from graphxai.datasets import load_ShapeGGen
 import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LogisticRegression
@@ -12,11 +12,11 @@ from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, te
 
 # Replace with your root
 # my_root = os.path.join('/home/owq978/GraphXAI/',
-#     'data', 'ShapeGraph', #'unzipped',
+#     'data', 'ShapeGGen', #'unzipped',
 # )
 
 my_root = os.path.join('/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI/data',
-    'ShapeGraph')
+    'ShapeGGen')
 
 attr_list = [
     'variant',
@@ -56,11 +56,11 @@ def iter_attr_list(obj, attrs):
 
 def get_stats(fname, gnn = None):
     
-    SG = load_ShapeGGenfname, root = my_root)
+    SG = load_ShapeGGen(fname, root = my_root)
 
     data = SG.get_graph(use_fixed_split = True)
 
-    print('ShapeGraph stats: --------------------------------')
+    print('ShapeGGen stats: --------------------------------')
 
     # Get class imbalances:
     num0 = (data.y == 0).nonzero(as_tuple=True)[0].shape[0]
@@ -137,7 +137,7 @@ def get_stats(fname, gnn = None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fname', type = str, required = True, help = 'Base name of ShapeGraph to show')
+    parser.add_argument('--fname', type = str, required = True, help = 'Base name of ShapeGGen to show')
     parser.add_argument('--model_path', type=str, default = None, help = 'path to model trained for this task')
     
     args = parser.parse_args()

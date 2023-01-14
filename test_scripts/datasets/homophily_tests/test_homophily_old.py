@@ -6,8 +6,8 @@ from tqdm import trange
 import matplotlib.pyplot as plt
 
 from torch_geometric.utils import sort_edge_index, to_undirected
-from graphxai.datasets import ShapeGraph
-from graphxai.datasets.load_synthetic import load_ShapeGraph
+from graphxai.datasets import ShapeGGen
+from graphxai.datasets.load_synthetic import load_ShapeGGen
 
 def are_neighbors(edge_index, node1, node2):
     '''
@@ -19,7 +19,7 @@ def are_neighbors(edge_index, node1, node2):
 
     return (edge12.item() or edge21.item())
 
-def homophily_test(SG: ShapeGraph):
+def homophily_test(SG: ShapeGGen):
 
     #F.cosine_similarity()
 
@@ -65,9 +65,9 @@ def homophily_test(SG: ShapeGraph):
 
 if __name__ == '__main__':
 
-    root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
+    root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGGen')
 
-    #SG = load_ShapeGGennumber=2, root = root_data)
+    #SG = load_ShapeGGen(number=2, root = root_data)
 
     seps = np.arange(0.25, 2.25, step = 0.25)
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     diffs = []
 
     for sep in seps:
-        SG = ShapeGGen
+        SG = ShapeGGen(
             model_layers = 3,
             num_subgraphs = 100,
             prob_connection = 0.08,

@@ -5,8 +5,8 @@ import random as rand
 import torch
 from metrics import *
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
@@ -65,7 +65,7 @@ def get_exp_method(method, model, criterion, bah, node_idx, pred_class):
                         'top_k_nodes': 10}
     elif method=='pgex':
         #exp_method=PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
-        #exp_method = torch.load(os.path.join('/home/owq978/GraphXAI/formal/ShapeGraph/get_exps/PGExplainer.pickle'))
+        #exp_method = torch.load(os.path.join('/home/owq978/GraphXAI/formal/ShapeGGen/get_exps/PGExplainer.pickle'))
         # By unpickling, we know we've already trained on it
         #exp_method.train_explanation_model(bah.get_graph(use_fixed_split=True).to(device))
         forward_kwargs={'node_idx': node_idx,
@@ -118,15 +118,15 @@ torch.manual_seed(seed_value)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophilic.pickle'), 'rb'))
+bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGGen/unzipped/SG_homophilic.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
 #inhouse = (data.y[data.test_mask] == 1).nonzero(as_tuple=True)[0]
 #test_set = (data.test_mask).nonzero(as_tuple=True)[0]
-test_set = torch.load(open(os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'test_inds_SG_homophilic.pt'), 'rb'))
+test_set = torch.load(open(os.path.join(my_base_graphxai, 'formal/ShapeGGen', 'test_inds_SG_homophilic.pt'), 'rb'))
 #np.random.shuffle(test_set.numpy())
 #print(test_set)
 
@@ -167,7 +167,7 @@ G = to_networkx_conv(data, to_undirected=True)
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
 save_dir = 'SUBX_results'
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGGen', 'bigSG_explanations', 'SUBX')
 
 # Check if saved dictionaries already exist:
 #np.save(os.path.join(save_dir, f'{SUBX}_GCF_feat_{args.my_split}.npy'), gcf_feat)

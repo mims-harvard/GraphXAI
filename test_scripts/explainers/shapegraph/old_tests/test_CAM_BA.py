@@ -12,7 +12,7 @@ from graphxai.visualization.visualizations import visualize_subgraph_explanation
 from graphxai.visualization.explanation_vis import visualize_node_explanation
 from graphxai.gnn_models.node_classification import GCN, train, test
 #from graphxai.datasets import BAShapes
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 
 from graphxai.utils import to_networkx_conv
 
@@ -35,7 +35,7 @@ num_houses = 20
 # }
 
 #bah = BAShapes(**hyp)
-bah = ShapeGGenmodel_layers = 3)
+bah = ShapeGGen(model_layers = 3)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 1).nonzero(as_tuple=True)[0]
 

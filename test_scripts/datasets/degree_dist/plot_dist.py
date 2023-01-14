@@ -8,17 +8,17 @@ import matplotlib.pyplot as plt
 from read_edgeind import degdist, get_edge_index
 #plt.style.use('ggplot') # Use ggplot style
 
-from graphxai.datasets.load_synthetic import load_ShapeGraph
+from graphxai.datasets.load_synthetic import load_ShapeGGen
 
-#SG = load_ShapeGGennumber = 1)
-SG = load_ShapeGGen'data/ShapeGraph/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
+#SG = load_ShapeGGen(number = 1)
+SG = load_ShapeGGen('data/ShapeGGen/new_unzipped/SG_homophilic.pickle', root = '/Users/owenqueen/Desktop/HMS_research/graphxai_project/GraphXAI')
 
 G = SG.G
 
 degrees = sorted([d for n, d in G.degree()])
 
 plt.hist(degrees, color = 'green', bins = 15)
-#plt.title('Degree Distribution - ShapeGraph')
+#plt.title('Degree Distribution - ShapeGGen')
 plt.xlabel('Degree')
 plt.ylabel('log( Frequency )')
 fig = plt.gcf()

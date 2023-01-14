@@ -7,7 +7,7 @@ from graphxai.explainers import GNN_LRP
 from graphxai.explainers.utils.visualizations import visualize_subgraph_explanation
 from graphxai.gnn_models.node_classification import BA_Houses, GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic
-from old.new_BAshapes import ShapeGraph
+from old.new_BAshapes import ShapeGGen
 
 
 # n = 300
@@ -32,7 +32,7 @@ hyp = {
     'feature_method': 'gaussian_lv'
 }
 
-bah = ShapeGGen**hyp)
+bah = ShapeGGen(**hyp)
 data = bah.get_graph(use_fixed_split=True)
 inhouse = (data.y == 0).nonzero(as_tuple=True)[0]
 

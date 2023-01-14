@@ -6,18 +6,18 @@ import torch
 import sys; sys.path.append('/home/owq978/GraphXAI/formal')
 from metrics import *
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic
 
 my_base_graphxai = '/home/owq978/GraphXAI'
 
-bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGGen/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
-test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt'))
+test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGGen', 'test_inds_SG_homophilic.pt'))
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
@@ -28,9 +28,9 @@ pred = model(data.x.to(device), data.edge_index.to(device)) # Model predictions
 # Train entirety of PGExplainer:
 explainer = PGExplainer(model, emb_layer_name = 'gin3' if isinstance(model, GIN_3layer_basic) else 'gcn3', max_epochs=10, lr=0.1)
 explainer.train_explanation_model(data.to(device))
-torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph/get_exps', 'PGExplainer.pt'), 'wb'))
+torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGGen/get_exps', 'PGExplainer.pt'), 'wb'))
 
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'PGEX')
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGGen', 'bigSG_explanations', 'PGEX')
 
 for node_idx in tqdm.tqdm(test_set):
     node_idx = node_idx.item()
@@ -58,4 +58,4 @@ for node_idx in tqdm.tqdm(test_set):
     torch.save(exp, open(os.path.join(save_exp_dir, 'exp_node{:0<5d}.pt'.format(node_idx)), 'wb'))
 
 # Pickle the whole object:
-#torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGraph/get_exps', 'PGExplainer.pt'), 'wb'))
+#torch.save(explainer, open(os.path.join(my_base_graphxai, 'formal/ShapeGGen/get_exps', 'PGExplainer.pt'), 'wb'))

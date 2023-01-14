@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 
-from graphxai.datasets import ShapeGraph
+from graphxai.datasets import ShapeGGen
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GIN_2layer, train, test
 
 # Get a triangle:
@@ -14,7 +14,7 @@ triangle = nx.Graph()
 triangle.add_nodes_from([0, 1, 2])
 triangle.add_edges_from([(0, 1), (1, 2), (2, 0)])
 
-SG = ShapeGGen
+SG = ShapeGGen(
     model_layers = 3,
     shape = triangle, # NEW SHAPE
     num_subgraphs = 1300,
@@ -39,7 +39,7 @@ print('Class imbalance:')
 print('\t Y=0: {}'.format(torch.sum(data.y == 0).item()))
 print('\t Y=1: {}'.format(torch.sum(data.y == 1).item()))
 
-print('Made ShapeGraph')
+print('Made ShapeGGen')
 
 degrees = sorted([d for n, d in SG.G.degree()])
 

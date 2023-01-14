@@ -4,8 +4,8 @@ import torch
 import argparse
 import numpy as np
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GIN_3layer_basic, test, train, val, GSAGE_3layer, GAT_3layer_basic, JKNet_3layer
-from graphxai.datasets.shape_graph import ShapeGraph
-from graphxai.datasets  import load_ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
+from graphxai.datasets  import load_ShapeGGen
 
 
 parser = argparse.ArgumentParser()
@@ -13,7 +13,7 @@ parser.add_argument('--model', required=True, help='name of the gnn model to be 
 args = parser.parse_args()
 
 
-bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGraph/SG_homophily.pickle', 'rb'))
+bah = torch.load(open('/home/cha567/GraphXAI/data/ShapeGGen/SG_homophily.pickle', 'rb'))
 
 # Fix seed
 # seed_value=1

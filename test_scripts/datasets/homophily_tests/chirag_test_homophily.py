@@ -22,7 +22,7 @@ from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, GI
 from graphxai.gnn_models.node_classification import GCN, train, test
 from graphxai.gnn_models.node_classification.testing import GCN_3layer_basic, train, test
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils import to_networkx_conv, Explanation, distance
 from graphxai.utils.perturb import rewire_edges
 
@@ -38,7 +38,7 @@ def are_neighbors(edge_index, node1, node2):
     return (edge12.item() or edge21.item())
 
 
-def homophily_test(SG: ShapeGraph):
+def homophily_test(SG: ShapeGGen):
 
     data = SG.get_graph()
 
@@ -81,7 +81,7 @@ def homophily_test(SG: ShapeGraph):
 
 if __name__ == '__main__':
 
-    bah = ShapeGGenmodel_layers=3, seed=912, make_explanations=True, num_subgraphs=300, prob_connection=0.0075, subgraph_size=12, class_sep=0.5, n_informative=6, verify=True)
+    bah = ShapeGGen(model_layers=3, seed=912, make_explanations=True, num_subgraphs=300, prob_connection=0.0075, subgraph_size=12, class_sep=0.5, n_informative=6, verify=True)
    
     same, diff = homophily_test(bah)
     print('Samples in Class 0', torch.sum(bah.get_graph().y == 0).item())

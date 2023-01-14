@@ -1,6 +1,7 @@
 from .dataset import get_dataset, GraphDataset, NodeDataset
-from .load_synthetic import load_ShapeGraph
-from .shape_graph import ShapeGraph
+from .load_synthetic import load_ShapeGGen
+from .shape_graph import ShapeGGen
+from .ba_houses import BAHouses
 
 # Real-world datasets:
 from .real_world.MUTAG import MUTAG

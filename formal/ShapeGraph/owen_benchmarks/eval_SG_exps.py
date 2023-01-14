@@ -5,8 +5,8 @@ import random as rand
 import torch
 from metrics import *
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic, GCN_3layer_basic, GSAGE_3layer
 
@@ -110,9 +110,9 @@ torch.manual_seed(seed_value)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load ShapeGraph dataset
+# Load ShapeGGen dataset
 # Smaller graph is shown to work well with model accuracy, graph properties
-bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGraph/unzipped/SG_homophilic.pickle'), 'rb'))
+bah = torch.load(open(os.path.join(my_base_graphxai, 'data/ShapeGGen/unzipped/SG_homophilic.pickle'), 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 
@@ -148,7 +148,7 @@ delta = np.load(os.path.join(my_base_graphxai, 'formal', 'model_weights', 'model
 #save_exp_flag = args.exp_method.lower() in ['gnnex', 'pgex', 'pgmex', 'subx']
 save_exp_flag = True
 
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', args.exp_method.upper())
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGGen', 'bigSG_explanations', args.exp_method.upper())
 
 #for node_idx in tqdm.tqdm(inhouse[:1000]):
 for node_idx in tqdm.tqdm(test_set):

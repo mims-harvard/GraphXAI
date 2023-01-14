@@ -3,8 +3,8 @@ import argparse, sys, os
 import random as rand
 import torch
 from graphxai.explainers import *
-from graphxai.datasets  import load_ShapeGraph
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets  import load_ShapeGGen
+from graphxai.datasets.shape_graph import ShapeGGen
 from graphxai.utils.performance.load_exp import exp_exists
 from graphxai.gnn_models.node_classification.testing import GIN_3layer_basic
 
@@ -18,13 +18,13 @@ args = parser.parse_args()
 
 start_ind = args.start_ind
 
-bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGraph/unzipped/SG_homophilic.pickle', 'rb'))
+bah = torch.load(open('/home/owq978/GraphXAI/data/ShapeGGen/unzipped/SG_homophilic.pickle', 'rb'))
 
 data = bah.get_graph(use_fixed_split=True)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Test set remains static
-test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGraph', 'test_inds_SG_homophilic.pt')).numpy()
+test_set = torch.load(os.path.join(my_base_graphxai, 'formal', 'ShapeGGen', 'test_inds_SG_homophilic.pt')).numpy()
 # Test on 3-layer basic GCN, 16 hidden dim:
 model = GIN_3layer_basic(16, input_feat = 11, classes = 2).to(device)
 mpath = os.path.join(my_base_graphxai, 'formal/model_weights/model_homophily.pth')
@@ -39,7 +39,7 @@ if start_ind < 0:
 else:
     range_gen = range(start_ind, len(test_set) // 2 + 4, 3)
 
-save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGraph', 'bigSG_explanations', 'SUBX')
+save_exp_dir = os.path.join(my_base_graphxai, 'formal/ShapeGGen', 'bigSG_explanations', 'SUBX')
 
 for i in tqdm.tqdm(range_gen):
 

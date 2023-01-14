@@ -3,7 +3,7 @@ import torch
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from graphxai.datasets.shape_graph import ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
 
 def parse_args():
     arg_dict = {}
@@ -25,9 +25,9 @@ def parse_args():
 args = parse_args()
 
 start_time = time.time()
-bah = ShapeGGen**args, model_layers=3, verify = False)
+bah = ShapeGGen(**args, model_layers=3, verify = False)
 #bah.dump('large_graph.pickle')
-#pickle.dump(bah, open('ShapeGraph_large_graph.pickle', 'wb'), pickle.HIGHEST_PROTOCOL)
+#pickle.dump(bah, open('ShapeGGen_large_graph.pickle', 'wb'), pickle.HIGHEST_PROTOCOL)
 print('Time to make:', time.time() - start_time)
 data = bah.get_graph()
 G = bah.G

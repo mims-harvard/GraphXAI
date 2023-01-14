@@ -3,8 +3,8 @@ import torch
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from graphxai.datasets.shape_graph import ShapeGraph
-from graphxai.datasets import load_ShapeGraph
+from graphxai.datasets.shape_graph import ShapeGGen
+from graphxai.datasets import load_ShapeGGen
 
 
 start_time = time.time()
@@ -18,7 +18,7 @@ start_time = time.time()
     # n_informative = 4,
     # verify = True
 
-SG = ShapeGGen
+SG = ShapeGGen(
     model_layers = 3,
     make_explanations=True,
     num_subgraphs = 1200,
@@ -35,8 +35,8 @@ SG = ShapeGGen
 SG.dump('saved_SGs/SG_HF_HF=-1.pickle')
 print('Time to make (and dump):', time.time() - start_time)
 
-# tmp_loc = root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGraph')
-# SG = load_ShapeGGennumber=2, root = tmp_loc)
+# tmp_loc = root_data = os.path.join('/Users/owenqueen/Desktop/data', 'ShapeGGen')
+# SG = load_ShapeGGen(number=2, root = tmp_loc)
 
 data = SG.get_graph()
 G = SG.G
