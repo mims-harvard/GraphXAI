@@ -3,7 +3,7 @@ import networkx as nx
 from typing import List
 from torch_geometric.data import Data
 from torch_geometric.utils import convert, to_undirected
-from torch_geometric.utils.subgraph import k_hop_subgraph
+from torch_geometric.utils import k_hop_subgraph
 from networkx.linalg.graphmatrix import adjacency_matrix as adj_mat
 
 from .nx_modified import swap
