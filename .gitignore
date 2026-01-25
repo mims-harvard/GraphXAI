@@ -20,3 +20,6 @@ docs
 *.icloud
 test_scripts/visualizations*
 *.pdf
+env/
+venv/
+.venv/

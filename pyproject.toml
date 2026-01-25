@@ -1,0 +1,33 @@
+[project]
+name = "graphxai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "graphlime>=1.2.0",
+    "ipdb>=0.13.13",
+    "matplotlib>=3.10.8",
+    "networkx>=3.6.1",
+    "numpy>=2.4.1",
+    "pandas>=3.0.0",
+    "pgmpy>=1.0.0",
+    "rdkit-pypi>=2022.9.5",
+    "ruff>=0.14.14",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.0",
+    "tensorboardx>=2.6.4",
+    "torch>=2.10.0",
+    "torch-cluster>=1.6.3",
+    "torch-geometric>=2.7.0",
+    "torch-geometric-temporal>=0.56.2",
+    "torch-scatter>=2.1.2",
+    "torch-sparse>=0.6.18",
+    "torch-spline-conv>=1.2.2",
+]
+
+[tool.uv.extra-build-dependencies]
+torch-cluster = ["torch"]
+torch-scatter = ["torch"]
+torch-sparse = ["torch"]
+torch-spline-conv = ["torch"]
